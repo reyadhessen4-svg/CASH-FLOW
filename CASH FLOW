@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الإدارة المالية والتدفقات النقدية</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js (For UI Reactivity) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- xlsx for Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    
+    <!-- jsPDF & html2canvas for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+<div x-data="financialSystem()" class="flex h-screen overflow-hidden">
+    
+    <!-- Sidebar -->
+    <div class="w-64 bg-slate-900 text-white flex flex-col shadow-xl transition-all duration-300 max-md:absolute max-md:z-50 max-md:h-full" :class="{'max-md:-right-64': !sidebarOpen, 'max-md:right-0': sidebarOpen}">
+        <div class="p-6 border-b border-slate-700 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-blue-400">النظام المالي</h1>
+            <button @click="sidebarOpen = false" class="md:hidden text-white">&times;</button>
+        </div>
+        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+            <button @click="activeTab = 'dashboard'; sidebarOpen = false" :class="activeTab === 'dashboard' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-800 text-slate-300'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200">
+                <i class="fas fa-chart-pie w-5 text-center"></i> لوحة التحكم
+            </button>
+            <button @click="activeTab = 'cashflow'; sidebarOpen = false" :class="activeTab === 'cashflow' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-800 text-slate-300'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200">
+                <i class="fas fa-money-bill-wave w-5 text-center"></i> التدفقات النقدية
+            </button>
+            <button @click="activeTab = 'custody'; sidebarOpen = false" :class="activeTab === 'custody' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-800 text-slate-300'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200">
+                <i class="fas fa-wallet w-5 text-center"></i> العهد المالية
+            </button>
+            <button @click="activeTab = 'settlement'; sidebarOpen = false" :class="activeTab === 'settlement' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-800 text-slate-300'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200">
+                <i class="fas fa-file-invoice-dollar w-5 text-center"></i> تقفيل العهد
+            </button>
+            <button @click="activeTab = 'inquiry'; sidebarOpen = false" :class="activeTab === 'inquiry' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-800 text-slate-300'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200">
+                <i class="fas fa-search-dollar w-5 text-center"></i> استعلام العهد
+            </button>
+            <button @click="activeTab = 'report'; sidebarOpen = false" :class="activeTab === 'report' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-800 text-slate-300'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200">
+                <i class="fas fa-file-alt w-5 text-center"></i> تقرير التدفقات
+            </button>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 overflow-y-auto">
+        <!-- Top Bar -->
+        <div class="bg-white p-4 shadow-sm flex justify-between items-center sticky top-0 z-40">
+            <button @click="sidebarOpen = true" class="md:hidden text-gray-600"><i class="fas fa-bars fa-lg"></i></button>
+            <h2 class="text-xl font-bold text-gray-700" x-text="tabNames[activeTab]"></h2>
+            <div class="text-sm text-gray-500" x-text="new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })"></div>
+        </div>
+
+        <div class="p-6">
+            <!-- ================= DASHBOARD ================= -->
+            <div x-show="activeTab === 'dashboard'" x-cloak>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border flex items-center gap-4">
+                        <div class="p-3 bg-green-100 rounded-lg text-green-600"><i class="fas fa-arrow-down fa-2x"></i></div>
+                        <div><p class="text-sm text-gray-500">إجمالي الداخلة</p><p class="text-2xl font-bold text-green-600" x-text="formatCurrency(totalInflow)"></p></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border flex items-center gap-4">
+                        <div class="p-3 bg-red-100 rounded-lg text-red-600"><i class="fas fa-arrow-up fa-2x"></i></div>
+                        <div><p class="text-sm text-gray-500">إجمالي الخارجة</p><p class="text-2xl font-bold text-red-600" x-text="formatCurrency(totalOutflow)"></p></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border flex items-center gap-4">
+                        <div class="p-3 bg-blue-100 rounded-lg text-blue-600"><i class="fas fa-coins fa-2x"></i></div>
+                        <div><p class="text-sm text-gray-500">الرصيد الحالي</p><p class="text-2xl font-bold text-blue-600" x-text="formatCurrency(currentBalance)"></p></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border"><h3 class="font-bold mb-4">حركة التدفقات</h3><div class="chart-container"><canvas id="flowChart"></canvas></div></div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border"><h3 class="font-bold mb-4">تطور الرصيد النقدي</h3><div class="chart-container"><canvas id="balanceChart"></canvas></div></div>
+                </div>
+            </div>
+
+            <!-- ================= CASH FLOW MANAGEMENT ================= -->
+            <div x-show="activeTab === 'cashflow'" x-cloak>
+                <div class="flex justify-end mb-4 gap-2">
+                    <button @click="openFlowModal('inflow')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"><i class="fas fa-plus"></i> تدفق داخل</button>
+                    <button @click="openFlowModal('outflow')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"><i class="fas fa-plus"></i> تدفق خارج</button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-50 text-gray-600 border-b">
+                            <tr><th class="p-4 text-right">التاريخ</th><th class="p-4 text-right">النوع</th><th class="p-4 text-right">البند</th><th class="p-4 text-right">التصنيف</th><th class="p-4 text-right">المبلغ</th><th class="p-4 text-right">الرصيد التراكمي</th><th class="p-4 text-right">إجراء</th></tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="flow in getSortedFlows()" :key="flow.id">
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="p-4" x-text="flow.date"></td>
+                                    <td class="p-4"><span :class="flow.type === 'inflow' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="px-2 py-1 rounded text-xs font-bold" x-text="flow.type === 'inflow' ? 'داخل' : 'خارج'"></span></td>
+                                    <td class="p-4 font-medium" x-text="flow.item"></td>
+                                    <td class="p-4"><span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs" x-text="flow.category"></span></td>
+                                    <td class="p-4 font-bold" :class="flow.type === 'inflow' ? 'text-green-600' : 'text-red-600'" x-text="formatCurrency(flow.amount)"></td>
+                                    <td class="p-4 font-bold text-blue-600" x-text="formatCurrency(flow.runningBalance)"></td>
+                                    <td class="p-4 flex gap-2">
+                                        <button @click="editFlow(flow)" class="text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button>
+                                        <button @click="deleteFlow(flow.id)" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================= CUSTODY MANAGEMENT ================= -->
+            <div x-show="activeTab === 'custody'" x-cloak>
+                <div class="flex justify-end mb-4">
+                    <button @click="openCustodyModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"><i class="fas fa-plus"></i> إنشاء عهدة</button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-50 text-gray-600 border-b">
+                            <tr><th class="p-4 text-right">الموظف</th><th class="p-4 text-right">تاريخ الصرف</th><th class="p-4 text-right">إجمالي العهدة</th><th class="p-4 text-right">المصروف</th><th class="p-4 text-right">المتبقي</th><th class="p-4 text-right">الحالة</th><th class="p-4 text-right">إجراء</th></tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="c in custodies" :key="c.id">
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="p-4 font-medium" x-text="c.employee"></td>
+                                    <td class="p-4" x-text="c.date"></td>
+                                    <td class="p-4 font-bold text-blue-600" x-text="formatCurrency(c.amount)"></td>
+                                    <td class="p-4 text-red-500" x-text="formatCurrency(getCustodySpent(c))"></td>
+                                    <td class="p-4 text-green-600 font-bold" x-text="formatCurrency(c.amount - getCustodySpent(c))"></td>
+                                    <td class="p-4"><span :class="c.status === 'مفتوحة' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-200 text-gray-600'" class="px-3 py-1 rounded-full text-xs font-bold" x-text="c.status"></span></td>
+                                    <td class="p-4">
+                                        <button x-show="c.status === 'مفتوحة'" @click="enhanceCustody(c)" class="text-green-500 hover:text-green-700 text-xs font-bold"><i class="fas fa-plus-circle"></i> تعزيز</button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================= CUSTODY SETTLEMENT ================= -->
+            <div x-show="activeTab === 'settlement'" x-cloak>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border space-y-4">
+                        <h3 class="font-bold text-lg border-b pb-2">تسوية عهدة</h3>
+                        <select x-model="settlement.selectedCustodyId" class="w-full p-2 border rounded-lg">
+                            <option value="">اختر عهدة مفتوحة</option>
+                            <template x-for="c in openCustodies" :key="c.id">
+                                <option :value="c.id" x-text="c.employee + ' - متبقي: ' + formatCurrency(c.amount - getCustodySpent(c))"></option>
+                            </template>
+                        </select>
+                        
+                        <div x-show="settlement.selectedCustodyId" class="space-y-3 pt-4 border-t">
+                            <input type="date" x-model="settlement.date" class="w-full p-2 border rounded-lg">
+                            <input type="text" x-model="settlement.item" placeholder="البند (مثل: مصروف نقل)" class="w-full p-2 border rounded-lg">
+                            <select x-model="settlement.category" class="w-full p-2 border rounded-lg">
+                                <option value="تشغيلية">تشغيلية</option>
+                                <option value="استثمارية">استثمارية</option>
+                                <option value="تمويلية">تمويلية</option>
+                            </select>
+                            <input type="number" x-model="settlement.amount" placeholder="القيمة المصروفة من العهدة" class="w-full p-2 border rounded-lg">
+                            <button @click="settleCustody()" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">تسوية البند</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border">
+                        <h3 class="font-bold text-lg border-b pb-2 mb-4">تفاصيل العهدة الحالية</h3>
+                        <template x-if="settlement.selectedCustodyId">
+                            <div>
+                                <div class="space-y-2 mb-4">
+                                    <div class="flex justify-between bg-blue-50 p-2 rounded"><span>إجمالي العهدة:</span><span class="font-bold" x-text="formatCurrency(getSelectedCustody()?.amount)"></span></div>
+                                    <div class="flex justify-between bg-red-50 p-2 rounded"><span>المصروف:</span><span class="font-bold text-red-600" x-text="formatCurrency(getCustodySpent(getSelectedCustody()))"></span></div>
+                                    <div class="flex justify-between bg-green-50 p-2 rounded"><span>المتبقي (لا يرد للخزينة):</span><span class="font-bold text-green-600" x-text="formatCurrency(getSelectedCustody()?.amount - getCustodySpent(getSelectedCustody()))"></span></div>
+                                </div>
+                                <h4 class="font-bold text-sm mb-2">بنود الصرف:</h4>
+                                <ul class="space-y-2 max-h-40 overflow-y-auto">
+                                    <template x-for="st in getSelectedCustody()?.settlements || []" :key="st.id">
+                                        <li class="flex justify-between items-center bg-gray-50 p-2 rounded border text-sm">
+                                            <div><span class="font-bold" x-text="st.item"></span> <span class="text-gray-400" x-text="'(' + st.category + ')'"></span></div>
+                                            <span class="text-red-600 font-bold" x-text="formatCurrency(st.amount)"></span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </template>
+                        <div x-show="!settlement.selectedCustodyId" class="text-gray-400 text-center py-8">اختر عهدة لعرض تفاصيل التسوية</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= INQUIRY ================= -->
+            <div x-show="activeTab === 'inquiry'" x-cloak>
+                <div class="bg-white p-6 rounded-xl shadow-sm border mb-6">
+                    <div class="flex flex-wrap gap-4 items-end">
+                        <div class="flex flex-col"><label class="text-sm mb-1">الموظف</label><input type="text" x-model="inquiry.employee" class="p-2 border rounded-lg"></div>
+                        <div class="flex flex-col"><label class="text-sm mb-1">من تاريخ</label><input type="date" x-model="inquiry.from" class="p-2 border rounded-lg"></div>
+                        <div class="flex flex-col"><label class="text-sm mb-1">إلى تاريخ</label><input type="date" x-model="inquiry.to" class="p-2 border rounded-lg"></div>
+                        <button @click="applyInquiry()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">استعلام</button>
+                        <button @click="exportInquiryExcel()" class="bg-green-600 text-white px-4 py-2 rounded-lg"><i class="fas fa-file-excel"></i> Excel</button>
+                        <button @click="exportPDF('inquiry-print')" class="bg-red-600 text-white px-4 py-2 rounded-lg"><i class="fas fa-file-pdf"></i> PDF</button>
+                    </div>
+                </div>
+                <div id="inquiry-print" class="bg-white p-6 rounded-xl shadow-sm border">
+                    <template x-if="inquiryResult">
+                        <div>
+                            <h3 class="text-xl font-bold mb-4 text-center">تقرير عهدة الموظف: <span x-text="inquiryResult.employee"></span></h3>
+                            <div class="flex justify-around mb-4 bg-gray-50 p-4 rounded-lg">
+                                <div class="text-center"><p class="text-sm text-gray-500">إجمالي العهد</p><p class="font-bold text-blue-600" x-text="formatCurrency(inquiryResult.totalAmount)"></p></div>
+                                <div class="text-center"><p class="text-sm text-gray-500">إجمالي المصروف</p><p class="font-bold text-red-600" x-text="formatCurrency(inquiryResult.totalSpent)"></p></div>
+                                <div class="text-center"><p class="text-sm text-gray-500">المتبقي</p><p class="font-bold text-green-600" x-text="formatCurrency(inquiryResult.remaining)"></p></div>
+                            </div>
+                            <table class="w-full text-sm border">
+                                <thead class="bg-gray-100"><tr><th class="p-2 border text-right">التاريخ</th><th class="p-2 border text-right">البند</th><th class="p-2 border text-right">التصنيف</th><th class="p-2 border text-right">المبلغ</th></tr></thead>
+                                <tbody>
+                                    <template x-for="s in inquiryResult.settlements" :key="s.id">
+                                        <tr><td class="p-2 border" x-text="s.date"></td><td class="p-2 border" x-text="s.item"></td><td class="p-2 border" x-text="s.category"></td><td class="p-2 border text-red-600" x-text="formatCurrency(s.amount)"></td></tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- ================= CASH FLOW REPORT ================= -->
+            <div x-show="activeTab === 'report'" x-cloak>
+                <div class="bg-white p-6 rounded-xl shadow-sm border mb-6">
+                    <div class="flex flex-wrap gap-4 items-end">
+                        <div class="flex flex-col"><label class="text-sm mb-1">من تاريخ</label><input type="date" x-model="report.from" class="p-2 border rounded-lg"></div>
+                        <div class="flex flex-col"><label class="text-sm mb-1">إلى تاريخ</label><input type="date" x-model="report.to" class="p-2 border rounded-lg"></div>
+                        <button @click="generateReport()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">عرض التقرير</button>
+                        <button @click="exportReportExcel()" class="bg-green-600 text-white px-4 py-2 rounded-lg"><i class="fas fa-file-excel"></i> Excel</button>
+                        <button @click="exportPDF('report-print')" class="bg-red-600 text-white px-4 py-2 rounded-lg"><i class="fas fa-file-pdf"></i> PDF</button>
+                    </div>
+                </div>
+                <div id="report-print" class="bg-white p-8 rounded-xl shadow-sm border">
+                    <div class="text-center border-b pb-4 mb-6">
+                        <h3 class="text-xl font-bold text-gray-800">قائمة التدفقات النقدية</h3>
+                        <p class="text-gray-500">من <span x-text="report.from"></span> إلى <span x-text="report.to"></span></p>
+                    </div>
+                    <template x-if="report.data">
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border"><span class="font-bold text-gray-700">رصيد بداية الفترة</span><span class="font-bold text-gray-900" x-text="formatCurrency(report.data.openingBalance)"></span></div>
+                            
+                            <div class="border-b pb-4 space-y-2">
+                                <h4 class="font-bold text-blue-800 bg-blue-50 p-2 rounded">التدفقات من الأنشطة التشغيلية</h4>
+                                <div class="flex justify-between text-sm text-gray-600 mr-4"><span>الإيرادات التشغيلية الداخلة</span><span x-text="formatCurrency(report.data.operatingIn)"></span></div>
+                                <div class="flex justify-between text-sm text-gray-600 mr-4"><span>المصروفات التشغيلية الخارجة</span><span x-text="'(' + formatCurrency(report.data.operatingOut) + ')'"></span></div>
+                                <div class="flex justify-between font-bold mr-4 text-blue-700"><span>صافي التدفق من الأنشطة التشغيلية</span><span x-text="formatCurrency(report.data.netOperating)"></span></div>
+                            </div>
+
+                            <div class="border-b pb-4 space-y-2">
+                                <h4 class="font-bold text-purple-800 bg-purple-50 p-2 rounded">التدفقات من الأنشطة الاستثمارية</h4>
+                                <div class="flex justify-between text-sm text-gray-600 mr-4"><span>الإيرادات الاستثمارية الداخلة</span><span x-text="formatCurrency(report.data.investingIn)"></span></div>
+                                <div class="flex justify-between text-sm text-gray-600 mr-4"><span>المصروفات الاستثمارية الخارجة</span><span x-text="'(' + formatCurrency(report.data.investingOut) + ')'"></span></div>
+                                <div class="flex justify-between font-bold mr-4 text-purple-700"><span>صافي التدفق من الأنشطة الاستثمارية</span><span x-text="formatCurrency(report.data.netInvesting)"></span></div>
+                            </div>
+
+                            <div class="border-b pb-4 space-y-2">
+                                <h4 class="font-bold text-green-800 bg-green-50 p-2 rounded">التدفقات من الأنشطة التمويلية</h4>
+                                <div class="flex justify-between text-sm text-gray-600 mr-4"><span>الإيرادات التمويلية الداخلة</span><span x-text="formatCurrency(report.data.financingIn)"></span></div>
+                                <div class="flex justify-between text-sm text-gray-600 mr-4"><span>المصروفات التمويلية الخارجة</span><span x-text="'(' + formatCurrency(report.data.financingOut) + ')'"></span></div>
+                                <div class="flex justify-between font-bold mr-4 text-green-700"><span>صافي التدفق من الأنشطة التمويلية</span><span x-text="formatCurrency(report.data.netFinancing)"></span></div>
+                            </div>
+
+                            <div class="space-y-3 pt-2">
+                                <div class="flex justify-between items-center bg-yellow-50 p-3 rounded-lg border border-yellow-100"><span class="font-bold text-yellow-800">صافي التدفق النقدي للفترة</span><span class="font-bold text-yellow-900 text-lg" x-text="formatCurrency(report.data.netCashFlow)"></span></div>
+                                <div class="flex justify-between items-center bg-slate-800 text-white p-4 rounded-lg"><span class="font-bold text-lg">رصيد نهاية الفترة</span><span class="font-bold text-xl" x-text="formatCurrency(report.data.closingBalance)"></span></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ================= MODALS ================= -->
+    <!-- Flow Modal -->
+    <div x-show="showFlowModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="showFlowModal = false">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-4">
+            <h3 class="text-xl font-bold text-gray-800" x-text="flowForm.id ? 'تعديل التدفق' : (flowForm.type === 'inflow' ? 'إضافة تدفق داخل' : 'إضافة تدفق خارج')"></h3>
+            <input type="date" x-model="flowForm.date" class="w-full p-2 border rounded-lg">
+            <input type="text" x-model="flowForm.item" placeholder="البند (مثال: تحصيل عملاء)" class="w-full p-2 border rounded-lg">
+            <select x-model="flowForm.category" class="w-full p-2 border rounded-lg">
+                <option value="تشغيلية">تشغيلية</option>
+                <option value="استثمارية">استثمارية</option>
+                <option value="تمويلية">تمويلية</option>
+            </select>
+            <input type="number" x-model="flowForm.amount" placeholder="المبلغ" class="w-full p-2 border rounded-lg">
+            <textarea x-model="flowForm.notes" placeholder="ملاحظات" class="w-full p-2 border rounded-lg"></textarea>
+            <div class="flex gap-4">
+                <button @click="saveFlow()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">حفظ</button>
+                <button @click="showFlowModal = false" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custody Modal -->
+    <div x-show="showCustodyModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="showCustodyModal = false">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-4">
+            <h3 class="text-xl font-bold text-gray-800" x-text="custodyForm.id ? 'تعزيز عهدة' : 'إنشاء عهدة جديدة'"></h3>
+            <template x-if="!custodyForm.id">
+                <div class="space-y-4">
+                    <input type="text" x-model="custodyForm.employee" placeholder="اسم الموظف" class="w-full p-2 border rounded-lg">
+                    <input type="date" x-model="custodyForm.date" class="w-full p-2 border rounded-lg">
+                    <input type="number" x-model="custodyForm.amount" placeholder="قيمة العهدة" class="w-full p-2 border rounded-lg">
+                </div>
+            </template>
+            <template x-if="custodyForm.id">
+                <div class="space-y-4">
+                    <p class="text-gray-600">تعزيز عهدة: <span class="font-bold" x-text="custodyForm.employee"></span></p>
+                    <input type="number" x-model="custodyForm.additionalAmount" placeholder="مبلغ التعزيز" class="w-full p-2 border rounded-lg">
+                </div>
+            </template>
+            <textarea x-model="custodyForm.notes" placeholder="ملاحظات" class="w-full p-2 border rounded-lg"></textarea>
+            <div class="flex gap-4">
+                <button @click="saveCustody()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">حفظ</button>
+                <button @click="showCustodyModal = false" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- FontAwesome for Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<script>
+function financialSystem() {
+    return {
+        activeTab: 'dashboard',
+        sidebarOpen: false,
+        tabNames: {
+            'dashboard': 'لوحة التحكم والتحليلات',
+            'cashflow': 'إدارة التدفقات النقدية',
+            'custody': 'إدارة العهد المالية',
+            'settlement': 'تقفيل وتسوية العهد',
+            'inquiry': 'استعلام وتحليل العهد',
+            'report': 'تقرير التدفقات النقدية'
+        },
+
+        // Data Store
+        flows: JSON.parse(localStorage.getItem('fin_flows')) || [],
+        custodies: JSON.parse(localStorage.getItem('fin_custodies')) || [],
+
+        // Modals & Forms
+        showFlowModal: false,
+        flowForm: { id: null, type: 'inflow', date: '', item: '', category: 'تشغيلية', amount: '', notes: '' },
+        
+        showCustodyModal: false,
+        custodyForm: { id: null, employee: '', date: '', amount: '', notes: '', additionalAmount: '' },
+
+        // Settlement & Inquiry & Reports
+        settlement: { selectedCustodyId: '', date: '', item: '', category: 'تشغيلية', amount: '' },
+        inquiry: { employee: '', from: '', to: '' },
+        inquiryResult: null,
+        report: { from: '', to: '', data: null },
+
+        // Charts instances
+        flowChartInstance: null,
+        balanceChartInstance: null,
+
+        init() {
+            this.$watch('flows', (val) => { localStorage.setItem('fin_flows', JSON.stringify(val)); this.updateCharts(); });
+            this.$watch('custodies', (val) => { localStorage.setItem('fin_custodies', JSON.stringify(val)); });
+            this.$watch('activeTab', (val) => { if(val === 'dashboard') setTimeout(() => this.updateCharts(), 100); });
+            this.updateCharts();
+        },
+
+        // Utilities
+        formatCurrency(amount) { return new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(amount || 0); },
+        
+        get totalInflow() { return this.flows.filter(f => f.type === 'inflow').reduce((s, f) => s + Number(f.amount), 0); },
+        get totalOutflow() { return this.flows.filter(f => f.type === 'outflow').reduce((s, f) => s + Number(f.amount), 0); },
+        get currentBalance() { return this.totalInflow - this.totalOutflow; },
+
+        get openCustodies() { return this.custodies.filter(c => c.status === 'مفتوحة'); },
+
+        // Sorted Flows with Running Balance
+        getSortedFlows() {
+            let balance = 0;
+            return [...this.flows].sort((a, b) => new Date(a.date) - new Date(b.date)).map(f => {
+                balance += f.type === 'inflow' ? Number(f.amount) : -Number(f.amount);
+                return { ...f, runningBalance: balance };
+            });
+        },
+
+        // Flow CRUD
+        openFlowModal(type) {
+            this.flowForm = { id: null, type, date: new Date().toISOString().split('T')[0], item: '', category: 'تشغيلية', amount: '', notes: '' };
+            this.showFlowModal = true;
+        },
+        editFlow(flow) {
+            this.flowForm = {...flow};
+            this.showFlowModal = true;
+        },
+        saveFlow() {
+            if (!this.flowForm.date || !this.flowForm.item || !this.flowForm.amount) return alert("الرجاء إكمال البيانات");
+            if (this.flowForm.id) {
+                this.flows = this.flows.map(f => f.id === this.flowForm.id ? this.flowForm : f);
+            } else {
+                this.flows.push({ ...this.flowForm, id: Date.now().toString() });
+            }
+            this.showFlowModal = false;
+        },
+        deleteFlow(id) {
+            if(confirm("هل أنت متأكد من الحذف؟")) this.flows = this.flows.filter(f => f.id !== id);
+        },
+
+        // Custody CRUD
+        openCustodyModal() {
+            this.custodyForm = { id: null, employee: '', date: new Date().toISOString().split('T')[0], amount: '', notes: '', additionalAmount: '' };
+            this.showCustodyModal = true;
+        },
+        enhanceCustody(c) {
+            this.custodyForm = { ...c, additionalAmount: '' };
+            this.showCustodyModal = true;
+        },
+        saveCustody() {
+            if (this.custodyForm.id) {
+                // Enhance
+                if(Number(this.custodyForm.additionalAmount) <= 0) return alert("أدخل مبلغ التعزيز");
+                this.custodies = this.custodies.map(c => {
+                    if (c.id === this.custodyForm.id) c.amount = Number(c.amount) + Number(this.custodyForm.additionalAmount);
+                    return c;
+                });
+                // Add Outflow for enhancement
+                this.flows.push({ id: Date.now().toString(), type: 'outflow', date: new Date().toISOString().split('T')[0], item: 'عهد موظفين (تعزيز)', category: 'تشغيلية', amount: this.custodyForm.additionalAmount, notes: 'تعزيز عهدة ' + this.custodyForm.employee });
+            } else {
+                // New
+                if (!this.custodyForm.employee || !this.custodyForm.amount) return alert("الرجاء إكمال البيانات");
+                this.custodies.push({ ...this.custodyForm, id: Date.now().toString(), amount: Number(this.custodyForm.amount), status: 'مفتوحة', settlements: [] });
+                // Auto Outflow
+                this.flows.push({ id: (Date.now()+1).toString(), type: 'outflow', date: this.custodyForm.date, item: 'عهد موظفين', category: 'تشغيلية', amount: this.custodyForm.amount, notes: 'عهدة جديدة - ' + this.custodyForm.employee });
+            }
+            this.showCustodyModal = false;
+        },
+
+        // Settlement Logic
+        getSelectedCustody() { return this.custodies.find(c => c.id === this.settlement.selectedCustodyId); },
+        getCustodySpent(c) { return c ? (c.settlements || []).reduce((s, st) => s + Number(st.amount), 0) : 0; },
+        settleCustody() {
+            if(!this.settlement.item || !this.settlement.amount) return alert("أكمل بيانات الصرف");
+            this.custodies = this.custodies.map(c => {
+                if (c.id === this.settlement.selectedCustodyId) {
+                    c.settlements.push({ id: Date.now().toString(), date: this.settlement.date, item: this.settlement.item, category: this.settlement.category, amount: Number(this.settlement.amount) });
+                }
+                return c;
+            });
+            this.settlement = { selectedCustodyId: this.settlement.selectedCustodyId, date: '', item: '', category: 'تشغيلية', amount: '' };
+        },
+
+        // Inquiry Logic
+        applyInquiry() {
+            const emp = this.inquiry.employee;
+            if(!emp) return alert("أدخل اسم الموظف");
+            let filtered = this.custodies.filter(c => c.employee.includes(emp));
+            if(this.inquiry.from) filtered = filtered.filter(c => c.date >= this.inquiry.from);
+            if(this.inquiry.to) filtered = filtered.filter(c => c.date <= this.inquiry.to);
+
+            let result = { employee: emp, totalAmount: 0, totalSpent: 0, settlements: [] };
+            filtered.forEach(c => {
+                result.totalAmount += Number(c.amount);
+                (c.settlements||[]).forEach(s => {
+                    result.totalSpent += Number(s.amount);
+                    result.settlements.push(s);
+                });
+            });
+            result.remaining = result.totalAmount - result.totalSpent;
+            this.inquiryResult = result;
+        },
+
+        // Report Logic
+        generateReport() {
+            if(!this.report.from || !this.report.to) return alert("حدد الفترة");
+            const from = this.report.from;
+            const to = this.report.to;
+            
+            // Opening Balance (Before 'From' date)
+            const beforeFlows = this.flows.filter(f => f.date < from);
+            const openingBalance = beforeFlows.reduce((acc, curr) => acc + (curr.type === 'inflow' ? Number(curr.amount) : -Number(curr.amount)), 0);
+
+            // Period Flows
+            const periodFlows = this.flows.filter(f => f.date >= from && f.date <= to);
+            const calc = (type, cat) => periodFlows.filter(f => f.type === type && f.category === cat).reduce((s, f) => s + Number(f.amount), 0);
+
+            const operatingIn = calc('inflow', 'تشغيلية');
+            const operatingOut = calc('outflow', 'تشغيلية');
+            const investingIn = calc('inflow', 'استثمارية');
+            const investingOut = calc('outflow', 'استثمارية');
+            const financingIn = calc('inflow', 'تمويلية');
+            const financingOut = calc('outflow', 'تمويلية');
+
+            const netOperating = operatingIn - operatingOut;
+            const netInvesting = investingIn - investingOut;
+            const netFinancing = financingIn - financingOut;
+            const netCashFlow = netOperating + netInvesting + netFinancing;
+            const closingBalance = openingBalance + netCashFlow;
+
+            this.report.data = { openingBalance, operatingIn, operatingOut, netOperating, investingIn, investingOut, netInvesting, financingIn, financingOut, netFinancing, netCashFlow, closingBalance };
+        },
+
+        // Exports
+        exportReportExcel() {
+            if(!this.report.data) return;
+            const ws = XLSX.utils.json_to_sheet([this.report.data]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "تقرير التدفقات");
+            XLSX.writeFile(wb, "Cash_Flow_Report.xlsx");
+        },
+        exportInquiryExcel() {
+            if(!this.inquiryResult) return;
+            const ws = XLSX.utils.json_to_sheet(this.inquiryResult.settlements);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "استعلام العهد");
+            XLSX.writeFile(wb, "Custody_Inquiry.xlsx");
+        },
+        exportPDF(divId) {
+            const input = document.getElementById(divId);
+            html2canvas(input, { scale: 2 }).then((canvas) => {
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                pdf.addImage(imgData, 'PNG', 10, 10, 190, 0);
+                pdf.save("Report.pdf");
+            });
+        },
+
+        // Chart Rendering
+        updateCharts() {
+            if(this.activeTab !== 'dashboard') return;
+            
+            const sortedFlows = this.getSortedFlows();
+            const labels = sortedFlows.map(f => f.date);
+            const inflowsData = sortedFlows.map(f => f.type === 'inflow' ? Number(f.amount) : 0);
+            const outflowsData = sortedFlows.map(f => f.type === 'outflow' ? Number(f.amount) : 0);
+            const balanceData = sortedFlows.map(f => f.runningBalance);
+
+            // Flow Chart
+            const ctx1 = document.getElementById('flowChart')?.getContext('2d');
+            if(ctx1) {
+                if(this.flowChartInstance) this.flowChartInstance.destroy();
+                this.flowChartInstance = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'تدفقات داخلة', data: inflowsData, backgroundColor: '#10b981' },
+                            { label: 'تدفقات خارجة', data: outflowsData, backgroundColor: '#ef4444' }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+                });
+            }
+
+            // Balance Chart
+            const ctx2 = document.getElementById('balanceChart')?.getContext('2d');
+            if(ctx2) {
+                if(this.balanceChartInstance) this.balanceChartInstance.destroy();
+                this.balanceChartInstance = new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{ label: 'الرصيد التراكمي', data: balanceData, borderColor: '#3b82f6', fill: true, tension: 0.3, backgroundColor: 'rgba(59, 130, 246, 0.1)' }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+                });
+            }
+        }
+    }
+}
+</script>
+
+</body>
+</html>
