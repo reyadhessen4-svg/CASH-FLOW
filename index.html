@@ -38,7 +38,6 @@
         window.firebaseUpdateDoc = updateDoc; window.firebaseDoc = doc;
         window.firebaseSetDoc = setDoc; window.firebaseGetDoc = getDoc;
         window.firebaseOnSnapshot = onSnapshot; window.arrayUnion = arrayUnion;
-        
         window.firebaseReady = true;
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
@@ -57,9 +56,7 @@
         .input-dark { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; }
         .input-dark:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); }
         .input-dark::placeholder { color: #64748b; }
-        
-        /* Report Print Styles */
-        .report-print-area { background: #fff; color: #1e293b; font-family: 'Segoe UI', Tahoma, sans-serif; padding: 40px; direction: rtl; }
+        .report-print-area { background: #ffffff; color: #1e293b; font-family: 'Segoe UI', Tahoma, sans-serif; padding: 40px; direction: rtl; }
         .report-print-area h2 { color: #1e3a8a; border-bottom: 3px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 20px; }
         .report-print-area table { width: 100%; border-collapse: collapse; margin: 15px 0; }
         .report-print-area th { background: #1e3a8a; color: #fff; padding: 10px; text-align: right; font-size: 13px; }
@@ -75,7 +72,7 @@
 
 <div x-data="financialSystem()" class="min-h-screen">
 
-    <!-- LOGIN / REGISTER -->
+    <!-- LOGIN -->
     <div x-show="!isLoggedIn" x-cloak class="min-h-screen flex items-center justify-center bg-slate-900 p-4">
         <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-6 border border-slate-700">
             <div class="text-center">
@@ -121,27 +118,23 @@
                     <div class="flex justify-end mb-4 gap-2 flex-wrap">
                         <button @click="openFlowModal('inflow')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition"><i class="fas fa-plus"></i> تدفق داخل</button>
                         <button @click="openFlowModal('outflow')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition"><i class="fas fa-plus"></i> تدفق خارج</button>
-                        <button @click="openOpeningBalanceModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition"><i class="fas fa-flag"></i> رصيد بداية النقدية</button>
-                        <button @click="downloadFlowTemplate()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition"><i class="fas fa-download"></i> تحميل قالب Excel</button>
-                        <label class="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition cursor-pointer"><i class="fas fa-upload"></i> استيراد من Excel<input type="file" accept=".xlsx,.xls" @change="importFlowsFromExcel($event)" class="hidden"></label>
+                        <button @click="openOpeningBalanceModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition" x-show="!hasOpeningBalance"><i class="fas fa-flag"></i> رصيد بداية النقدية</button>
+                        <button @click="downloadFlowTemplate()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition"><i class="fas fa-download"></i> قالب Excel</button>
+                        <label class="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition cursor-pointer"><i class="fas fa-upload"></i> استيراد<input type="file" accept=".xlsx,.xls" @change="importFlowsFromExcel($event)" class="hidden"></label>
                     </div>
-                    <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700">
-                        <div class="overflow-x-auto">
+                    <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700"><div class="overflow-x-auto">
                         <table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-3 text-right text-slate-300">التاريخ</th><th class="p-3 text-right text-slate-300">النوع</th><th class="p-3 text-right text-slate-300">البند</th><th class="p-3 text-right text-slate-300">التفصيل</th><th class="p-3 text-right text-slate-300">التصنيف</th><th class="p-3 text-right text-slate-300">المبلغ</th><th class="p-3 text-right text-slate-300">إجراء</th></tr></thead>
-                        <tbody><template x-for="flow in getSortedFlows()" :key="flow.id"><tr class="table-dark-row"><td class="p-3 text-slate-300 whitespace-nowrap" x-text="flow.date"></td><td class="p-3"><span :class="flow.item === 'رصيد بداية المدة' ? 'bg-purple-500/10 text-purple-400' : (flow.type === 'inflow' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400')" class="px-2 py-1 rounded text-xs font-bold" x-text="flow.item === 'رصيد بداية المدة' ? 'بداية مدة' : (flow.type === 'inflow' ? 'داخل' : 'خارج')"></span></td><td class="p-3 text-slate-200" x-text="flow.item"></td><td class="p-3 text-slate-400 text-xs" x-text="flow.subItem || '-'"></td><td class="p-3"><span class="px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded text-xs" x-text="flow.category"></span></td><td class="p-3 font-bold" :class="flow.type === 'inflow' ? 'text-emerald-400' : 'text-red-400'" x-text="formatCurrency(flow.amount)"></td><td class="p-3 flex gap-3"><button @click="editFlow(flow)" class="text-blue-400 hover:text-blue-300"><i class="fas fa-edit"></i></button><button @click="deleteFlow(flow.id)" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button></td></tr></template></tbody></table>
-                        </div>
-                    </div>
+                        <tbody><template x-for="flow in getSortedFlows()" :key="flow.id"><tr class="table-dark-row" :class="flow.item === 'رصيد بداية المدة' ? 'bg-purple-900/10' : ''"><td class="p-3 text-slate-300 whitespace-nowrap" x-text="flow.date"></td><td class="p-3"><span :class="flow.item === 'رصيد بداية المدة' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : (flow.type === 'inflow' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400')" class="px-2 py-1 rounded text-xs font-bold" x-text="flow.item === 'رصيد بداية المدة' ? 'رصيد بداية' : (flow.type === 'inflow' ? 'داخل' : 'خارج')"></span></td><td class="p-3 font-medium" :class="flow.item === 'رصيد بداية المدة' ? 'text-purple-300' : 'text-slate-200'" x-text="flow.item"></td><td class="p-3 text-slate-400 text-xs" x-text="flow.subItem || '-'"></td><td class="p-3"><span :class="flow.category === 'رصيد بداية' ? 'bg-purple-500/10 text-purple-400' : 'bg-indigo-500/10 text-indigo-400'" class="px-2 py-1 rounded text-xs" x-text="flow.category"></span></td><td class="p-3 font-bold" :class="flow.type === 'inflow' ? 'text-emerald-400' : 'text-red-400'" x-text="formatCurrency(flow.amount)"></td><td class="p-3 flex gap-3"><button @click="editFlow(flow)" class="text-blue-400 hover:text-blue-300"><i class="fas fa-edit"></i></button><button @click="deleteFlow(flow.id)" class="text-red-400 hover:text-red-300" x-show="flow.item !== 'رصيد بداية المدة'"><i class="fas fa-trash"></i></button></td></tr></template></tbody></table>
+                    </div></div>
                 </div>
 
                 <!-- CUSTODY -->
                 <div x-show="activeTab === 'custody'" x-cloak>
                     <div class="flex justify-end mb-4 gap-2"><button @click="openCustodyModal()" class="primary-gradient text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md"><i class="fas fa-plus"></i> إنشاء عهدة</button></div>
-                    <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700">
-                        <div class="overflow-x-auto">
-                        <table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-3 text-right text-slate-300">الموظف</th><th class="p-3 text-right text-slate-300">الإجمالي</th><th class="p-3 text-right text-slate-300">المصروف</th><th class="p-3 text-right text-slate-300">المتبقي</th><th class="p-3 text-right text-slate-300">الحالة</th><th class="p-3 text-right text-slate-300">إجراء</th></tr></thead>
-                        <tbody><template x-for="c in custodies" :key="c.id"><tr class="table-dark-row"><td class="p-3 font-medium text-slate-200" x-text="c.employee"></td><td class="p-3 font-bold text-blue-400" x-text="formatCurrency(c.amount)"></td><td class="p-3 text-red-400" x-text="formatCurrency(getCustodySpent(c))"></td><td class="p-3 text-emerald-400 font-bold" x-text="formatCurrency(c.amount - getCustodySpent(c))"></td><td class="p-3"><span :class="c.status === 'مفتوحة' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-1 rounded text-xs font-bold" x-text="c.status"></span></td><td class="p-3 flex gap-2 flex-wrap"><button @click="editCustody(c)" class="text-blue-400 hover:text-blue-300" title="تعديل"><i class="fas fa-edit"></i></button><button @click="deleteCustody(c)" class="text-red-400 hover:text-red-300" title="حذف"><i class="fas fa-trash"></i></button><button x-show="c.status === 'مفتوحة'" @click="enhanceCustody(c)" class="text-emerald-400 hover:text-emerald-300" title="تعزيز"><i class="fas fa-plus-circle"></i></button><button x-show="c.status === 'مفتوحة'" @click="openCloseCustodyModal(c)" class="text-amber-400 hover:text-amber-300" title="تقفيل وإصدار تقرير"><i class="fas fa-file-invoice"></i></button></td></tr></template></tbody></table>
-                        </div>
-                    </div>
+                    <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700"><div class="overflow-x-auto">
+                        <table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-3 text-right text-slate-300">الموظف</th><th class="p-3 text-right text-slate-300">الإجمالي</th><th class="p-3 text-right text-slate-300">المصروف</th><th class="p-3 text-right text-slate-300">المتبقي</th><th class="p-3 text-right text-slate-300">ملاحظة</th><th class="p-3 text-right text-slate-300">الحالة</th><th class="p-3 text-right text-slate-300">إجراء</th></tr></thead>
+                        <tbody><template x-for="c in custodies" :key="c.id"><tr class="table-dark-row" :class="c.isCarriedForward ? 'bg-amber-900/5' : ''"><td class="p-3 font-medium text-slate-200" x-text="c.employee"></td><td class="p-3 font-bold text-blue-400" x-text="formatCurrency(c.amount)"></td><td class="p-3 text-red-400" x-text="formatCurrency(getCustodySpent(c))"></td><td class="p-3 text-emerald-400 font-bold" x-text="formatCurrency(c.amount - getCustodySpent(c))"></td><td class="p-3 text-xs"><span x-show="c.isCarriedForward" class="text-amber-400"><i class="fas fa-exchange-alt"></i> مرحّل</span><span x-show="c.isOpeningBalance && !c.isCarriedForward" class="text-purple-400"><i class="fas fa-flag"></i> رصيد بداية</span></td><td class="p-3"><span :class="c.status === 'مفتوحة' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-1 rounded text-xs font-bold" x-text="c.status"></span></td><td class="p-3 flex gap-2 flex-wrap"><button @click="editCustody(c)" class="text-blue-400 hover:text-blue-300" title="تعديل"><i class="fas fa-edit"></i></button><button @click="deleteCustody(c)" class="text-red-400 hover:text-red-300" title="حذف"><i class="fas fa-trash"></i></button><button x-show="c.status === 'مفتوحة'" @click="enhanceCustody(c)" class="text-emerald-400 hover:text-emerald-300" title="تعزيز"><i class="fas fa-plus-circle"></i></button><button x-show="c.status === 'مفتوحة'" @click="openCloseCustodyModal(c)" class="text-amber-400 hover:text-amber-300" title="تقفيل"><i class="fas fa-file-invoice"></i></button></td></tr></template></tbody></table>
+                    </div></div>
                 </div>
 
                 <!-- SETTLEMENT -->
@@ -161,7 +154,7 @@
                             </div>
                         </div>
                         <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700">
-                            <h3 class="font-bold text-lg border-b border-slate-700 pb-2 mb-4 text-white">بنود الصرف <span x-show="settlement.selectedCustodyId" class="text-xs text-slate-500">(لحذف بند اضغط السلة)</span></h3>
+                            <h3 class="font-bold text-lg border-b border-slate-700 pb-2 mb-4 text-white">بنود الصرف</h3>
                             <div x-show="settlement.selectedCustodyId">
                                 <ul class="space-y-2 max-h-[500px] overflow-y-auto"><template x-for="st in getSelectedCustody()?.settlements || []" :key="st.id"><li class="bg-slate-800 p-3 rounded border border-slate-700 text-sm">
                                     <div class="flex justify-between items-start"><div class="flex-1"><span class="font-bold text-slate-200" x-text="st.item"></span> <span class="text-slate-500 text-xs" x-text="st.subItem ? '('+st.subItem+')' : ''"></span><br><span class="text-amber-400 text-xs mt-1 inline-block" x-show="st.accountingDirection"><i class="fas fa-book-open"></i> <span x-text="st.accountingDirection"></span></span><div class="text-slate-600 text-xs mt-1"><span x-text="st.date"></span> | <span x-text="st.category"></span></div></div><div class="flex items-center gap-3"><span class="text-red-400 font-bold" x-text="formatCurrency(st.amount)"></span><button @click="deleteSettlementItem(st.id)" class="text-red-500 hover:text-red-400"><i class="fas fa-trash-alt text-xs"></i></button></div></div>
@@ -172,16 +165,58 @@
                     </div>
                 </div>
 
-                <!-- INQUIRY -->
+                <!-- INQUIRY (FIXED) -->
                 <div x-show="activeTab === 'inquiry'" x-cloak>
                     <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 mb-6"><div class="flex flex-wrap gap-4 items-end"><div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">الموظف</label><input type="text" x-model="inquiry.employee" class="p-2 rounded-lg input-dark"></div><div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">من تاريخ</label><input type="date" x-model="inquiry.from" class="p-2 rounded-lg input-dark"></div><div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">إلى تاريخ</label><input type="date" x-model="inquiry.to" class="p-2 rounded-lg input-dark"></div><button @click="applyInquiry()" class="primary-gradient text-white px-4 py-2 rounded-lg shadow-md">استعلام</button><button @click="exportInquiryExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-excel"></i> Excel</button><button @click="exportPDF('inquiry-print')" class="bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-pdf"></i> PDF</button></div></div>
-                    <div id="inquiry-print" class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700"><template x-if="inquiryResult"><div><h3 class="text-xl font-bold mb-4 text-center text-white">تقرير عهدة: <span x-text="inquiryResult.employee"></span></h3><div class="flex justify-around mb-4 bg-slate-800 p-4 rounded-lg border border-slate-700"><div class="text-center"><p class="text-sm text-slate-400">إجمالي العهد</p><p class="font-bold text-blue-400" x-text="formatCurrency(inquiryResult.totalAmount)"></p></div><div class="text-center"><p class="text-sm text-slate-400">إجمالي المصروف</p><p class="font-bold text-red-400" x-text="formatCurrency(inquiryResult.totalSpent)"></p></div><div class="text-center"><p class="text-sm text-slate-400">المتبقي</p><p class="font-bold text-emerald-400" x-text="formatCurrency(inquiryResult.remaining)"></p></div></div><table class="w-full text-sm border border-slate-700"><thead class="bg-slate-800"><tr><th class="p-2 border border-slate-700 text-right text-slate-300">التاريخ</th><th class="p-2 border border-slate-700 text-right text-slate-300">البند</th><th class="p-2 border border-slate-700 text-right text-slate-300">التصنيف</th><th class="p-2 border border-slate-700 text-right text-slate-300">المبلغ</th></tr></thead><tbody><template x-for="s in inquiryResult.settlements" :key="s.id"><tr><td class="p-2 border border-slate-700 text-slate-300" x-text="s.date"></td><td class="p-2 border border-slate-700 text-slate-300" x-text="s.item"></td><td class="p-2 border border-slate-700 text-slate-300" x-text="s.category"></td><td class="p-2 border border-slate-700 text-red-400" x-text="formatCurrency(s.amount)"></td></tr></template></tbody></table></div></template><div x-show="!inquiryResult" class="text-center py-10 text-slate-500">أدخل بيانات الاستعلام</div></div>
+                    
+                    <div id="inquiry-print" class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700">
+                        <template x-if="inquiryResult">
+                            <div>
+                                <h3 class="text-xl font-bold mb-4 text-center text-white">تقرير عهدة: <span x-text="inquiryResult.employee"></span></h3>
+                                
+                                <!-- Summary Box -->
+                                <div class="grid grid-cols-3 gap-4 mb-6 bg-slate-800 p-4 rounded-lg border border-slate-700">
+                                    <div class="text-center"><p class="text-sm text-slate-400">إجمالي العهد الأصلي</p><p class="font-bold text-blue-400 text-lg" x-text="formatCurrency(inquiryResult.totalAmount)"></p></div>
+                                    <div class="text-center"><p class="text-sm text-slate-400">إجمالي المصروف</p><p class="font-bold text-red-400 text-lg" x-text="formatCurrency(inquiryResult.totalSpent)"></p></div>
+                                    <div class="text-center"><p class="text-sm text-slate-400">المتبقي الفعلي</p><p class="font-bold text-emerald-400 text-lg" x-text="formatCurrency(inquiryResult.remaining)"></p></div>
+                                </div>
+
+                                <!-- Each Custody Detail -->
+                                <div class="space-y-4">
+                                    <template x-for="cd in inquiryResult.custodyDetails" :key="cd.id">
+                                        <div class="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+                                            <div class="flex justify-between items-center p-3 border-b border-slate-600" :class="cd.status === 'مفتوحة' ? 'bg-emerald-900/20' : 'bg-slate-700/50'">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="font-bold text-white" x-text="'عهدة ' + cd.date"></span>
+                                                    <span x-show="cd.isCarriedForward" class="text-amber-400 text-xs bg-amber-900/30 px-2 py-0.5 rounded">مرحّل</span>
+                                                    <span :class="cd.status === 'مفتوحة' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-0.5 rounded text-xs font-bold" x-text="cd.status"></span>
+                                                </div>
+                                                <div class="flex gap-4 text-sm">
+                                                    <span class="text-slate-400">المبلغ: <span class="text-blue-400 font-bold" x-text="formatCurrency(cd.amount)"></span></span>
+                                                    <span class="text-slate-400">المصروف: <span class="text-red-400 font-bold" x-text="formatCurrency(cd.spent)"></span></span>
+                                                    <span class="text-slate-400">المتبقي: <span class="text-emerald-400 font-bold" x-text="formatCurrency(cd.amount - cd.spent)"></span></span>
+                                                </div>
+                                            </div>
+                                            <template x-if="cd.settlements && cd.settlements.length > 0">
+                                                <table class="w-full text-sm">
+                                                    <thead><tr class="bg-slate-700/50"><th class="p-2 text-right text-slate-400 text-xs">التاريخ</th><th class="p-2 text-right text-slate-400 text-xs">البند</th><th class="p-2 text-right text-slate-400 text-xs">التفصيل</th><th class="p-2 text-right text-slate-400 text-xs">التصنيف</th><th class="p-2 text-right text-slate-400 text-xs">التوجيه</th><th class="p-2 text-right text-slate-400 text-xs">المبلغ</th></tr></thead>
+                                                    <tbody><template x-for="s in cd.settlements" :key="s.id"><tr class="border-t border-slate-700/50"><td class="p-2 text-slate-300" x-text="s.date"></td><td class="p-2 text-slate-300" x-text="s.item"></td><td class="p-2 text-slate-400 text-xs" x-text="s.subItem || '-'"></td><td class="p-2 text-slate-400 text-xs" x-text="s.category"></td><td class="p-2 text-amber-400 text-xs" x-text="s.accountingDirection || '-'"></td><td class="p-2 text-red-400" x-text="formatCurrency(s.amount)"></td></tr></template></tbody>
+                                                </table>
+                                            </template>
+                                            <div x-show="!cd.settlements || cd.settlements.length === 0" class="p-3 text-center text-slate-500 text-xs">لا توجد بنود صرف</div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                        <div x-show="!inquiryResult" class="text-center py-10 text-slate-500">أدخل بيانات الاستعلام</div>
+                    </div>
                 </div>
 
                 <!-- REPORT -->
                 <div x-show="activeTab === 'report'" x-cloak>
                     <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 mb-6"><div class="flex flex-wrap gap-4 items-end"><div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">من تاريخ</label><input type="date" x-model="report.from" class="p-2 rounded-lg input-dark"></div><div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">إلى تاريخ</label><input type="date" x-model="report.to" class="p-2 rounded-lg input-dark"></div><button @click="generateReport()" class="primary-gradient text-white px-4 py-2 rounded-lg shadow-md">عرض التقرير</button><button @click="exportReportExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-excel"></i> Excel</button><button @click="exportPDF('report-print')" class="bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-pdf"></i> PDF</button></div></div>
-                    <div id="report-print" class="glass-dark p-8 rounded-xl shadow-lg border border-slate-700"><div class="text-center border-b border-slate-700 pb-4 mb-6"><h3 class="text-xl font-bold text-white">قائمة التدفقات النقدية</h3><p class="text-slate-400">من <span x-text="report.from"></span> إلى <span x-text="report.to"></span></p></div><template x-if="report.data"><div class="space-y-4"><div class="flex justify-between items-center bg-slate-800 p-3 rounded-lg border border-slate-700"><span class="font-bold text-slate-300">رصيد بداية الفترة</span><span class="font-bold text-white" x-text="formatCurrency(report.data.openingBalance)"></span></div><div class="border-b border-slate-700 pb-4 space-y-2"><h4 class="font-bold text-blue-400 bg-blue-900/20 p-2 rounded">التدفقات التشغيلية</h4><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الداخلة</span><span class="text-emerald-400" x-text="formatCurrency(report.data.operatingIn)"></span></div><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الخارجة</span><span class="text-red-400" x-text="'(' + formatCurrency(report.data.operatingOut) + ')'"></span></div><div class="flex justify-between font-bold mr-4 text-blue-400"><span>صافي التشغيلية</span><span x-text="formatCurrency(report.data.netOperating)"></span></div></div><div class="border-b border-slate-700 pb-4 space-y-2"><h4 class="font-bold text-purple-400 bg-purple-900/20 p-2 rounded">التدفقات الاستثمارية</h4><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الداخلة</span><span class="text-emerald-400" x-text="formatCurrency(report.data.investingIn)"></span></div><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الخارجة</span><span class="text-red-400" x-text="'(' + formatCurrency(report.data.investingOut) + ')'"></span></div><div class="flex justify-between font-bold mr-4 text-purple-400"><span>صافي الاستثمارية</span><span x-text="formatCurrency(report.data.netInvesting)"></span></div></div><div class="border-b border-slate-700 pb-4 space-y-2"><h4 class="font-bold text-emerald-400 bg-emerald-900/20 p-2 rounded">التدفقات التمويلية</h4><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الداخلة</span><span class="text-emerald-400" x-text="formatCurrency(report.data.financingIn)"></span></div><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الخارجة</span><span class="text-red-400" x-text="'(' + formatCurrency(report.data.financingOut) + ')'"></span></div><div class="flex justify-between font-bold mr-4 text-emerald-400"><span>صافي التمويلية</span><span x-text="formatCurrency(report.data.netFinancing)"></span></div></div><div class="space-y-3 pt-2"><div class="flex justify-between items-center bg-yellow-900/20 border border-yellow-800/30 p-3 rounded-lg"><span class="font-bold text-yellow-400">صافي التدفق النقدي</span><span class="font-bold text-yellow-300 text-lg" x-text="formatCurrency(report.data.netCashFlow)"></span></div><div class="flex justify-between items-center primary-gradient p-4 rounded-lg shadow-lg"><span class="font-bold text-lg text-white">رصيد نهاية الفترة</span><span class="font-bold text-xl text-white" x-text="formatCurrency(report.data.closingBalance)"></span></div></div></div></template><div x-show="!report.data" class="text-center py-10 text-slate-500">حدد الفترة واضغط عرض التقرير</div></div>
+                    <div id="report-print" class="glass-dark p-8 rounded-xl shadow-lg border border-slate-700"><div class="text-center border-b border-slate-700 pb-4 mb-6"><h3 class="text-xl font-bold text-white">قائمة التدفقات النقدية</h3><p class="text-slate-400">من <span x-text="report.from"></span> إلى <span x-text="report.to"></span></p></div><template x-if="report.data"><div class="space-y-4"><div class="flex justify-between items-center bg-purple-900/20 border border-purple-800/30 p-3 rounded-lg"><span class="font-bold text-purple-400"><i class="fas fa-flag"></i> رصيد بداية الفترة</span><span class="font-bold text-purple-300 text-lg" x-text="formatCurrency(report.data.openingBalance)"></span></div><div class="border-b border-slate-700 pb-4 space-y-2"><h4 class="font-bold text-blue-400 bg-blue-900/20 p-2 rounded">التدفقات التشغيلية</h4><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الداخلة</span><span class="text-emerald-400" x-text="formatCurrency(report.data.operatingIn)"></span></div><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الخارجة</span><span class="text-red-400" x-text="'(' + formatCurrency(report.data.operatingOut) + ')'"></span></div><div class="flex justify-between font-bold mr-4 text-blue-400"><span>صافي التشغيلية</span><span x-text="formatCurrency(report.data.netOperating)"></span></div></div><div class="border-b border-slate-700 pb-4 space-y-2"><h4 class="font-bold text-purple-400 bg-purple-900/20 p-2 rounded">التدفقات الاستثمارية</h4><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الداخلة</span><span class="text-emerald-400" x-text="formatCurrency(report.data.investingIn)"></span></div><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الخارجة</span><span class="text-red-400" x-text="'(' + formatCurrency(report.data.investingOut) + ')'"></span></div><div class="flex justify-between font-bold mr-4 text-purple-400"><span>صافي الاستثمارية</span><span x-text="formatCurrency(report.data.netInvesting)"></span></div></div><div class="border-b border-slate-700 pb-4 space-y-2"><h4 class="font-bold text-emerald-400 bg-emerald-900/20 p-2 rounded">التدفقات التمويلية</h4><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الداخلة</span><span class="text-emerald-400" x-text="formatCurrency(report.data.financingIn)"></span></div><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الخارجة</span><span class="text-red-400" x-text="'(' + formatCurrency(report.data.financingOut) + ')'"></span></div><div class="flex justify-between font-bold mr-4 text-emerald-400"><span>صافي التمويلية</span><span x-text="formatCurrency(report.data.netFinancing)"></span></div></div><div class="space-y-3 pt-2"><div class="flex justify-between items-center bg-yellow-900/20 border border-yellow-800/30 p-3 rounded-lg"><span class="font-bold text-yellow-400">صافي التدفق النقدي</span><span class="font-bold text-yellow-300 text-lg" x-text="formatCurrency(report.data.netCashFlow)"></span></div><div class="flex justify-between items-center primary-gradient p-4 rounded-lg shadow-lg"><span class="font-bold text-lg text-white">رصيد نهاية الفترة</span><span class="font-bold text-xl text-white" x-text="formatCurrency(report.data.closingBalance)"></span></div></div></div></template><div x-show="!report.data" class="text-center py-10 text-slate-500">حدد الفترة واضغط عرض التقرير</div></div>
                 </div>
 
                 <!-- USERS -->
@@ -193,16 +228,14 @@
         </div>
     </div>
 
-    <!-- MODALS -->
-
     <!-- Flow Modal -->
     <div x-show="showFlowModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showFlowModal = false">
         <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-4 border border-slate-700">
-            <h3 class="text-xl font-bold text-white" x-text="flowForm.id ? 'تعديل التدفق' : (flowForm.item === 'رصيد بداية المدة' ? 'رصيد بداية النقدية' : (flowForm.type === 'inflow' ? 'إضافة تدفق داخل' : 'إضافة تدفق خارج'))"></h3>
+            <h3 class="text-xl font-bold text-white" x-text="flowForm.item === 'رصيد بداية المدة' ? 'رصيد بداية النقدية' : (flowForm.id ? 'تعديل التدفق' : (flowForm.type === 'inflow' ? 'إضافة تدفق داخل' : 'إضافة تدفق خارج'))"></h3>
             <input type="date" x-model="flowForm.date" class="w-full p-2 rounded-lg input-dark">
-            <input type="text" x-model="flowForm.item" placeholder="البند الرئيسي (مثل: مدفوعات موردين)" class="w-full p-2 rounded-lg input-dark" :readonly="flowForm.item === 'رصيد بداية المدة'">
-            <input type="text" x-model="flowForm.subItem" placeholder="التفصيل (مثل: شركة رويال المستقبل)" class="w-full p-2 rounded-lg input-dark" x-show="flowForm.item !== 'رصيد بداية المدة'">
-            <select x-model="flowForm.category" class="w-full p-2 rounded-lg input-dark"><option value="تشغيلية">تشغيلية</option><option value="استثمارية">استثمارية</option><option value="تمويلية">تمويلية</option></select>
+            <input type="text" x-model="flowForm.item" placeholder="البند الرئيسي" class="w-full p-2 rounded-lg input-dark" :readonly="flowForm.item === 'رصيد بداية المدة'">
+            <input type="text" x-model="flowForm.subItem" placeholder="التفصيل" class="w-full p-2 rounded-lg input-dark" x-show="flowForm.item !== 'رصيد بداية المدة'">
+            <select x-model="flowForm.category" class="w-full p-2 rounded-lg input-dark" x-show="flowForm.item !== 'رصيد بداية المدة'"><option value="تشغيلية">تشغيلية</option><option value="استثمارية">استثمارية</option><option value="تمويلية">تمويلية</option></select>
             <input type="number" x-model="flowForm.amount" placeholder="المبلغ" class="w-full p-2 rounded-lg input-dark">
             <div class="flex gap-4"><button @click="saveFlow()" class="flex-1 primary-gradient text-white py-2 rounded-lg">حفظ</button><button @click="showFlowModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg hover:bg-slate-600">إلغاء</button></div>
         </div>
@@ -215,10 +248,7 @@
             <input type="text" x-model="custodyForm.employee" placeholder="اسم الموظف" class="w-full p-2 rounded-lg input-dark" :readonly="custodyForm.isEnhance">
             <input type="date" x-model="custodyForm.date" class="w-full p-2 rounded-lg input-dark" x-show="!custodyForm.isEnhance">
             <input type="number" x-model="custodyForm.amount" placeholder="قيمة العهدة" class="w-full p-2 rounded-lg input-dark" x-show="!custodyForm.isEnhance">
-            <label x-show="!custodyForm.isEnhance && !custodyForm.id" class="flex items-center gap-2 text-slate-300 text-sm cursor-pointer">
-                <input type="checkbox" x-model="custodyForm.isOpeningBalance" class="w-4 h-4 text-purple-600 rounded bg-slate-900 border-slate-600">
-                <span>رصيد بداية عهد (لا يخصم من النقدية)</span>
-            </label>
+            <label x-show="!custodyForm.isEnhance && !custodyForm.id" class="flex items-center gap-2 text-slate-300 text-sm cursor-pointer"><input type="checkbox" x-model="custodyForm.isOpeningBalance" class="w-4 h-4 text-purple-600 rounded bg-slate-900 border-slate-600"><span>رصيد بداية عهد (لا يخصم من النقدية)</span></label>
             <input type="number" x-model="custodyForm.additionalAmount" placeholder="مبلغ التعزيز الإضافي" class="w-full p-2 rounded-lg input-dark" x-show="custodyForm.isEnhance">
             <div class="flex gap-4"><button @click="saveCustody()" class="flex-1 primary-gradient text-white py-2 rounded-lg">حفظ</button><button @click="showCustodyModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg hover:bg-slate-600">إلغاء</button></div>
         </div>
@@ -232,16 +262,12 @@
                 <p class="text-slate-300">الموظف: <span class="font-bold text-white" x-text="closeCustodyData?.employee"></span></p>
                 <p class="text-slate-300">رصيد بداية العهدة: <span class="font-bold text-blue-400" x-text="formatCurrency(closeCustodyData?.amount)"></span></p>
                 <p class="text-slate-300">إجمالي المصروفات: <span class="font-bold text-red-400" x-text="formatCurrency(getCustodySpent(closeCustodyData))"></span></p>
-                <p class="text-slate-300 text-lg">المتبقي (رصيد نهاية التقفيل): <span class="font-bold text-emerald-400" x-text="formatCurrency(closeCustodyData ? closeCustodyData.amount - getCustodySpent(closeCustodyData) : 0)"></span></p>
+                <p class="text-slate-300 text-lg">المتبقي: <span class="font-bold text-emerald-400" x-text="formatCurrency(closeCustodyData ? closeCustodyData.amount - getCustodySpent(closeCustodyData) : 0)"></span></p>
             </div>
             <div class="space-y-3">
                 <p class="text-slate-400 font-bold">ماذا تريد عمله بالمبلغ المتبقي؟</p>
-                <label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer hover:border-blue-500 transition">
-                    <input type="radio" x-model="closeAction" value="return" class="w-4 h-4 text-blue-600"><span class="text-slate-200">رد المبلغ للصندوق (تدفق داخلي)</span>
-                </label>
-                <label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer hover:border-amber-500 transition">
-                    <input type="radio" x-model="closeAction" value="keep" class="w-4 h-4 text-amber-600"><span class="text-slate-200">يظل في عهدة الموظف (إنشاء عهدة جديدة بالمتبقي)</span>
-                </label>
+                <label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer hover:border-blue-500 transition"><input type="radio" x-model="closeAction" value="return" class="w-4 h-4 text-blue-600"><span class="text-slate-200">رد المبلغ للصندوق (تدفق داخلي)</span></label>
+                <label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer hover:border-amber-500 transition"><input type="radio" x-model="closeAction" value="keep" class="w-4 h-4 text-amber-600"><span class="text-slate-200">ترحيل المتبقي لعهدة جديدة</span></label>
             </div>
             <div class="flex gap-4 pt-2"><button @click="closeAndGenerateCustodyReport()" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg shadow-md font-bold">تقفيل وإصدار التقرير</button><button @click="showCloseCustodyModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg hover:bg-slate-600">إلغاء</button></div>
         </div>
@@ -256,8 +282,8 @@
         </div>
     </div>
 
-    <!-- Hidden Custody Report for Print -->
-    <div id="custody-report-print" class="report-print-area" style="position: absolute; left: -9999px; top: 0; width: 800px;" x-html="custodyReportHTML"></div>
+    <!-- Hidden Custody Report -->
+    <div id="custody-report-print" class="report-print-area" style="position: fixed; left: -9999px; top: 0; width: 800px; z-index: -1; opacity: 0;" x-html="custodyReportHTML"></div>
 
 </div>
 
@@ -288,374 +314,282 @@ function financialSystem() {
         get allowedTabs() { if (!this.currentUser) return []; if (this.currentUser.role === 'admin') return this.allTabs; return this.allTabs.filter(t => this.currentUser.permissions?.[t.id]); },
         
         async init() {
-            while (!window.firebaseAuth || !window.firebaseDb) { await new Promise(resolve => setTimeout(resolve, 100)); }
+            while (!window.firebaseAuth || !window.firebaseDb) { await new Promise(r => setTimeout(r, 100)); }
             try {
                 window.firebaseOnAuth(window.firebaseAuth, async (user) => {
                     if (user) {
                         const userDoc = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, "users", user.uid));
-                        if (userDoc.exists()) { 
-                            this.currentUser = { id: user.uid, email: user.email, ...userDoc.data() }; 
-                            this.isLoggedIn = true; 
-                            this.initFirestoreListeners(); 
-                            this.updateCharts(); 
-                        } else { this.authError = "بيانات المستخدم غير موجودة في قاعدة البيانات!"; await this.logout(); }
+                        if (userDoc.exists()) { this.currentUser = { id: user.uid, email: user.email, ...userDoc.data() }; this.isLoggedIn = true; this.initFirestoreListeners(); this.updateCharts(); }
+                        else { this.authError = "بيانات المستخدم غير موجودة!"; await this.logout(); }
                     } else { this.isLoggedIn = false; this.currentUser = null; }
                 });
-            } catch (error) { console.error("Firebase Auth Init Error:", error); }
+            } catch (error) { console.error(error); }
         },
 
         async login() { this.authLoading = true; this.authError = ''; try { await window.firebaseSignIn(window.firebaseAuth, this.authForm.email, this.authForm.password); } catch (e) { this.authError = "خطأ في البريد أو كلمة المرور"; } this.authLoading = false; },
         async register() {
             this.authLoading = true; this.authError = '';
             try {
-                const userCredential = await window.firebaseSignUp(window.firebaseAuth, this.authForm.email, this.authForm.password);
-                const uid = userCredential.user.uid;
+                const uc = await window.firebaseSignUp(window.firebaseAuth, this.authForm.email, this.authForm.password);
                 const usersSnap = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, "users"));
                 const role = usersSnap.empty ? 'admin' : 'user';
-                const permissions = role === 'admin' ? { dashboard: true, cashflow: true, custody: true, settlement: true, inquiry: true, report: true, users: true } : { dashboard: true, cashflow: true, custody: true, settlement: true, inquiry: true, report: true, users: false };
-                await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, "users", uid), { email: this.authForm.email, role, permissions });
-            } catch (e) { this.authError = "خطأ في التسجيل: " + e.message; }
+                const perms = role === 'admin' ? { dashboard:true, cashflow:true, custody:true, settlement:true, inquiry:true, report:true, users:true } : { dashboard:true, cashflow:true, custody:true, settlement:true, inquiry:true, report:true, users:false };
+                await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, "users", uc.user.uid), { email: this.authForm.email, role, permissions: perms });
+            } catch (e) { this.authError = "خطأ: " + e.message; }
             this.authLoading = false;
         },
         async logout() { try { await window.firebaseSignOut(window.firebaseAuth); } catch(e) {} this.authMode = 'login'; },
 
         initFirestoreListeners() {
-            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb, "cashFlows"), (snap) => { this.flows = snap.docs.map(d => ({id: d.id, ...d.data()})); this.updateCharts(); });
-            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb, "custodies"), (snap) => { this.custodies = snap.docs.map(d => ({id: d.id, ...d.data()})); });
-            if(this.currentUser.role === 'admin') { window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb, "users"), (snap) => { this.users = snap.docs.map(d => ({id: d.id, ...d.data()})); }); }
+            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb, "cashFlows"), (snap) => { this.flows = snap.docs.map(d => ({id:d.id,...d.data()})); this.updateCharts(); });
+            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb, "custodies"), (snap) => { this.custodies = snap.docs.map(d => ({id:d.id,...d.data()})); });
+            if(this.currentUser.role === 'admin') { window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb, "users"), (snap) => { this.users = snap.docs.map(d => ({id:d.id,...d.data()})); }); }
         },
 
-        formatCurrency(amount) { return new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(amount || 0); },
-        formatDate(d) { if(!d) return ''; return d; },
+        formatCurrency(amt) { return new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(amt || 0); },
+        get hasOpeningBalance() { return this.flows.some(f => f.item === 'رصيد بداية المدة'); },
         get totalInflow() { return this.flows.filter(f => f.type === 'inflow').reduce((s, f) => s + Number(f.amount), 0); },
         get totalOutflow() { return this.flows.filter(f => f.type === 'outflow').reduce((s, f) => s + Number(f.amount), 0); },
         get currentBalance() { return this.totalInflow - this.totalOutflow; },
         get openCustodies() { return this.custodies.filter(c => c.status === 'مفتوحة'); },
 
-        getSortedFlows() { let balance = 0; return [...this.flows].sort((a, b) => new Date(a.date) - new Date(b.date)).map(f => { balance += f.type === 'inflow' ? Number(f.amount) : -Number(f.amount); return { ...f, runningBalance: balance }; }); },
+        getSortedFlows() { 
+            let balance = 0; 
+            const opening = this.flows.filter(f => f.item === 'رصيد بداية المدة');
+            const others = this.flows.filter(f => f.item !== 'رصيد بداية المدة').sort((a, b) => new Date(a.date||'1970-01-01') - new Date(b.date||'1970-01-01'));
+            return [...opening, ...others].map(f => { balance += f.type === 'inflow' ? Number(f.amount) : -Number(f.amount); return { ...f, runningBalance: balance }; }); 
+        },
 
-        // ========== CASH FLOW LOGIC ==========
-        openFlowModal(type) { this.flowForm = { id: null, type, date: new Date().toISOString().split('T')[0], item: '', subItem: '', category: 'تشغيلية', amount: '', notes: '' }; this.showFlowModal = true; },
-        openOpeningBalanceModal() { this.flowForm = { id: null, type: 'inflow', date: new Date().toISOString().split('T')[0], item: 'رصيد بداية المدة', subItem: '', category: 'تشغيلية', amount: '', notes: 'رصيد افتتاحي' }; this.showFlowModal = true; },
-        editFlow(flow) { this.flowForm = { ...flow, subItem: flow.subItem || '' }; this.showFlowModal = true; },
+        // ===== CASH FLOW =====
+        openFlowModal(type) { this.flowForm = { id:null, type, date:new Date().toISOString().split('T')[0], item:'', subItem:'', category:'تشغيلية', amount:'', notes:'' }; this.showFlowModal = true; },
+        openOpeningBalanceModal() { 
+            if(this.hasOpeningBalance) { alert("تم تسجيل رصيد بداية المدة مسبقاً."); return; }
+            this.flowForm = { id:null, type:'inflow', date:new Date().toISOString().split('T')[0], item:'رصيد بداية المدة', subItem:'', category:'رصيد بداية', amount:'', notes:'رصيد افتتاحي' }; this.showFlowModal = true; 
+        },
+        editFlow(flow) { this.flowForm = { ...flow, subItem: flow.subItem||'', category: flow.category||'تشغيلية' }; this.showFlowModal = true; },
         async saveFlow() {
             if (!this.flowForm.date || !this.flowForm.item || !this.flowForm.amount) return alert("أكمل البيانات");
             try {
-                const dataToSave = { date: this.flowForm.date, item: this.flowForm.item, subItem: this.flowForm.subItem || '', category: this.flowForm.category, amount: Number(this.flowForm.amount), type: this.flowForm.type, notes: this.flowForm.notes || '' };
-                if (this.flowForm.id) {
-                    await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", this.flowForm.id), dataToSave);
-                } else {
-                    await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "cashFlows"), dataToSave);
-                }
+                const isOp = this.flowForm.item === 'رصيد بداية المدة';
+                const data = { date:this.flowForm.date, item:this.flowForm.item, subItem:isOp?'':(this.flowForm.subItem||''), category:isOp?'رصيد بداية':this.flowForm.category, amount:Number(this.flowForm.amount), type:this.flowForm.type, notes:this.flowForm.notes||'' };
+                if (this.flowForm.id) { await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",this.flowForm.id), data); }
+                else { await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), data); }
                 this.showFlowModal = false;
-            } catch(e) { console.error(e); alert("خطأ في الحفظ"); }
+            } catch(e) { alert("خطأ في الحفظ"); }
         },
-        async deleteFlow(id) {
-            if(!confirm("هل أنت متأكد من حذف هذا التدفق؟")) return;
-            try { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", id)); } catch(e) { alert("خطأ في الحذف: " + e.message); } 
-        },
+        async deleteFlow(id) { if(!confirm("حذف التدفق؟")) return; try { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",id)); } catch(e) { alert("خطأ: "+e.message); } },
 
-        // ========== EXCEL IMPORT/EXPORT FOR FLOWS ==========
+        // ===== EXCEL =====
         downloadFlowTemplate() {
-            const headers = ["التاريخ", "النوع (inflow أو outflow)", "البند الرئيسي", "التفصيل", "التصنيف (تشغيلية أو استثمارية أو تمويلية)", "المبلغ"];
-            const example1 = ["2024-01-15", "outflow", "مدفوعات موردين", "شركة رويال المستقبل", "تشغيلية", 5000];
-            const example2 = ["2024-01-20", "inflow", "إيرادات مبيعات", "مبيعات يناير", "تشغيلية", 10000];
-            const ws = XLSX.utils.aoa_to_sheet([headers, example1, example2]);
+            const ws = XLSX.utils.aoa_to_sheet([["التاريخ","النوع (inflow أو outflow)","البند الرئيسي","التفصيل","التصنيف (تشغيلية أو استثمارية أو تمويلية)","المبلغ"],["2024-01-15","outflow","مدفوعات موردين","شركة رويال المستقبل","تشغيلية",5000],["2024-01-20","inflow","إيرادات مبيعات","مبيعات يناير","تشغيلية",10000]]);
             ws['!cols'] = [{wch:15},{wch:25},{wch:25},{wch:30},{wch:35},{wch:15}];
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "التدفقات النقدية");
-            XLSX.writeFile(wb, "Cash_Flow_Template.xlsx");
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "التدفقات"); XLSX.writeFile(wb, "Cash_Flow_Template.xlsx");
         },
         async importFlowsFromExcel(event) {
             const file = event.target.files[0]; if(!file) return;
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type:'array'});
-                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const rows = XLSX.utils.sheet_to_json(sheet);
-                    let addedCount = 0;
-                    for(let row of rows) {
-                        const date = row['التاريخ'] || '';
-                        const type = row['النوع (inflow أو outflow)'] || 'outflow';
-                        const item = row['البند الرئيسي'] || '';
-                        const subItem = row['التفصيل'] || '';
-                        const category = row['التصنيف (تشغيلية أو استثمارية أو تمويلية)'] || 'تشغيلية';
-                        const amount = Number(row['المبلغ']) || 0;
-                        
-                        if(date && item && amount > 0) {
-                            const validType = (type === 'inflow' || type === 'outflow') ? type : 'outflow';
-                            const validCategory = ['تشغيلية','استثمارية','تمويلية'].includes(category) ? category : 'تشغيلية';
-                            await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "cashFlows"), { date, type: validType, item, subItem, category: validCategory, amount, notes: 'مستورد من Excel' });
-                            addedCount++;
+                    const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+                    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                    let count = 0;
+                    for(let r of rows) {
+                        const date=r['التاريخ']||'', item=r['البند الرئيسي']||'', subItem=r['التفصيل']||'', amount=Number(r['المبلغ'])||0;
+                        let type=r['النوع (inflow أو outflow)']||'outflow', category=r['التصنيف (تشغيلية أو استثمارية أو تمويلية)']||'تشغيلية';
+                        if(item==='رصيد بداية المدة'&&this.hasOpeningBalance) continue;
+                        if(item==='رصيد بداية المدة'){type='inflow';category='رصيد بداية';}
+                        if(date&&item&&amount>0) {
+                            const vt=(type==='inflow'||type==='outflow')?type:'outflow';
+                            const vc=['تشغيلية','استثمارية','تمويلية','رصيد بداية'].includes(category)?category:'تشغيلية';
+                            await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{date,type:vt,item,subItem,category:vc,amount,notes:'مستورد من Excel'});
+                            count++;
                         }
                     }
-                    alert("تم استيراد " + addedCount + " تدفق بنجاح!");
-                } catch(err) { console.error(err); alert("خطأ في قراءة الملف: " + err.message); }
+                    alert("تم استيراد "+count+" تدفق!"); 
+                } catch(err) { alert("خطأ: "+err.message); }
             };
-            reader.readAsArrayBuffer(file);
-            event.target.value = '';
+            reader.readAsArrayBuffer(file); event.target.value='';
         },
 
-        // ========== CUSTODY LOGIC ==========
-        openCustodyModal() { this.custodyForm = { id: null, employee: '', date: new Date().toISOString().split('T')[0], amount: '', notes: '', additionalAmount: '', isEnhance: false, isOpeningBalance: false, linkedFlowId: null }; this.showCustodyModal = true; },
-        editCustody(c) { this.custodyForm = { ...c, isEnhance: false, additionalAmount: '', isOpeningBalance: false }; this.showCustodyModal = true; },
-        enhanceCustody(c) { this.custodyForm = { ...c, isEnhance: true, additionalAmount: '', isOpeningBalance: false }; this.showCustodyModal = true; },
+        // ===== CUSTODY =====
+        openCustodyModal() { this.custodyForm = { id:null, employee:'', date:new Date().toISOString().split('T')[0], amount:'', notes:'', additionalAmount:'', isEnhance:false, isOpeningBalance:false, linkedFlowId:null }; this.showCustodyModal = true; },
+        editCustody(c) { this.custodyForm = { ...c, isEnhance:false, additionalAmount:'', isOpeningBalance:false }; this.showCustodyModal = true; },
+        enhanceCustody(c) { this.custodyForm = { ...c, isEnhance:true, additionalAmount:'', isOpeningBalance:false }; this.showCustodyModal = true; },
         
         async deleteCustody(custody) {
-            if (!custody || !custody.id) return;
-            if (!confirm("هل أنت متأكد من حذف العهدة؟")) return;
-            const custodyId = String(custody.id);
-            const linkedFlowId = custody.linkedFlowId || null;
-            if (linkedFlowId && typeof linkedFlowId === 'string' && linkedFlowId.length > 0) {
-                try { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", linkedFlowId)); } catch (e) { console.warn(e); }
-            }
-            try { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "custodies", custodyId)); } catch (e) { alert("خطأ في حذف العهدة: " + e.message); }
+            if (!custody||!custody.id) return; if (!confirm("حذف العهدة؟")) return;
+            if (custody.linkedFlowId&&typeof custody.linkedFlowId==='string') { try { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",custody.linkedFlowId)); } catch(e){} }
+            try { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"custodies",String(custody.id))); } catch(e) { alert("خطأ: "+e.message); }
         },
 
         async saveCustody() {
             try {
                 if (this.custodyForm.isEnhance) {
                     if(!this.custodyForm.additionalAmount) return alert("أدخل مبلغ التعزيز");
-                    const ref = window.firebaseDoc(window.firebaseDb, "custodies", this.custodyForm.id);
-                    await window.firebaseUpdateDoc(ref, { amount: Number(this.custodyForm.amount) + Number(this.custodyForm.additionalAmount) });
-                    await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "cashFlows"), { type: 'outflow', date: new Date().toISOString().split('T')[0], item: 'عهد موظفين (تعزيز)', subItem: this.custodyForm.employee, category: 'تشغيلية', amount: Number(this.custodyForm.additionalAmount), notes: 'تعزيز عهدة ' + this.custodyForm.employee });
+                    await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",this.custodyForm.id), { amount: Number(this.custodyForm.amount)+Number(this.custodyForm.additionalAmount) });
+                    await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), { type:'outflow', date:new Date().toISOString().split('T')[0], item:'عهد موظفين (تعزيز)', subItem:this.custodyForm.employee, category:'تشغيلية', amount:Number(this.custodyForm.additionalAmount), notes:'تعزيز عهدة '+this.custodyForm.employee });
                 } else if (this.custodyForm.id) {
-                    if(!this.custodyForm.employee || !this.custodyForm.amount) return alert("أكمل البيانات");
-                    await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "custodies", this.custodyForm.id), { employee: this.custodyForm.employee, date: this.custodyForm.date, amount: Number(this.custodyForm.amount) });
-                    if(this.custodyForm.linkedFlowId && typeof this.custodyForm.linkedFlowId === 'string') { try { await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", this.custodyForm.linkedFlowId), { date: this.custodyForm.date, amount: Number(this.custodyForm.amount), notes: 'عهدة معدلة - ' + this.custodyForm.employee }); } catch(e) {} }
+                    if(!this.custodyForm.employee||!this.custodyForm.amount) return alert("أكمل البيانات");
+                    await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",this.custodyForm.id), { employee:this.custodyForm.employee, date:this.custodyForm.date, amount:Number(this.custodyForm.amount) });
+                    if(this.custodyForm.linkedFlowId&&typeof this.custodyForm.linkedFlowId==='string') { try { await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",this.custodyForm.linkedFlowId), { date:this.custodyForm.date, amount:Number(this.custodyForm.amount) }); } catch(e){} }
                 } else {
-                    if(!this.custodyForm.employee || !this.custodyForm.amount) return alert("أكمل البيانات");
+                    if(!this.custodyForm.employee||!this.custodyForm.amount) return alert("أكمل البيانات");
                     if (!this.custodyForm.isOpeningBalance) {
-                        const flowRef = await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "cashFlows"), { type: 'outflow', date: this.custodyForm.date, item: 'عهد موظفين', subItem: this.custodyForm.employee, category: 'تشغيلية', amount: Number(this.custodyForm.amount), notes: 'عهدة جديدة - ' + this.custodyForm.employee });
-                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "custodies"), { employee: this.custodyForm.employee, date: this.custodyForm.date, amount: Number(this.custodyForm.amount), notes: this.custodyForm.notes, status: 'مفتوحة', settlements: [], linkedFlowId: flowRef.id, isOpeningBalance: false });
+                        const fr = await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), { type:'outflow', date:this.custodyForm.date, item:'عهد موظفين', subItem:this.custodyForm.employee, category:'تشغيلية', amount:Number(this.custodyForm.amount), notes:'عهدة جديدة - '+this.custodyForm.employee });
+                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"), { employee:this.custodyForm.employee, date:this.custodyForm.date, amount:Number(this.custodyForm.amount), notes:this.custodyForm.notes, status:'مفتوحة', settlements:[], linkedFlowId:fr.id, isOpeningBalance:false, isCarriedForward:false });
                     } else {
-                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "custodies"), { employee: this.custodyForm.employee, date: this.custodyForm.date, amount: Number(this.custodyForm.amount), notes: this.custodyForm.notes + ' (رصيد بداية)', status: 'مفتوحة', settlements: [], linkedFlowId: null, isOpeningBalance: true });
+                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"), { employee:this.custodyForm.employee, date:this.custodyForm.date, amount:Number(this.custodyForm.amount), notes:this.custodyForm.notes+' (رصيد بداية)', status:'مفتوحة', settlements:[], linkedFlowId:null, isOpeningBalance:true, isCarriedForward:false });
                     }
                 }
                 this.showCustodyModal = false;
-            } catch(e) { alert("خطأ في حفظ العهدة: "+e.message); }
+            } catch(e) { alert("خطأ: "+e.message); }
         },
 
-        // ========== SETTLEMENT LOGIC ==========
+        // ===== SETTLEMENT =====
         getSelectedCustody() { return this.custodies.find(c => c.id === this.settlement.selectedCustodyId); },
-        getCustodySpent(c) { return c ? (c.settlements || []).reduce((s, st) => s + Number(st.amount), 0) : 0; },
+        getCustodySpent(c) { return c ? (c.settlements||[]).reduce((s, st) => s + Number(st.amount), 0) : 0; },
         async settleCustody() {
-            if(!this.settlement.item || !this.settlement.amount) return alert("أكمل بيانات الصرف");
+            if(!this.settlement.item||!this.settlement.amount) return alert("أكمل بيانات الصرف");
             try {
-                const ref = window.firebaseDoc(window.firebaseDb, "custodies", this.settlement.selectedCustodyId);
-                await window.firebaseUpdateDoc(ref, { settlements: window.arrayUnion({ id: Date.now().toString(), date: this.settlement.date, item: this.settlement.item, subItem: this.settlement.subItem || '', category: this.settlement.category, amount: Number(this.settlement.amount), accountingDirection: this.settlement.accountingDirection || '' }) });
-                this.settlement = { selectedCustodyId: this.settlement.selectedCustodyId, date: '', item: '', subItem: '', category: 'تشغيلية', amount: '', accountingDirection: '' };
-            } catch(e) { alert("خطأ في التسوية: " + e.message); }
+                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",this.settlement.selectedCustodyId), { settlements: window.arrayUnion({ id:Date.now().toString(), date:this.settlement.date, item:this.settlement.item, subItem:this.settlement.subItem||'', category:this.settlement.category, amount:Number(this.settlement.amount), accountingDirection:this.settlement.accountingDirection||'' }) });
+                this.settlement = { selectedCustodyId:this.settlement.selectedCustodyId, date:'', item:'', subItem:'', category:'تشغيلية', amount:'', accountingDirection:'' };
+            } catch(e) { alert("خطأ: "+e.message); }
         },
-        async deleteSettlementItem(settlementId) {
-            if(!confirm("هل تريد حذف بند الصرف هذا؟")) return;
+        async deleteSettlementItem(sid) {
+            if(!confirm("حذف بند الصرف؟")) return;
             const c = this.getSelectedCustody(); if(!c) return;
-            const updatedSettlements = c.settlements.filter(s => s.id !== settlementId);
-            try { await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "custodies", c.id), { settlements: updatedSettlements }); } catch(e) { alert("خطأ في حذف البند"); }
+            try { await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id), { settlements: c.settlements.filter(s=>s.id!==sid) }); } catch(e) { alert("خطأ"); }
         },
 
-        // ========== CLOSE CUSTODY & REPORT ==========
-        openCloseCustodyModal(c) { 
-            this.closeCustodyData = c; 
-            this.closeAction = 'return'; 
-            this.showCloseCustodyModal = true; 
-        },
+        // ===== CLOSE CUSTODY =====
+        openCloseCustodyModal(c) { this.closeCustodyData = c; this.closeAction = 'return'; this.showCloseCustodyModal = true; },
         
         async closeAndGenerateCustodyReport() {
             const c = this.closeCustodyData; if(!c) return;
             const spent = this.getCustodySpent(c);
             const remaining = c.amount - spent;
             const today = new Date().toISOString().split('T')[0];
-
             try {
-                // 1. Close the custody
-                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "custodies", c.id), { status: 'مقفلة' });
-
-                // 2. Handle remaining balance
+                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id), { status:'مقفلة' });
                 if(remaining > 0) {
                     if(this.closeAction === 'return') {
-                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "cashFlows"), {
-                            type: 'inflow', date: today, item: 'رد عهدة مقفلة', subItem: c.employee, category: 'تشغيلية', amount: remaining, notes: 'رد متبقي عهدة مقفلة - ' + c.employee
-                        });
+                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), { type:'inflow', date:today, item:'رد عهدة مقفلة', subItem:c.employee, category:'تشغيلية', amount:remaining, notes:'رد متبقي عهدة مقفلة - '+c.employee });
                     } else {
-                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "custodies"), {
-                            employee: c.employee, date: today, amount: remaining, notes: 'متبقي عهدة سابقة مقفلة', status: 'مفتوحة', settlements: [], linkedFlowId: null, isOpeningBalance: true
-                        });
+                        // ⭐ KEY FIX: Mark as carried forward so inquiry doesn't double-count
+                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"), { employee:c.employee, date:today, amount:remaining, notes:'متبقي عهدة سابقة مقفلة (مرحّل)', status:'مفتوحة', settlements:[], linkedFlowId:null, isOpeningBalance:true, isCarriedForward:true });
                     }
                 }
-
                 this.showCloseCustodyModal = false;
-                
-                // 3. Generate Report
                 this.generateCustodyReportHTML(c, spent, remaining, today);
-
-            } catch(e) { alert("خطأ في التقفيل: " + e.message); }
+            } catch(e) { alert("خطأ: "+e.message); }
         },
 
         generateCustodyReportHTML(c, spent, remaining, closeDate) {
-            const actionText = remaining <= 0 ? 'مقفلة بالكامل' : (this.closeAction === 'return' ? 'تم رد المبلغ للصندوق' : 'تم نقل المتبقي لعهدة جديدة');
-            
-            let tableRows = '';
-            (c.settlements || []).forEach((s, i) => {
-                tableRows += `<tr>
-                    <td style="text-align:center">${i+1}</td>
-                    <td>${s.date || ''}</td>
-                    <td>${s.item || ''}<br><small style="color:#64748b">${s.subItem || ''}</small></td>
-                    <td>${s.category || ''}</td>
-                    <td>${s.accountingDirection || '-'}</td>
-                    <td style="text-align:left">${Number(s.amount).toLocaleString('ar-SA')}</td>
-                </tr>`;
-            });
-
+            const actionText = remaining<=0 ? 'مقفلة بالكامل' : (this.closeAction==='return' ? 'تم رد المبلغ للصندوق' : 'تم ترحيل المتبقي لعهدة جديدة');
+            let rows = '';
+            (c.settlements||[]).forEach((s,i) => { rows += `<tr><td style="text-align:center">${i+1}</td><td>${s.date||''}</td><td>${s.item||''}<br><small style="color:#64748b">${s.subItem||''}</small></td><td>${s.category||''}</td><td>${s.accountingDirection||'-'}</td><td style="text-align:left">${Number(s.amount).toLocaleString('ar-SA')}</td></tr>`; });
             this.custodyReportHTML = `
-                <div style="text-align:center; margin-bottom:30px;">
-                    <h2 style="margin:0; font-size:24px;">تقرير تقفيل عهدة</h2>
-                    <p style="color:#64748b; margin:5px 0 0 0;">تاريخ التقفيل: ${closeDate}</p>
-                </div>
-                
-                <div class="summary-box">
-                    <div class="summary-row"><span style="font-weight:bold">اسم الموظف:</span><span>${c.employee}</span></div>
-                    <div class="summary-row"><span style="font-weight:bold">تاريخ العهدة:</span><span>${c.date}</span></div>
-                    <div class="summary-row"><span style="font-weight:bold">رقم العهدة:</span><span>${c.id.substring(0,8).toUpperCase()}</span></div>
-                </div>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="text-align:center; width:40px">#</th>
-                            <th>التاريخ</th>
-                            <th>البند / التفصيل</th>
-                            <th>التصنيف</th>
-                            <th>التوجيه المحاسبي</th>
-                            <th style="text-align:left">المبلغ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${tableRows}
-                    </tbody>
-                    <tfoot>
-                        <tr class="total-row">
-                            <td colspan="5" style="text-align:left; font-weight:bold;">إجمالي المصروفات</td>
-                            <td style="text-align:left; font-weight:bold;">${spent.toLocaleString('ar-SA')}</td>
-                        </tr>
-                    </tfoot>
-                </table>
-
-                <div class="summary-box" style="margin-top:20px; border-color:#16a34a;">
-                    <div class="summary-row" style="font-size:16px;"><span style="font-weight:bold">رصيد بداية العهدة:</span><span style="font-weight:bold">${Number(c.amount).toLocaleString('ar-SA')} ر.س</span></div>
-                    <div class="summary-row" style="font-size:16px;"><span style="font-weight:bold">(-) إجمالي المصروفات:</span><span style="font-weight:bold; color:#dc2626">${spent.toLocaleString('ar-SA')} ر.س</span></div>
-                    <div class="summary-row" style="font-size:18px; border-bottom:none; padding-top:12px;"><span style="font-weight:bold">رصيد نهاية التقفيل:</span><span style="font-weight:bold; color:#16a34a">${remaining.toLocaleString('ar-SA')} ر.س</span></div>
-                    <div style="text-align:center; margin-top:15px; padding:10px; background:#f0fdf4; border-radius:6px; color:#166534; font-weight:bold;">
-                        الإجراء: ${actionText}
-                    </div>
-                </div>
-
-                <div style="margin-top:60px; display:flex; justify-content:space-between; padding-top:20px; border-top:1px solid #e2e8f0;">
-                    <div style="text-align:center; width:45%"><p style="font-weight:bold">توقيع الموظف</p><br><br><p style="border-top:1px solid #94a3b8; padding-top:5px">.............................</p></div>
-                    <div style="text-align:center; width:45%"><p style="font-weight:bold">توقيع المدير المالي</p><br><br><p style="border-top:1px solid #94a3b8; padding-top:5px">.............................</p></div>
-                </div>
-            `;
-
-            // Wait for render then ask user
-            setTimeout(() => {
-                const choice = confirm("تم تقفيل العهدة بنجاح!\n\nاضغط موافق لتحميل التقرير كـ PDF\nاضغط إلغاء لتحميل التقرير كـ Excel");
-                if(choice) { this.exportPDF('custody-report-print'); }
-                else { this.exportCustodyReportExcel(c, spent, remaining, actionText, closeDate); }
-            }, 300);
+                <div style="text-align:center;margin-bottom:30px"><h2 style="margin:0;font-size:24px">تقرير تقفيل عهدة</h2><p style="color:#64748b;margin:5px 0 0 0">تاريخ التقفيل: ${closeDate}</p></div>
+                <div class="summary-box"><div class="summary-row"><span style="font-weight:bold">الموظف:</span><span>${c.employee}</span></div><div class="summary-row"><span style="font-weight:bold">تاريخ العهدة:</span><span>${c.date}</span></div><div class="summary-row"><span style="font-weight:bold">رقم العهدة:</span><span>${c.id.substring(0,8).toUpperCase()}</span></div></div>
+                <table><thead><tr><th style="text-align:center;width:40px">#</th><th>التاريخ</th><th>البند/التفصيل</th><th>التصنيف</th><th>التوجيه</th><th style="text-align:left">المبلغ</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="total-row"><td colspan="5" style="text-align:left;font-weight:bold">إجمالي المصروفات</td><td style="text-align:left;font-weight:bold">${spent.toLocaleString('ar-SA')}</td></tr></tfoot></table>
+                <div class="summary-box" style="margin-top:20px;border-color:#16a34a"><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">رصيد بداية العهدة:</span><span style="font-weight:bold">${Number(c.amount).toLocaleString('ar-SA')} ر.س</span></div><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">(-) إجمالي المصروفات:</span><span style="font-weight:bold;color:#dc2626">${spent.toLocaleString('ar-SA')} ر.س</span></div><div class="summary-row" style="font-size:18px;border-bottom:none;padding-top:12px"><span style="font-weight:bold">رصيد نهاية التقفيل:</span><span style="font-weight:bold;color:#16a34a">${remaining.toLocaleString('ar-SA')} ر.س</span></div><div style="text-align:center;margin-top:15px;padding:10px;background:#f0fdf4;border-radius:6px;color:#166534;font-weight:bold">الإجراء: ${actionText}</div></div>
+                <div style="margin-top:60px;display:flex;justify-content:space-between;padding-top:20px;border-top:1px solid #e2e8f0"><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع الموظف</p><br><br><p style="border-top:1px solid #94a3b8;padding-top:5px">.............................</p></div><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع المدير المالي</p><br><br><p style="border-top:1px solid #94a3b8;padding-top:5px">.............................</p></div></div>`;
+            setTimeout(() => { const ch = confirm("تم تقفيل العهدة بنجاح!\n\nموافق = تحميل PDF\nإلغاء = تحميل Excel"); if(ch) this.exportPDF('custody-report-print'); else this.exportCustodyReportExcel(c,spent,remaining,actionText,closeDate); }, 300);
         },
 
         exportCustodyReportExcel(c, spent, remaining, actionText, closeDate) {
-            const headers = ["التاريخ", "البند", "التفصيل", "التصنيف", "التوجيه المحاسبي", "المبلغ"];
-            const rows = (c.settlements || []).map(s => [s.date, s.item, s.subItem||'', s.category, s.accountingDirection||'', Number(s.amount)]);
-            rows.push(["", "", "", "", "إجمالي المصروفات", spent]);
-            rows.push([]);
-            rows.push(["", "", "", "", "رصيد بداية العهدة", Number(c.amount)]);
-            rows.push(["", "", "", "", "إجمالي المصروفات", -spent]);
-            rows.push(["", "", "", "", "رصيد نهاية التقفيل", remaining]);
-            rows.push(["", "", "", "", "الإجراء", actionText]);
-
-            const ws = XLSX.utils.aoa_to_sheet([[`تقرير تقفيل عهدة: ${c.employee} - ${closeDate}`], [], ...headers, ...rows]);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "تقفيل العهدة");
-            XLSX.writeFile(wb, `Custody_Report_${c.employee}_${closeDate}.xlsx`);
+            const rows = (c.settlements||[]).map(s => [s.date,s.item,s.subItem||'',s.category,s.accountingDirection||'',Number(s.amount)]);
+            rows.push(["","","","","إجمالي المصروفات",spent],[],["","","","","رصيد بداية العهدة",Number(c.amount)],["","","","","إجمالي المصروفات",-spent],["","","","","رصيد نهاية التقفيل",remaining],["","","","","الإجراء",actionText]);
+            const ws = XLSX.utils.aoa_to_sheet([['تقرير تقفيل عهدة: '+c.employee+' - '+closeDate],[],["التاريخ","البند","التفصيل","التصنيف","التوجيه","المبلغ"],...rows]);
+            XLSX.writeFile(XLSX.utils.book_new(), `Custody_Report_${c.employee}_${closeDate}.xlsx`);
         },
 
-        // ========== INQUIRY LOGIC ==========
+        // ===== INQUIRY (FIXED) =====
         applyInquiry() {
             const emp = this.inquiry.employee; if(!emp) return alert("أدخل اسم الموظف");
             let filtered = this.custodies.filter(c => c.employee.includes(emp));
             if(this.inquiry.from) filtered = filtered.filter(c => c.date >= this.inquiry.from);
             if(this.inquiry.to) filtered = filtered.filter(c => c.date <= this.inquiry.to);
-            let result = { employee: emp, totalAmount: 0, totalSpent: 0, settlements: [] };
-            filtered.forEach(c => { result.totalAmount += Number(c.amount); (c.settlements||[]).forEach(s => { result.totalSpent += Number(s.amount); result.settlements.push(s); }); });
+            
+            let result = { employee: emp, totalAmount: 0, totalSpent: 0, remaining: 0, settlements: [], custodyDetails: [] };
+            
+            filtered.forEach(c => {
+                const spent = this.getCustodySpent(c);
+                // ⭐ FIX: Only count non-carried-forward custodies in the original total
+                if(!c.isCarriedForward) {
+                    result.totalAmount += Number(c.amount);
+                }
+                // But ALWAYS count all settlements (from both original and carried-forward)
+                (c.settlements||[]).forEach(s => { result.totalSpent += Number(s.amount); result.settlements.push(s); });
+                
+                result.custodyDetails.push({
+                    id: c.id, date: c.date, amount: Number(c.amount), spent,
+                    status: c.status, isCarriedForward: c.isCarriedForward || false,
+                    isOpeningBalance: c.isOpeningBalance || false,
+                    settlements: c.settlements || []
+                });
+            });
+            
             result.remaining = result.totalAmount - result.totalSpent;
             this.inquiryResult = result;
         },
-        exportInquiryExcel() { if(!this.inquiryResult) return; const ws = XLSX.utils.json_to_sheet(this.inquiryResult.settlements); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "استعلام العهد"); XLSX.writeFile(wb, "Custody_Inquiry.xlsx"); },
-        
-        // ========== REPORT LOGIC ==========
-        generateReport() {
-            if(!this.report.from || !this.report.to) return alert("حدد الفترة");
-            const from = this.report.from; const to = this.report.to;
-            const beforeFlows = this.flows.filter(f => f.date < from);
-            const openingBalance = beforeFlows.reduce((acc, curr) => acc + (curr.type === 'inflow' ? Number(curr.amount) : -Number(curr.amount)), 0);
-            const periodFlows = this.flows.filter(f => f.date >= from && f.date <= to);
-            const calc = (type, cat) => periodFlows.filter(f => f.type === type && f.category === cat).reduce((s, f) => s + Number(f.amount), 0);
-            const operatingIn = calc('inflow', 'تشغيلية'); const operatingOut = calc('outflow', 'تشغيلية');
-            const investingIn = calc('inflow', 'استثمارية'); const investingOut = calc('outflow', 'استثمارية');
-            const financingIn = calc('inflow', 'تمويلية'); const financingOut = calc('outflow', 'تمويلية');
-            const netOperating = operatingIn - operatingOut; const netInvesting = investingIn - investingOut; const netFinancing = financingIn - financingOut;
-            const netCashFlow = netOperating + netInvesting + netFinancing;
-            this.report.data = { openingBalance, operatingIn, operatingOut, netOperating, investingIn, investingOut, netInvesting, financingIn, financingOut, netFinancing, netCashFlow, closingBalance: openingBalance + netCashFlow };
+
+        exportInquiryExcel() { 
+            if(!this.inquiryResult) return; 
+            const allSettlements = [];
+            this.inquiryResult.custodyDetails.forEach(cd => {
+                cd.settlements.forEach(s => { allSettlements.push({ 'تاريخ العهدة': cd.date, 'حالة العهدة': cd.status, 'تاريخ الصرف': s.date, 'البند': s.item, 'التفصيل': s.subItem||'', 'التصنيف': s.category, 'التوجيه': s.accountingDirection||'', 'المبلغ': s.amount }); });
+            });
+            const ws = XLSX.utils.json_to_sheet(allSettlements); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "استعلام العهد"); XLSX.writeFile(wb, "Custody_Inquiry.xlsx"); 
         },
-        exportReportExcel() { if(!this.report.data) return; const ws = XLSX.utils.json_to_sheet([this.report.data]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "تقرير التدفقات"); XLSX.writeFile(wb, "Cash_Flow_Report.xlsx"); },
+
+        // ===== REPORT =====
+        generateReport() {
+            if(!this.report.from||!this.report.to) return alert("حدد الفترة");
+            const from=this.report.from, to=this.report.to;
+            const openingFlow = this.flows.find(f => f.item === 'رصيد بداية المدة');
+            const openingAmount = openingFlow ? Number(openingFlow.amount) : 0;
+            const beforeNet = this.flows.filter(f => f.date < from && f.item !== 'رصيد بداية المدة').reduce((a,c) => a + (c.type==='inflow'?Number(c.amount):-Number(c.amount)), 0);
+            const openingBalance = openingAmount + beforeNet;
+            const pf = this.flows.filter(f => f.date>=from && f.date<=to && f.item!=='رصيد بداية المدة');
+            const calc = (t,cat) => pf.filter(f => f.type===t && f.category===cat).reduce((s,f) => s+Number(f.amount), 0);
+            const oI=calc('inflow','تشغيلية'), oO=calc('outflow','تشغيلية'), iI=calc('inflow','استثمارية'), iO=calc('outflow','استثمارية'), fI=calc('inflow','تمويلية'), fO=calc('outflow','تمويلية');
+            const nO=oI-oO, nI=iI-iO, nF=fI-fO, nCF=nO+nI+nF;
+            this.report.data = { openingBalance, operatingIn:oI, operatingOut:oO, netOperating:nO, investingIn:iI, investingOut:iO, netInvesting:nI, financingIn:fI, financingOut:fO, netFinancing:nF, netCashFlow:nCF, closingBalance:openingBalance+nCF };
+        },
+        exportReportExcel() { if(!this.report.data) return; const ws=XLSX.utils.json_to_sheet([this.report.data]); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"تقرير التدفقات"); XLSX.writeFile(wb,"Cash_Flow_Report.xlsx"); },
+        
         exportPDF(divId) { 
             const input = document.getElementById(divId); 
-            // Temporarily move to visible area for rendering
-            const originalPos = input.style.position;
-            const originalLeft = input.style.left;
-            input.style.position = 'relative';
-            input.style.left = '0';
-            
-            html2canvas(input, { scale: 2, backgroundColor: divId === 'custody-report-print' ? "#ffffff" : "#0f172a", useCORS: true }).then((canvas) => { 
-                const imgData = canvas.toDataURL('image/png'); 
-                const { jsPDF } = window.jspdf; 
-                const pdf = new jsPDF('p', 'mm', 'a4'); 
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight); 
-                pdf.save("Report.pdf"); 
-                
-                // Restore position
-                input.style.position = originalPos;
-                input.style.left = originalLeft;
-            }); 
+            const orig = { position:input.style.position, left:input.style.left, zIndex:input.style.zIndex, opacity:input.style.opacity };
+            input.style.position='fixed'; input.style.left='0'; input.style.top='0'; input.style.zIndex='-1'; input.style.opacity='1';
+            setTimeout(() => {
+                html2canvas(input, { scale:2, backgroundColor:divId==='custody-report-print'?"#ffffff":"#0f172a", useCORS:true }).then(canvas => { 
+                    const {jsPDF}=window.jspdf; const pdf=new jsPDF('p','mm','a4'); const w=pdf.internal.pageSize.getWidth(); pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,w,(canvas.height*w)/canvas.width); pdf.save("Report.pdf"); 
+                    Object.assign(input.style, orig);
+                }).catch(err => { alert("خطأ في إنشاء PDF"); Object.assign(input.style, orig); });
+            }, 100);
         },
 
-        // ========== RBAC LOGIC ==========
-        editPermissions(u) { this.userForm = { id: u.id, email: u.email, permissions: u.permissions || {} }; this.showUserModal = true; },
-        async savePermissions() { try { await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "users", this.userForm.id), { permissions: this.userForm.permissions }); this.showUserModal = false; } catch(e) { console.error(e); } },
+        // ===== RBAC =====
+        editPermissions(u) { this.userForm = { id:u.id, email:u.email, permissions:u.permissions||{} }; this.showUserModal = true; },
+        async savePermissions() { try { await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"users",this.userForm.id), { permissions:this.userForm.permissions }); this.showUserModal = false; } catch(e){} },
 
-        // ========== CHARTS LOGIC ==========
+        // ===== CHARTS =====
         updateCharts() {
-            if(this.activeTab !== 'dashboard') return;
+            if(this.activeTab!=='dashboard') return;
             setTimeout(() => {
-                const sortedFlows = this.getSortedFlows(); const labels = sortedFlows.map(f => f.date);
-                const inflowsData = sortedFlows.map(f => f.type === 'inflow' ? Number(f.amount) : 0);
-                const outflowsData = sortedFlows.map(f => f.type === 'outflow' ? Number(f.amount) : 0);
-                const balanceData = sortedFlows.map(f => f.runningBalance);
-
+                const sf = this.getSortedFlows().filter(f => f.item!=='رصيد بداية المدة');
+                const labels=sf.map(f=>f.date), inD=sf.map(f=>f.type==='inflow'?Number(f.amount):0), outD=sf.map(f=>f.type==='outflow'?Number(f.amount):0);
+                const allSF = this.getSortedFlows(), balD=allSF.map(f=>f.runningBalance), balL=allSF.map(f=>f.date);
                 const ctx1 = document.getElementById('flowChart')?.getContext('2d');
-                if(ctx1) { if(this.flowChartInstance) this.flowChartInstance.destroy(); this.flowChartInstance = new Chart(ctx1, { type: 'bar', data: { labels, datasets: [{ label: 'داخلة', data: inflowsData, backgroundColor: '#34d399', borderRadius: 4 }, { label: 'خارجة', data: outflowsData, backgroundColor: '#f87171', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } } }, plugins: { legend: { labels: { color: '#e2e8f0' } } } } }); }
+                if(ctx1) { if(this.flowChartInstance) this.flowChartInstance.destroy(); this.flowChartInstance = new Chart(ctx1, { type:'bar', data:{labels, datasets:[{label:'داخلة',data:inD,backgroundColor:'#34d399',borderRadius:4},{label:'خارجة',data:outD,backgroundColor:'#f87171',borderRadius:4}]}, options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}},plugins:{legend:{labels:{color:'#e2e8f0'}}}} }); }
                 const ctx2 = document.getElementById('balanceChart')?.getContext('2d');
-                if(ctx2) { if(this.balanceChartInstance) this.balanceChartInstance.destroy(); this.balanceChartInstance = new Chart(ctx2, { type: 'line', data: { labels, datasets: [{ label: 'الرصيد', data: balanceData, borderColor: '#3b82f6', fill: true, tension: 0.4, backgroundColor: 'rgba(59, 130, 246, 0.1)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } } }, plugins: { legend: { labels: { color: '#e2e8f0' } } } } }); }
+                if(ctx2) { if(this.balanceChartInstance) this.balanceChartInstance.destroy(); this.balanceChartInstance = new Chart(ctx2, { type:'line', data:{labels:balL, datasets:[{label:'الرصيد',data:balD,borderColor:'#3b82f6',fill:true,tension:0.4,backgroundColor:'rgba(59,130,246,0.1)'}]}, options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}},plugins:{legend:{labels:{color:'#e2e8f0'}}}} }); }
             }, 200);
         }
     }
 }
 </script>
-
 </body>
 </html>
