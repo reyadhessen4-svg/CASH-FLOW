@@ -39,7 +39,6 @@
         window.firebaseSetDoc = setDoc; window.firebaseGetDoc = getDoc;
         window.firebaseOnSnapshot = onSnapshot; window.arrayUnion = arrayUnion;
         
-        // Signal that Firebase is ready
         window.firebaseReady = true;
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
@@ -118,12 +117,12 @@
                     </div>
                 </div>
 
-                <!-- CUSTODY -->
+                <!-- CUSTODY (FIXED DELETE) -->
                 <div x-show="activeTab === 'custody'" x-cloak>
                     <div class="flex justify-end mb-4"><button @click="openCustodyModal()" class="primary-gradient text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md"><i class="fas fa-plus"></i> إنشاء عهدة</button></div>
                     <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700">
                         <table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-3 text-right text-slate-300">الموظف</th><th class="p-3 text-right text-slate-300">الإجمالي</th><th class="p-3 text-right text-slate-300">المصروف</th><th class="p-3 text-right text-slate-300">المتبقي</th><th class="p-3 text-right text-slate-300">الحالة</th><th class="p-3 text-right text-slate-300">إجراء</th></tr></thead>
-                        <tbody><template x-for="c in custodies" :key="c.id"><tr class="table-dark-row"><td class="p-3 font-medium text-slate-200" x-text="c.employee"></td><td class="p-3 font-bold text-blue-400" x-text="formatCurrency(c.amount)"></td><td class="p-3 text-red-400" x-text="formatCurrency(getCustodySpent(c))"></td><td class="p-3 text-emerald-400 font-bold" x-text="formatCurrency(c.amount - getCustodySpent(c))"></td><td class="p-3"><span :class="c.status === 'مفتوحة' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-1 rounded text-xs font-bold" x-text="c.status"></span></td><td class="p-3 flex gap-3"><button @click="editCustody(c)" class="text-blue-400 hover:text-blue-300"><i class="fas fa-edit"></i></button><button @click="deleteCustody(c)" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button><button x-show="c.status === 'مفتوحة'" @click="enhanceCustody(c)" class="text-emerald-400 hover:text-emerald-300"><i class="fas fa-plus-circle"></i></button></td></tr></template></tbody></table>
+                        <tbody><template x-for="c in custodies" :key="c.id"><tr class="table-dark-row"><td class="p-3 font-medium text-slate-200" x-text="c.employee"></td><td class="p-3 font-bold text-blue-400" x-text="formatCurrency(c.amount)"></td><td class="p-3 text-red-400" x-text="formatCurrency(getCustodySpent(c))"></td><td class="p-3 text-emerald-400 font-bold" x-text="formatCurrency(c.amount - getCustodySpent(c))"></td><td class="p-3"><span :class="c.status === 'مفتوحة' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-1 rounded text-xs font-bold" x-text="c.status"></span></td><td class="p-3 flex gap-3"><button @click="editCustody(c)" class="text-blue-400 hover:text-blue-300"><i class="fas fa-edit"></i></button><button @click="deleteCustody(c.id, c.linkedFlowId)" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button><button x-show="c.status === 'مفتوحة'" @click="enhanceCustody(c)" class="text-emerald-400 hover:text-emerald-300"><i class="fas fa-plus-circle"></i></button></td></tr></template></tbody></table>
                     </div>
                 </div>
 
@@ -228,13 +227,8 @@ function financialSystem() {
 
         get allowedTabs() { if (!this.currentUser) return []; if (this.currentUser.role === 'admin') return this.allTabs; return this.allTabs.filter(t => this.currentUser.permissions?.[t.id]); },
         
-        // Robust Init to prevent blank screen
         async init() {
-            // Wait until Firebase module is fully loaded
-            while (!window.firebaseAuth || !window.firebaseDb) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-
+            while (!window.firebaseAuth || !window.firebaseDb) { await new Promise(resolve => setTimeout(resolve, 100)); }
             try {
                 window.firebaseOnAuth(window.firebaseAuth, async (user) => {
                     if (user) {
@@ -244,18 +238,10 @@ function financialSystem() {
                             this.isLoggedIn = true; 
                             this.initFirestoreListeners(); 
                             this.updateCharts(); 
-                        } else { 
-                            this.authError = "بيانات المستخدم غير موجودة في قاعدة البيانات!"; 
-                            await this.logout(); 
-                        }
-                    } else { 
-                        this.isLoggedIn = false; 
-                        this.currentUser = null; 
-                    }
+                        } else { this.authError = "بيانات المستخدم غير موجودة في قاعدة البيانات!"; await this.logout(); }
+                    } else { this.isLoggedIn = false; this.currentUser = null; }
                 });
-            } catch (error) {
-                console.error("Firebase Auth Init Error:", error);
-            }
+            } catch (error) { console.error("Firebase Auth Init Error:", error); }
         },
 
         async login() { 
@@ -308,19 +294,34 @@ function financialSystem() {
                 this.showFlowModal = false;
             } catch(e) { console.error(e); alert("خطأ في الحفظ"); }
         },
-        async deleteFlow(id) { if(confirm("هل أنت متأكد من حذف هذا التدفق؟")) { try { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", id)); } catch(e) { console.error(e); } } },
+        async deleteFlow(id) { if(confirm("هل أنت متأكد من حذف هذا التدفق؟")) { try { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", id)); } catch(e) { console.error(e); alert("خطأ في الحذف"); } } },
 
-        // Custody Logic
+        // Custody Logic (FIXED)
         openCustodyModal() { this.custodyForm = { id: null, employee: '', date: new Date().toISOString().split('T')[0], amount: '', notes: '', additionalAmount: '', isEnhance: false, isOpeningBalance: false, linkedFlowId: null }; this.showCustodyModal = true; },
         editCustody(c) { this.custodyForm = { ...c, isEnhance: false, additionalAmount: '', isOpeningBalance: false }; this.showCustodyModal = true; },
         enhanceCustody(c) { this.custodyForm = { ...c, isEnhance: true, additionalAmount: '', isOpeningBalance: false }; this.showCustodyModal = true; },
         
-        async deleteCustody(c) {
-            if(confirm("هل أنت متأكد من حذف العهدة؟")) {
+        async deleteCustody(custodyId, linkedFlowId) {
+            if(confirm("هل أنت متأكد من حذف العهدة؟ سيتم محاولة حذف التدفق النقدي المرتبط بها.")) {
                 try {
-                    if(c.linkedFlowId) { try { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId)); } catch (flowErr) { console.warn("التدفق المرتبط غير موجود", flowErr); } }
-                    await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "custodies", c.id));
-                } catch(e) { console.error(e); alert("حدث خطأ أثناء حذف العهدة"); }
+                    // 1. محاولة حذف التدفق النقدي المرتبط
+                    if(linkedFlowId) { 
+                        try { 
+                            await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", linkedFlowId)); 
+                        } catch (flowErr) { 
+                            console.warn("التدفق المرتبط غير موجود أو تم حذفه مسبقاً", flowErr); 
+                        } 
+                    }
+                    // 2. حذف العهدة نفسها
+                    await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "custodies", custodyId));
+                } catch(e) { 
+                    console.error("خطأ Firebase أثناء الحذف:", e.code, e.message); 
+                    if(e.code === 'permission-denied') {
+                        alert("خطأ: ليس لديك صلاحية الحذف. الرجاء التأكد من تحديث قواعد Firestore في فايربيس إلى: allow read, write: if request.auth != null;");
+                    } else {
+                        alert("حدث خطأ أثناء حذف العهدة: " + e.message);
+                    }
+                }
             }
         },
 
