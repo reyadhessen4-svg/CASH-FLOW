@@ -928,24 +928,63 @@ function financialSystem() {
         openCloseCustodyModal(c){this.closeCustodyData=c;this.closeAction='return';this.showCloseCustodyModal=true;},
         
         async closeAndGenerateCustodyReport() {
-            const c = this.closeCustodyData; if(!c) return;
-            const sp = this.getCustodySpent(c); const rem = c.amount - sp; const td = new Date().toISOString().split('T')[0];
-            const closeResult = rem <= 0 ? 'fully_settled' : (this.closeAction === 'return' ? 'returned' : 'carried_forward');
-            try {
-                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id), {status:'مقفلة', closedAt:td, closeResult: closeResult});
-                if(rem > 0) {
-                    if(this.closeAction === 'return') {
-                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), {type:'inflow', date:td, item:'رد عهدة مقفلة', subItem:c.employee, category:'تشغيلية', amount:rem});
-                    } else {
-                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"), {employee:c.employee, date:td, amount:rem, notes:'متبقي عهدة مرحّل', status:'مفتوحة', settlements:[], linkedFlowId:null, isOpeningBalance:true, isCarriedForward:true});
-                    }
-                }
-                this.showCloseCustodyModal = false;
-                // تحديث closeResult في الكائن المحلي قبل توليد التقرير
-                c.closeResult = closeResult;
-                this.generateCustodyReportHTML(c, sp, rem, td);
-            } catch(e) { alert("خطأ: "+e.message); }
-        },
+    const c = this.closeCustodyData; 
+    if(!c) return;
+    const sp = this.getCustodySpent(c); 
+    const rem = c.amount - sp; 
+    const td = new Date().toISOString().split('T')[0];
+    const closeResult = rem <= 0 ? 'fully_settled' : (this.closeAction === 'return' ? 'returned' : 'carried_forward');
+    
+    try {
+        // 1. إغلاق العهدة في قاعدة البيانات
+        await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id), {status:'مقفلة', closedAt:td, closeResult: closeResult});
+        
+        // 2. حذف التدفق النقدي الأصلي للعهدة (الـ 1000 ريال المسجلة كـ عهد موظفين)
+        if(c.linkedFlowId) {
+            await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows", c.linkedFlowId));
+        }
+        
+        // 3. إعادة تسجيل التدفقات بناءً على بنود الصرف الفعلية (إعادة التصنيف)
+        if(c.settlements && c.settlements.length > 0) {
+            for(let s of c.settlements) {
+                await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), {
+                    type:'outflow',
+                    date: s.date || td, // يأخذ تاريخ البند أو تاريخ التقفيل
+                    item: s.item, // مثال: خامات
+                    subItem: s.subItem || c.employee, // تفصيل البند أو اسم الموظف
+                    category: s.category || 'تشغيلية', // تصنيف البند
+                    amount: Number(s.amount),
+                    notes: 'تقفيل عهدة - ' + c.employee
+                });
+            }
+        }
+        
+        // 4. معالجة المتبقي من العهدة
+        if(rem > 0) {
+            if(this.closeAction === 'return') {
+                // حالة رد المبلغ للصندوق
+                await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), {
+                    type:'inflow', date:td, item:'رد عهدة مقفلة', subItem:c.employee, category:'تشغيلية', amount:rem
+                });
+            } else {
+                // حالة ترحيل المتبقي لعهدة جديدة
+                const newFlowRef = await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), {
+                    type:'outflow', date:td, item:'عهدة مرحلة', subItem:c.employee, category:'تشغيلية', amount:rem
+                });
+                // إنشاء عهدة جديدة مرتبطة بهذا التدفق
+                await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"), {
+                    employee:c.employee, date:td, amount:rem, notes:'متبقي عهدة مرحّل', status:'مفتوحة', settlements:[], linkedFlowId:newFlowRef.id, isOpeningBalance:true, isCarriedForward:true
+                });
+            }
+        }
+        
+        this.showCloseCustodyModal = false;
+        c.closeResult = closeResult;
+        this.generateCustodyReportHTML(c, sp, rem, td);
+    } catch(e) { 
+        alert("خطأ: "+e.message); 
+    }
+},
 
         rePrintCustodyReport(c) {
             const sp = this.getCustodySpent(c); const rem = c.amount - sp;
