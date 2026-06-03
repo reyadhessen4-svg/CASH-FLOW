@@ -86,6 +86,7 @@
     <div x-show="showCloseCustodyModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showCloseCustodyModal = false"><div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-lg space-y-5 border border-slate-700"><h3 class="text-xl font-bold text-amber-400">تقفيل العهدة</h3><div class="bg-slate-800 p-4 rounded-lg border border-slate-600" x-show="closeCustodyData"><p class="text-slate-300">الموظف: <span class="font-bold text-white" x-text="closeCustodyData?.employee"></span></p><p class="text-slate-300">المتبقي: <span class="font-bold text-emerald-400" x-text="formatCurrency(closeCustodyData ? closeCustodyData.amount - getCustodySpent(closeCustodyData) : 0)"></span></p></div><div class="space-y-3"><p class="text-slate-400 font-bold">ماذا تريد عمله بالمتبقي؟</p><label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer"><input type="radio" x-model="closeAction" value="return" class="w-4 h-4"><span class="text-slate-200">رد للصندوق</span></label><label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer"><input type="radio" x-model="closeAction" value="keep" class="w-4 h-4"><span class="text-slate-200">ترحيل لعهدة جديدة</span></label></div><div class="flex gap-4 pt-2"><button @click="closeAndGenerateCustodyReport()" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg font-bold">تقفيل</button><button @click="showCloseCustodyModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg">إلغاء</button></div></div></div>
     <div id="custody-report-print" class="report-print-area" style="position: fixed; left: -9999px; top: 0; width: 800px; z-index: -1; opacity: 0;" x-html="custodyReportHTML"></div>
 </div>
+
 <script>
 function financialSystem() {
     return {
@@ -105,6 +106,7 @@ function financialSystem() {
         tabNames: { 'dashboard':'لوحة التحكم', 'cashflow':'التدفقات النقدية', 'employees':'إدارة الموظفين', 'custody':'العهد المالية', 'settlement':'تقفيل العهد', 'inquiry':'استعلام العهد', 'analysis':'تحليل التدفقات', 'report':'قائمة التدفقات', 'users':'إدارة المستخدمين' },
         get allowedTabs() { if(!this.currentUser) return []; if(this.currentUser.role==='admin') return this.allTabs; return this.allTabs.filter(t=>this.currentUser.permissions?.[t.id]); },
         showToast(m, t) { this.toast = { show: true, message: m, type: t }; setTimeout(() => { this.toast.show = false; }, 3000); },
+        
         async init() { let a=0; while(!window.firebaseAuth||!window.firebaseDb){await new Promise(r=>setTimeout(r,100));a++;if(a>100){this.authError='Firebase Error';return;}} try { window.firebaseOnAuth(window.firebaseAuth, async(u)=>{ if(u){ const ud=await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb,"users",u.uid)); if(ud.exists()){this.currentUser={id:u.uid,email:u.email,...ud.data()};this.isLoggedIn=true;this.initFirestoreListeners();this.updateCharts();}else{this.authError="غير مسجل";await this.logout();}} else{this.isLoggedIn=false;this.currentUser=null;} }); } catch(e){} },
         async login(){this.authLoading=true;this.authError='';try{await window.firebaseSignIn(window.firebaseAuth,this.authForm.email,this.authForm.password);}catch(e){this.authError="خطأ في الدخول";}this.authLoading=false;},
         async register(){this.authLoading=true;this.authError='';try{const uc=await window.firebaseSignUp(window.firebaseAuth,this.authForm.email,this.authForm.password);const us=await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb,"users"));const r=us.empty?'admin':'user';const p=r==='admin'?{dashboard:true,cashflow:true,employees:true,custody:true,settlement:true,inquiry:true,analysis:true,report:true,users:true}:{dashboard:true,cashflow:true,employees:true,custody:true,settlement:true,inquiry:true,analysis:true,report:true,users:false};await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"users",uc.user.uid),{email:this.authForm.email,role:r,permissions:p,createdAt:new Date().toISOString()});}catch(e){this.authError=e.message;}this.authLoading=false;},
@@ -113,47 +115,156 @@ function financialSystem() {
         formatCurrency(a){return new Intl.NumberFormat('ar-SA',{style:'currency',currency:'SAR'}).format(a||0);},
         get hasOpeningBalance(){return this.flows.some(f=>f.item==='رصيد بداية المدة');}, get totalInflow(){return this.flows.filter(f=>f.type==='inflow').reduce((s,f)=>s+Number(f.amount),0);}, get totalOutflow(){return this.flows.filter(f=>f.type==='outflow').reduce((s,f)=>s+Number(f.amount),0);}, get currentBalance(){return this.totalInflow-this.totalOutflow;}, get openCustodies(){return this.custodies.filter(c=>c.status==='مفتوحة');},
         getSortedFlows(){let b=0;const o=this.flows.filter(f=>f.item==='رصيد بداية المدة');const t=this.flows.filter(f=>f.item!=='رصيد بداية المدة').sort((a,c)=>new Date(a.date||'1970-01-01')-new Date(c.date||'1970-01-01'));return[...o,...t].map(f=>{b+=f.type==='inflow'?Number(f.amount):-Number(f.amount);return{...f,runningBalance:b};});},
-        openEmployeeModal(emp=null){this.employeeForm=emp?{...emp}:{id:'',name:'',position:''};this.showEmployeeModal=true;}, async saveEmployee(){if(!this.employeeForm.name)return;try{if(this.employeeForm.id){await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"employees",this.employeeForm.id),{name:this.employeeForm.name,position:this.employeeForm.position});}else{await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"employees"),{name:this.employeeForm.name,position:this.employeeForm.position});}this.showEmployeeModal=false;}catch(e){}}, async deleteEmployee(id){if(!confirm("حذف الموظف؟"))return;try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"employees",id));}catch(e){}},
-        openAddUserModal(){this.addUserError='';this.addUserLoading=false;this.addUserForm={email:'',password:'',role:'user',permissions:{dashboard:true,cashflow:true,employees:true,custody:true,settlement:true,inquiry:true,analysis:true,report:true,users:false}};this.showAddUserModal=true;}, async addNewUser(){this.addUserLoading=true;this.addUserError='';try{const uc=await window.firebaseCreateUserSecondary(this.addUserForm.email,this.addUserForm.password);await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"users",uc.user.uid),{email:this.addUserForm.email,role:this.addUserForm.role,permissions:this.addUserForm.permissions,createdAt:new Date().toISOString()});await window.firebaseSignOutSecondary();this.showAddUserModal=false;}catch(e){this.addUserError=e.message;}this.addUserLoading=false;},
-        async deleteUser(u){if(u.id===this.currentUser?.id)return;if(!confirm('حذف المستخدم:\n'+u.email+'؟'))return;try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"users",u.id));}catch(e){}}, editPermissions(u){this.userForm={id:u.id,email:u.email,permissions:{...u.permissions}};this.showUserModal=true;}, async savePermissions(){try{await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"users",this.userForm.id),{permissions:this.userForm.permissions});this.showUserModal=false;this.showToast('تم الحفظ','success');}catch(e){}},
-        openFlowModal(t){this.flowForm={id:null,type:t,date:new Date().toISOString().split('T')[0],item:'',subItem:'',category:'تشغيلية',amount:''};this.showFlowModal=true;}, openOpeningBalanceModal(){if(this.hasOpeningBalance)return;this.flowForm={id:null,type:'inflow',date:new Date().toISOString().split('T')[0],item:'رصيد بداية المدة',subItem:'',category:'رصيد بداية',amount:''};this.showFlowModal=true;}, editFlow(f){this.flowForm={...f,subItem:f.subItem||'',category:f.category||'تشغيلية'};this.showFlowModal=true;}, async saveFlow(){if(!this.flowForm.date||!this.flowForm.item||!this.flowForm.amount)return;try{const d={date:this.flowForm.date,item:this.flowForm.item,subItem:this.flowForm.item==='رصيد بداية المدة'?'':(this.flowForm.subItem||''),category:this.flowForm.item==='رصيد بداية المدة'?'رصيد بداية':this.flowForm.category,amount:Number(this.flowForm.amount),type:this.flowForm.type};if(this.flowForm.id)await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",this.flowForm.id),d);else await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),d);this.showFlowModal=false;}catch(e){}}, async deleteFlow(id){if(!confirm("حذف؟"))return;try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",id));}catch(e){}},
-        openCustodyModal(){this.custodyForm={id:null,employee:'',date:new Date().toISOString().split('T')[0],amount:'',additionalAmount:'',isEnhance:false,isOpeningBalance:false,linkedFlowId:null};this.showCustodyModal=true;}, editCustody(c){this.custodyForm={...c,isEnhance:false,additionalAmount:'',isOpeningBalance:false};this.showCustodyModal=true;}, enhanceCustody(c){this.custodyForm={...c,isEnhance:true,additionalAmount:''};this.showCustodyModal=true;}, async deleteCustody(cu){if(!cu||!cu.id)return;if(!confirm("حذف العهدة؟"))return;if(cu.linkedFlowId){try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",cu.linkedFlowId));}catch(e){}}try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"custodies",cu.id));}catch(e){}},
+        
+        openEmployeeModal(emp=null){this.employeeForm=emp?{...emp}:{id:'',name:'',position:''};this.showEmployeeModal=true;}, 
+        async saveEmployee(){if(!this.employeeForm.name)return;try{if(this.employeeForm.id){await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"employees",this.employeeForm.id),{name:this.employeeForm.name,position:this.employeeForm.position});}else{await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"employees"),{name:this.employeeForm.name,position:this.employeeForm.position});}this.showEmployeeModal=false;}catch(e){}}, 
+        async deleteEmployee(id){if(!confirm("حذف الموظف؟"))return;try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"employees",id));}catch(e){}},
+        
+        openAddUserModal(){this.addUserError='';this.addUserLoading=false;this.addUserForm={email:'',password:'',role:'user',permissions:{dashboard:true,cashflow:true,employees:true,custody:true,settlement:true,inquiry:true,analysis:true,report:true,users:false}};this.showAddUserModal=true;}, 
+        async addNewUser(){this.addUserLoading=true;this.addUserError='';try{const uc=await window.firebaseCreateUserSecondary(this.addUserForm.email,this.addUserForm.password);await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"users",uc.user.uid),{email:this.addUserForm.email,role:this.addUserForm.role,permissions:this.addUserForm.permissions,createdAt:new Date().toISOString()});await window.firebaseSignOutSecondary();this.showAddUserModal=false;}catch(e){this.addUserError=e.message;}this.addUserLoading=false;},
+        async deleteUser(u){if(u.id===this.currentUser?.id)return;if(!confirm('حذف المستخدم:\n'+u.email+'؟'))return;try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"users",u.id));}catch(e){}}, 
+        editPermissions(u){this.userForm={id:u.id,email:u.email,permissions:{...u.permissions}};this.showUserModal=true;}, 
+        async savePermissions(){try{await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"users",this.userForm.id),{permissions:this.userForm.permissions});this.showUserModal=false;this.showToast('تم الحفظ','success');}catch(e){}},
+        
+        openFlowModal(t){this.flowForm={id:null,type:t,date:new Date().toISOString().split('T')[0],item:'',subItem:'',category:'تشغيلية',amount:''};this.showFlowModal=true;}, 
+        openOpeningBalanceModal(){if(this.hasOpeningBalance)return;this.flowForm={id:null,type:'inflow',date:new Date().toISOString().split('T')[0],item:'رصيد بداية المدة',subItem:'',category:'رصيد بداية',amount:''};this.showFlowModal=true;}, 
+        editFlow(f){this.flowForm={...f,subItem:f.subItem||'',category:f.category||'تشغيلية'};this.showFlowModal=true;}, 
+        async saveFlow(){if(!this.flowForm.date||!this.flowForm.item||!this.flowForm.amount)return;try{const d={date:this.flowForm.date,item:this.flowForm.item,subItem:this.flowForm.item==='رصيد بداية المدة'?'':(this.flowForm.subItem||''),category:this.flowForm.item==='رصيد بداية المدة'?'رصيد بداية':this.flowForm.category,amount:Number(this.flowForm.amount),type:this.flowForm.type};if(this.flowForm.id)await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",this.flowForm.id),d);else await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),d);this.showFlowModal=false;}catch(e){}}, 
+        async deleteFlow(id){if(!confirm("حذف؟"))return;try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",id));}catch(e){}},
+        
+        openCustodyModal(){this.custodyForm={id:null,employee:'',date:new Date().toISOString().split('T')[0],amount:'',additionalAmount:'',isEnhance:false,isOpeningBalance:false,linkedFlowId:null};this.showCustodyModal=true;}, 
+        editCustody(c){this.custodyForm={...c,isEnhance:false,additionalAmount:'',isOpeningBalance:false};this.showCustodyModal=true;}, 
+        enhanceCustody(c){this.custodyForm={...c,isEnhance:true,additionalAmount:''};this.showCustodyModal=true;}, 
+        async deleteCustody(cu){if(!cu||!cu.id)return;if(!confirm("حذف العهدة؟"))return;if(cu.linkedFlowId){try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",cu.linkedFlowId));}catch(e){}}try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"custodies",cu.id));}catch(e){}},
         async saveCustody(){try{if(this.custodyForm.isEnhance){if(!this.custodyForm.additionalAmount)return;await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",this.custodyForm.id),{amount:Number(this.custodyForm.amount)+Number(this.custodyForm.additionalAmount)});await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{type:'outflow',date:new Date().toISOString().split('T')[0],item:'تعزيز عهدة',subItem:this.custodyForm.employee,category:'تشغيلية',amount:Number(this.custodyForm.additionalAmount)});}else if(this.custodyForm.id){await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",this.custodyForm.id),{employee:this.custodyForm.employee,date:this.custodyForm.date,amount:Number(this.custodyForm.amount)});}else{if(!this.custodyForm.employee||!this.custodyForm.amount)return;if(!this.custodyForm.isOpeningBalance){const fr=await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{type:'outflow',date:this.custodyForm.date,item:'عهد موظفين',subItem:this.custodyForm.employee,category:'تشغيلية',amount:Number(this.custodyForm.amount)});await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"),{employee:this.custodyForm.employee,date:this.custodyForm.date,amount:Number(this.custodyForm.amount),status:'مفتوحة',settlements:[],linkedFlowId:fr.id,isOpeningBalance:false,isCarriedForward:false});}else{await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"),{employee:this.custodyForm.employee,date:this.custodyForm.date,amount:Number(this.custodyForm.amount),status:'مفتوحة',settlements:[],linkedFlowId:null,isOpeningBalance:true,isCarriedForward:false});}}this.showCustodyModal=false;}catch(e){alert(e.message);}},
-        getSelectedCustody(){return this.custodies.find(c=>c.id===this.settlement.selectedCustodyId);}, getCustodySpent(c){return c?(c.settlements||[]).reduce((s,st)=>s+Number(st.totalAmount||st.amount),0):0;}, calcSettlementTax(){const amt=Number(this.settlement.amountBeforeTax)||0;this.settlement.taxAmount=amt*0.15;this.settlement.totalAmount=amt+this.settlement.taxAmount;},
+        
+        getSelectedCustody(){return this.custodies.find(c=>c.id===this.settlement.selectedCustodyId);}, 
+        getCustodySpent(c){return c?(c.settlements||[]).reduce((s,st)=>s+Number(st.totalAmount||st.amount),0):0;}, 
+        calcSettlementTax(){const amt=Number(this.settlement.amountBeforeTax)||0;this.settlement.taxAmount=amt*0.15;this.settlement.totalAmount=amt+this.settlement.taxAmount;},
         async settleCustody(){if(!this.settlement.item||!this.settlement.totalAmount)return alert("أكمل البيانات");try{const d={id:Date.now().toString(),date:this.settlement.date,item:this.settlement.item,subItem:this.settlement.subItem||'',category:this.settlement.category,amount:Number(this.settlement.totalAmount),accountingDirection:this.settlement.accountingDirection||'',isTaxable:this.settlement.isTaxable,amountBeforeTax:this.settlement.isTaxable?Number(this.settlement.amountBeforeTax):0,taxRate:this.settlement.isTaxable?15:0,taxAmount:this.settlement.isTaxable?Number(this.settlement.taxAmount):0,totalAmount:Number(this.settlement.totalAmount)};await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",this.settlement.selectedCustodyId),{settlements:window.arrayUnion(d)});this.settlement={selectedCustodyId:this.settlement.selectedCustodyId,date:'',item:'',subItem:'',category:'تشغيلية',accountingDirection:'',isTaxable:false,amountBeforeTax:'',taxRate:15,taxAmount:0,totalAmount:''};}catch(e){alert(e.message);}},
         async deleteSettlementItem(sid){if(!confirm("حذف البند؟"))return;const c=this.getSelectedCustody();if(!c)return;try{await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id),{settlements:c.settlements.filter(s=>s.id!==sid)});}catch(e){}},
+        
         openCloseCustodyModal(c){this.closeCustodyData=c;this.closeAction='return';this.showCloseCustodyModal=true;},
         async closeAndGenerateCustodyReport(){const c=this.closeCustodyData;if(!c)return;const sp=this.getCustodySpent(c);const rem=c.amount-sp;const td=new Date().toISOString().split('T')[0];const cr=rem<=0?'fully_settled':(this.closeAction==='return'?'returned':'carried_forward');try{await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id),{status:'مقفلة',closedAt:td,closeResult:cr});if(c.linkedFlowId)await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",c.linkedFlowId));if(c.settlements&&c.settlements.length>0){for(let s of c.settlements){await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{type:'outflow',date:s.date||td,item:s.item,subItem:s.subItem||c.employee,category:s.category||'تشغيلية',amount:Number(s.totalAmount||s.amount)});}}if(rem>0){if(this.closeAction==='return'){await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{type:'inflow',date:td,item:'رد عهدة مقفلة',subItem:c.employee,category:'تشغيلية',amount:rem});}else{const nfr=await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{type:'outflow',date:td,item:'عهدة مرحلة',subItem:c.employee,category:'تشغيلية',amount:rem});await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"),{employee:c.employee,date:td,amount:rem,status:'مفتوحة',settlements:[],linkedFlowId:nfr.id,isOpeningBalance:true,isCarriedForward:true});}}this.showCloseCustodyModal=false;this.generateCustodyReportHTML(c,sp,rem,td,cr);}catch(e){alert("خطأ: "+e.message);}},
         rePrintCustodyReport(c){const sp=this.getCustodySpent(c);const rem=c.amount-sp;this.generateCustodyReportHTML(c,sp,rem,c.closedAt||new Date().toISOString().split('T')[0],c.closeResult||'fully_settled');},
         generateCustodyReportHTML(c,spent,rem,cd,cr){const act=cr==='returned'?'رد للصندوق':(cr==='carried_forward'?'ترحيل لعهدة جديدة':'مقفلة بالكامل');let rows='';(c.settlements||[]).forEach((s,i)=>{let taxStr='';if(s.isTaxable){taxStr=`<br><small style="color:#3b82f6">ضريبي: قبل الضريبة ${Number(s.amountBeforeTax).toLocaleString('ar-SA')} | ضريبة: ${Number(s.taxAmount).toLocaleString('ar-SA')}</small>`;}rows+=`<tr><td style="text-align:center">${i+1}</td><td>${s.date||''}</td><td>${s.item||''}${taxStr}</td><td>${s.category||''}</td><td>${s.accountingDirection||'-'}</td><td style="text-align:left">${Number(s.totalAmount||s.amount).toLocaleString('ar-SA')}</td></tr>`;});this.custodyReportHTML=`<div style="text-align:center;margin-bottom:30px"><h2>تقرير تقفيل عهدة</h2><p style="color:#64748b">تاريخ التقفيل: ${cd}</p></div><div class="summary-box"><div class="summary-row"><span>الموظف:</span><span>${c.employee}</span></div><div class="summary-row"><span>تاريخ العهدة:</span><span>${c.date}</span></div></div><table><thead><tr><th>#</th><th>التاريخ</th><th>البند</th><th>التصنيف</th><th>التوجيه</th><th>المبلغ</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="total-row"><td colspan="5">الإجمالي</td><td style="text-align:left">${spent.toLocaleString('ar-SA')}</td></tr></tfoot></table><div class="summary-box" style="border-color:#16a34a"><div class="summary-row" style="font-size:18px;border-bottom:none"><span>المتبقي:</span><span style="color:#16a34a">${rem.toLocaleString('ar-SA')} ر.س</span></div></div>`;setTimeout(()=>{if(confirm("موافق = PDF\nإلغاء = Excel"))this.exportPDF('custody-report-print');else this.exportCustodyReportExcel(c,spent,rem,act,cd);},300);},
         
-        // === دالة تصدير الاكسيل الاحترافية بالالوان باستخدام ExcelJS (تم إصلاح الاخطاء) ===
+        // === دالة الإكسيل الاحترافية بالألوان (مفصولة لسهولة القراءة) ===
         async exportCustodyReportExcel(c, sp, rem, act, cd) {
             if(!c) return;
             const wb = new ExcelJS.Workbook();
             const ws = wb.addWorksheet('تقرير التقفيل', { views: [{ rightToLeft: true }] });
-            ws.columns = [{width:5},{width:15},{width:30},{width:20},{width:15},{width:25},{width:20},{width:20},{width:20}];
-            ws.mergeCells('A1:I1'); const r1 = ws.getRow(1); r1.height = 40; r1.values = ['متابعة التدفقات النقدية والعهد']; r1.getCell(1).font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } }; r1.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } }; r1.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
-            ws.mergeCells('A2:I2'); const r2 = ws.getRow(2); r2.height = 30; r2.values = ['تقرير تقفيل عهدة']; r2.getCell(1).font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } }; r2.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B82F6' } }; r2.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
-            ws.mergeCells('A4:D4'); ws.getCell('A4').value = 'اسم الموظف: ' + c.employee; ws.getCell('A4').font = {bold:true, size:12, color:{argb:'FF1E3A8A'}};
-            ws.mergeCells('F4:I4'); ws.getCell('F4').value = 'تاريخ العهدة: ' + c.date; ws.getCell('F4').font = {bold:true, size:12, color:{argb:'FF1E3A8A'}};
-            const th = ws.getRow(6); th.height = 25; th.values = ['#', 'التاريخ', 'البند', 'التفصيل', 'التصنيف', 'التوجيه المحاسبي', 'المبلغ قبل الضريبة', 'قيمة الضريبة (15%)', 'المبلغ الإجمالي'];
-            th.eachCell((cell) => { cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } }; cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; cell.border = { top: {style:'thin', color:{argb:'FF000000'}}, left: {style:'thin', color:{argb:'FF000000'}}, bottom: {style:'thin', color:{argb:'FF000000'}}, right: {style:'thin', color:{argb:'FF000000'}} }; });
+            ws.columns = [
+                {width:5}, {width:15}, {width:30}, {width:20}, {width:15}, {width:25}, {width:20}, {width:20}, {width:20}
+            ];
+            
+            // 1. Header Row 1
+            ws.mergeCells('A1:I1');
+            const r1 = ws.getRow(1); r1.height = 40;
+            r1.values = ['متابعة التدفقات النقدية والعهد'];
+            r1.getCell(1).font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+            r1.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+            r1.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+            
+            // 2. Header Row 2
+            ws.mergeCells('A2:I2');
+            const r2 = ws.getRow(2); r2.height = 30;
+            r2.values = ['تقرير تقفيل عهدة'];
+            r2.getCell(1).font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+            r2.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B82F6' } };
+            r2.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+            // 3. Info Rows
+            ws.mergeCells('A4:D4'); 
+            ws.getCell('A4').value = 'اسم الموظف: ' + c.employee; 
+            ws.getCell('A4').font = {bold:true, size:12, color:{argb:'FF1E3A8A'}};
+            
+            ws.mergeCells('F4:I4'); 
+            ws.getCell('F4').value = 'تاريخ العهدة: ' + c.date; 
+            ws.getCell('F4').font = {bold:true, size:12, color:{argb:'FF1E3A8A'}};
+
+            // 4. Table Headers
+            const th = ws.getRow(6); th.height = 25;
+            th.values = ['#', 'التاريخ', 'البند', 'التفصيل', 'التصنيف', 'التوجيه المحاسبي', 'المبلغ قبل الضريبة', 'قيمة الضريبة (15%)', 'المبلغ الإجمالي'];
+            th.eachCell((cell) => {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+                cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+            });
+
+            // 5. Table Data Rows
             let totalBT = 0, totalT = 0;
-            (c.settlements || []).forEach((s, i) => { const bt = s.isTaxable ? Number(s.amountBeforeTax || 0) : 0; const t = s.isTaxable ? Number(s.taxAmount || 0) : 0; const tot = Number(s.totalAmount || s.amount || 0); totalBT += bt; totalT += t; const dr = ws.getRow(7 + i); dr.values = [i+1, s.date, s.item, s.subItem||'-', s.category, s.accountingDirection||'-', bt, t, tot]; const bgColor = i % 2 === 0 ? 'FFF8FAFC' : 'FFFFFFFF'; dr.eachCell((cell) => { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } }; cell.border = { top: {style:'thin', color:{argb:'FFCBD5E1'}}, left: {style:'thin', color:{argb:'FFCBD5E1'}}, bottom: {style:'thin', color:{argb:'FFCBD5E1'}}, right: {style:'thin', color:{argb:'FFCBD5E1'}} }; cell.alignment = { vertical: 'middle' }; }); });
-            const totRowNum = 7 + (c.settlements || []).length; const tr = ws.getRow(totRowNum); tr.height = 25; tr.values = ['', '', '', '', '', 'الإجمالي', totalBT, totalT, sp];
-            tr.eachCell((cell) => { cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } }; cell.border = { top: {style:'thin', color:{argb:'FF000000'}}, left: {style:'thin', color:{argb:'FF000000'}}, bottom: {style:'thin', color:{argb:'FF000000'}}, right: {style:'thin', color:{argb:'FF000000'}} }; });
+            (c.settlements || []).forEach((s, i) => {
+                const bt = s.isTaxable ? Number(s.amountBeforeTax || 0) : 0;
+                const t = s.isTaxable ? Number(s.taxAmount || 0) : 0;
+                const tot = Number(s.totalAmount || s.amount || 0);
+                totalBT += bt; totalT += t;
+                
+                const dr = ws.getRow(7 + i);
+                dr.values = [i+1, s.date, s.item, s.subItem||'-', s.category, s.accountingDirection||'-', bt, t, tot];
+                // Alternating row colors
+                const bgColor = i % 2 === 0 ? 'FFF8FAFC' : 'FFFFFFFF'; 
+                dr.eachCell((cell) => {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+                    cell.border = { top: {style:'thin', color:{argb:'FFCBD5E1'}}, left: {style:'thin', color:{argb:'FFCBD5E1'}}, bottom: {style:'thin', color:{argb:'FFCBD5E1'}}, right: {style:'thin', color:{argb:'FFCBD5E1'}} };
+                    cell.alignment = { vertical: 'middle' };
+                });
+            });
+
+            // 6. Total Row
+            const totRowNum = 7 + (c.settlements || []).length;
+            const tr = ws.getRow(totRowNum); tr.height = 25;
+            tr.values = ['', '', '', '', '', 'الإجمالي', totalBT, totalT, sp];
+            tr.eachCell((cell) => {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+                cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+            });
+
+            // 7. Summary Section
             const sumStart = totRowNum + 2;
-            ws.mergeCells(`A${sumStart}:I${sumStart}`); ws.getCell(`A${sumStart}`).value = 'ملخص التقرير'; ws.getCell(`A${sumStart}`).font = {bold:true, size:14, color:{argb:'FF1E3A8A'}}; ws.getCell(`A${sumStart}`).fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FFE0E7FF'}};
+            ws.mergeCells(`A${sumStart}:I${sumStart}`); 
+            ws.getCell(`A${sumStart}`).value = 'ملخص التقرير'; 
+            ws.getCell(`A${sumStart}`).font = {bold:true, size:14, color:{argb:'FF1E3A8A'}}; 
+            ws.getCell(`A${sumStart}`).fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FFE0E7FF'}};
+            
             const sumData = [['إجمالي العهدة الأصلي', Number(c.amount)], ['إجمالي المصروفات', sp], ['المتبقي', rem]];
-            sumData.forEach((d, i) => { const r = ws.getRow(sumStart + 1 + i); ws.mergeCells(`A${r.number}:E${r.number}`); r.getCell(1).value = d[0]; r.getCell(1).font = {bold:true, size:12}; ws.mergeCells(`F${r.number}:I${r.number}`); r.getCell(6).value = d[1]; r.getCell(6).font = {bold:true, size:12}; r.getCell(6).alignment = {horizontal:'center'}; if(i === 2) { r.getCell(1).fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FFDCFCE7'}}; r.getCell(6).fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FFDCFCE7'}}; r.getCell(6).font = {bold:true, size:14, color:{argb:'FF166534'}}; } });
-            const actRow = ws.getRow(sumStart + 4); ws.mergeCells(`A${actRow.number}:I${actRow.number}`); actRow.getCell(1).value = 'الإجراء المتخذ: ' + act; actRow.getCell(1).font = {bold:true, size:14, color:{argb:'FF1E3A8A'}}; actRow.getCell(1).alignment = {horizontal:'center'};
-            const buf = await wb.xlsx.writeBuffer(); const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `تقرير_عهدة_${c.employee}.xlsx`; a.click();
+            sumData.forEach((d, i) => {
+                const r = ws.getRow(sumStart + 1 + i);
+                ws.mergeCells(`A${r.number}:E${r.number}`); 
+                r.getCell(1).value = d[0]; 
+                r.getCell(1).font = {bold:true, size:12};
+                ws.mergeCells(`F${r.number}:I${r.number}`); 
+                r.getCell(6).value = d[1]; 
+                r.getCell(6).font = {bold:true, size:12}; 
+                r.getCell(6).alignment = {horizontal:'center'};
+                if(i === 2) { 
+                    r.getCell(1).fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FFDCFCE7'}}; 
+                    r.getCell(6).fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FFDCFCE7'}}; 
+                    r.getCell(6).font = {bold:true, size:14, color:{argb:'FF166534'}}; 
+                }
+            });
+            
+            const actRow = ws.getRow(sumStart + 4);
+            ws.mergeCells(`A${actRow.number}:I${actRow.number}`); 
+            actRow.getCell(1).value = 'الإجراء المتخذ: ' + act; 
+            actRow.getCell(1).font = {bold:true, size:14, color:{argb:'FF1E3A8A'}}; 
+            actRow.getCell(1).alignment = {horizontal:'center'};
+
+            // Download Logic
+            const buf = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const a = document.createElement('a'); 
+            a.href = URL.createObjectURL(blob); 
+            a.download = `تقرير_عهدة_${c.employee}.xlsx`; 
+            a.click();
         },
 
         applyInquiry(){const emp=this.inquiry.employee;if(!emp)return alert("اختر الموظف");let f=this.custodies.filter(c=>c.employee===emp);if(this.inquiry.from)f=f.filter(c=>c.date>=this.inquiry.from);if(this.inquiry.to)f=f.filter(c=>c.date<=this.inquiry.to);let res={employee:emp,totalAmount:0,totalSpent:0,remaining:0,custodyDetails:[]};f.forEach(c=>{const sp=this.getCustodySpent(c);if(!c.isCarriedForward)res.totalAmount+=Number(c.amount);(c.settlements||[]).forEach(s=>{res.totalSpent+=Number(s.totalAmount||s.amount);});res.custodyDetails.push({id:c.id,date:c.date,amount:Number(c.amount),spent:sp,status:c.status,settlements:c.settlements||[]});});res.remaining=res.totalAmount-res.totalSpent;this.inquiryResult=res;},
         generateAnalysis(){if(!this.analysis.from||!this.analysis.to)return alert("حدد الفترة");const from=this.analysis.from,to=this.analysis.to;let pf=this.flows.filter(f=>f.date>=from&&f.date<=to&&f.item!=='رصيد بداية المدة');const totalIn=pf.filter(f=>f.type==='inflow').reduce((s,f)=>s+Number(f.amount),0);const totalOut=pf.filter(f=>f.type==='outflow').reduce((s,f)=>s+Number(f.amount),0);const net=totalIn-totalOut;const daysDiff=Math.max(1,(new Date(to)-new Date(from))/(1000*60*60*24));const dailyNet=net/daysDiff;this.analysis.data={totalIn,totalOut,net,forecast30:this.currentBalance+(dailyNet*30),forecast60:this.currentBalance+(dailyNet*60),forecast90:this.currentBalance+(dailyNet*90)};},
         generateReport(){if(!this.report.from||!this.report.to)return alert("حدد الفترة");const from=this.report.from,to=this.report.to;const oF=this.flows.find(f=>f.item==='رصيد بداية المدة');const oA=oF?Number(oF.amount):0;const bN=this.flows.filter(f=>f.date<from&&f.item!=='رصيد بداية المدة').reduce((a,c)=>a+(c.type==='inflow'?Number(c.amount):-Number(c.amount)),0);const oB=oA+bN;const pf=this.flows.filter(f=>f.date>=from&&f.date<=to&&f.item!=='رصيد بداية المدة');const calc=(t,cat)=>pf.filter(f=>f.type===t&&f.category===cat).reduce((s,f)=>s+Number(f.amount),0);const nO=calc('inflow','تشغيلية')-calc('outflow','تشغيلية');const nI=calc('inflow','استثمارية')-calc('outflow','استثمارية');const nF=calc('inflow','تمويلية')-calc('outflow','تمويلية');this.report.data={openingBalance:oB,netCashFlow:nO+nI+nF,closingBalance:oB+nO+nI+nF};},
+        
         exportPDF(divId){const input=document.getElementById(divId);if(!input)return;const orig={position:input.style.position,left:input.style.left,top:input.style.top,zIndex:input.style.zIndex,opacity:input.style.opacity};input.style.position='fixed';input.style.left='0';input.style.top='0';input.style.zIndex='-1';input.style.opacity='1';setTimeout(()=>{html2canvas(input,{scale:2,backgroundColor:divId==='custody-report-print'?"#ffffff":"#0f172a",useCORS:true,windowWidth:1200}).then(canvas=>{const{jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');const w=pdf.internal.pageSize.getWidth();pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,w,(canvas.height*w)/canvas.width);pdf.save("Report.pdf");Object.assign(input.style,orig);}).catch(err=>{alert("خطأ في PDF");Object.assign(input.style,orig);});},200);},
         updateCharts(){if(this.activeTab!=='dashboard')return;setTimeout(()=>{const sf=this.getSortedFlows().filter(f=>f.item!=='رصيد بداية المدة');const labels=sf.map(f=>f.date),inD=sf.map(f=>f.type==='inflow'?Number(f.amount):0),outD=sf.map(f=>f.type==='outflow'?Number(f.amount):0);const ctx1=document.getElementById('flowChart')?.getContext('2d');if(ctx1){if(this.flowChartInstance)this.flowChartInstance.destroy();this.flowChartInstance=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{label:'داخلة',data:inD,backgroundColor:'#34d399',borderRadius:4},{label:'خارجة',data:outD,backgroundColor:'#f87171',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}},plugins:{legend:{labels:{color:'#e2e8f0'}}}}});}const ctx2=document.getElementById('balanceChart')?.getContext('2d');if(ctx2){if(this.balanceChartInstance)this.balanceChartInstance.destroy();this.balanceChartInstance=new Chart(ctx2,{type:'line',data:{labels,datasets:[{label:'الرصيد',data:sf.map(f=>{let b=0;this.getSortedFlows().forEach(fl=>{if(fl.id===f.id)b=fl.runningBalance;});return b;}),borderColor:'#3b82f6',fill:true,tension:0.4,backgroundColor:'rgba(59,130,246,0.1)'}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}},plugins:{legend:{labels:{color:'#e2e8f0'}}}}});}},200);}
     }
