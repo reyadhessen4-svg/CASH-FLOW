@@ -153,6 +153,30 @@
                     </div></div>
                 </div>
 
+                <!-- EMPLOYEES -->
+                <div x-show="activeTab === 'employees'" x-cloak>
+                    <div class="flex justify-end mb-4 gap-2">
+                        <button @click="openEmployeeModal()" class="primary-gradient text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md"><i class="fas fa-plus"></i> إضافة موظف</button>
+                    </div>
+                    <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700"><div class="overflow-x-auto">
+                        <table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-3 text-right text-slate-300">#</th><th class="p-3 text-right text-slate-300">اسم الموظف</th><th class="p-3 text-right text-slate-300">المنصب</th><th class="p-3 text-right text-slate-300">إجراء</th></tr></thead>
+                        <tbody>
+                            <template x-for="(emp, idx) in employees" :key="emp.id">
+                                <tr class="table-dark-row">
+                                    <td class="p-3 text-slate-400" x-text="idx+1"></td>
+                                    <td class="p-3 font-bold text-white" x-text="emp.name"></td>
+                                    <td class="p-3 text-slate-300" x-text="emp.position || '-'"></td>
+                                    <td class="p-3 flex gap-2">
+                                        <button @click="openEmployeeModal(emp)" class="text-blue-400 hover:text-blue-300"><i class="fas fa-edit"></i></button>
+                                        <button @click="deleteEmployee(emp.id)" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            </template>
+                            <tr x-show="employees.length === 0"><td colspan="4" class="p-6 text-center text-slate-500">لا يوجد موظفون مسجلون</td></tr>
+                        </tbody></table>
+                    </div></div>
+                </div>
+
                 <!-- CUSTODY -->
                 <div x-show="activeTab === 'custody'" x-cloak>
                     <div class="flex justify-end mb-4 gap-2"><button @click="openCustodyModal()" class="primary-gradient text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md"><i class="fas fa-plus"></i> إنشاء عهدة</button></div>
@@ -179,14 +203,38 @@
                                 <input type="text" x-model="settlement.item" placeholder="البند" class="w-full p-2 rounded-lg input-dark">
                                 <input type="text" x-model="settlement.subItem" placeholder="التفصيل" class="w-full p-2 rounded-lg input-dark">
                                 <select x-model="settlement.category" class="w-full p-2 rounded-lg input-dark"><option value="تشغيلية">تشغيلية</option><option value="استثمارية">استثمارية</option><option value="تمويلية">تمويلية</option></select>
-                                <input type="number" x-model="settlement.amount" placeholder="القيمة المصروفة" class="w-full p-2 rounded-lg input-dark">
+                                
+                                <!-- الضريبة على البند -->
+                                <div class="bg-slate-800 p-3 rounded-lg border border-slate-600 space-y-2">
+                                    <label class="flex items-center gap-2 text-slate-300 text-sm cursor-pointer">
+                                        <input type="checkbox" x-model="settlement.isTaxable" class="w-4 h-4 text-blue-600 rounded bg-slate-900 border-slate-600">
+                                        <span>فاتورة ضريبية</span>
+                                    </label>
+                                    <div x-show="settlement.isTaxable">
+                                        <label class="block text-xs text-slate-400 mb-1">المبلغ قبل الضريبة</label>
+                                        <input type="number" x-model="settlement.amountBeforeTax" @input="calcSettlementTax()" placeholder="المبلغ قبل الضريبة" class="w-full p-2 rounded-lg input-dark text-sm">
+                                        <div class="flex justify-between text-xs mt-2 text-slate-400">
+                                            <span>الضريبة (15%):</span>
+                                            <span class="text-amber-400 font-bold" x-text="formatCurrency(settlement.taxAmount)"></span>
+                                        </div>
+                                        <div class="flex justify-between text-sm mt-1 font-bold text-slate-300 border-t border-slate-700 pt-1">
+                                            <span>الإجمالي بعد الضريبة:</span>
+                                            <span class="text-emerald-400" x-text="formatCurrency(settlement.totalAmount)"></span>
+                                        </div>
+                                    </div>
+                                    <div x-show="!settlement.isTaxable">
+                                        <label class="block text-xs text-slate-400 mb-1">المبلغ الإجمالي</label>
+                                        <input type="number" x-model="settlement.totalAmount" placeholder="المبلغ" class="w-full p-2 rounded-lg input-dark text-sm">
+                                    </div>
+                                </div>
+
                                 <input type="text" x-model="settlement.accountingDirection" placeholder="التوجيه المحاسبي" class="w-full p-2 rounded-lg input-dark border-amber-500/50 focus:border-amber-500">
                                 <button @click="settleCustody()" class="w-full bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 transition">تسوية البند</button>
                             </div>
                         </div>
                         <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700">
                             <h3 class="font-bold text-lg border-b border-slate-700 pb-2 mb-4 text-white">بنود الصرف</h3>
-                            <div x-show="settlement.selectedCustodyId"><ul class="space-y-2 max-h-[500px] overflow-y-auto"><template x-for="st in getSelectedCustody()?.settlements || []" :key="st.id"><li class="bg-slate-800 p-3 rounded border border-slate-700 text-sm"><div class="flex justify-between items-start"><div class="flex-1"><span class="font-bold text-slate-200" x-text="st.item"></span> <span class="text-slate-500 text-xs" x-text="st.subItem ? '('+st.subItem+')' : ''"></span><br><span class="text-amber-400 text-xs mt-1 inline-block" x-show="st.accountingDirection"><i class="fas fa-book-open"></i> <span x-text="st.accountingDirection"></span></span><div class="text-slate-600 text-xs mt-1"><span x-text="st.date"></span> | <span x-text="st.category"></span></div></div><div class="flex items-center gap-3"><span class="text-red-400 font-bold" x-text="formatCurrency(st.amount)"></span><button @click="deleteSettlementItem(st.id)" class="text-red-500 hover:text-red-400"><i class="fas fa-trash-alt text-xs"></i></button></div></div></li></template></ul></div>
+                            <div x-show="settlement.selectedCustodyId"><ul class="space-y-2 max-h-[500px] overflow-y-auto"><template x-for="st in getSelectedCustody()?.settlements || []" :key="st.id"><li class="bg-slate-800 p-3 rounded border border-slate-700 text-sm"><div class="flex justify-between items-start"><div class="flex-1"><span class="font-bold text-slate-200" x-text="st.item"></span> <span class="text-slate-500 text-xs" x-text="st.subItem ? '('+st.subItem+')' : ''"></span><br><span x-show="st.accountingDirection" class="text-amber-400 text-xs mt-1 inline-block"><i class="fas fa-book-open"></i> <span x-text="st.accountingDirection"></span></span><div class="text-slate-600 text-xs mt-1"><span x-text="st.date"></span> | <span x-text="st.category"></span></div><div x-show="st.isTaxable" class="text-blue-400 text-xs mt-1"><i class="fas fa-receipt"></i> ضريبي: قبل الضريبة <span x-text="formatCurrency(st.amountBeforeTax)"></span> | ضريبة <span x-text="formatCurrency(st.taxAmount)"></span></div></div><div class="flex items-center gap-3"><span class="text-red-400 font-bold" x-text="formatCurrency(st.totalAmount || st.amount)"></span><button @click="deleteSettlementItem(st.id)" class="text-red-500 hover:text-red-400"><i class="fas fa-trash-alt text-xs"></i></button></div></div></li></template></ul></div>
                             <div x-show="!settlement.selectedCustodyId" class="text-center py-10 text-slate-500">اختر عهدة</div>
                         </div>
                     </div>
@@ -194,8 +242,8 @@
 
                 <!-- INQUIRY -->
                 <div x-show="activeTab === 'inquiry'" x-cloak>
-                    <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 mb-6"><div class="flex flex-wrap gap-4 items-end"><div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">الموظف</label><input type="text" x-model="inquiry.employee" class="p-2 rounded-lg input-dark"></div><div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">من تاريخ</label><input type="date" x-model="inquiry.from" class="p-2 rounded-lg input-dark"></div><div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">إلى تاريخ</label><input type="date" x-model="inquiry.to" class="p-2 rounded-lg input-dark"></div><button @click="applyInquiry()" class="primary-gradient text-white px-4 py-2 rounded-lg shadow-md">استعلام</button><button @click="exportInquiryExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-excel"></i></button><button @click="exportPDF('inquiry-print')" class="bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-pdf"></i></button></div></div>
-                    <div id="inquiry-print" class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700"><template x-if="inquiryResult"><div><h3 class="text-xl font-bold mb-4 text-center text-white">تقرير عهدة: <span x-text="inquiryResult.employee"></span></h3><div class="grid grid-cols-3 gap-4 mb-6 bg-slate-800 p-4 rounded-lg border border-slate-700"><div class="text-center"><p class="text-sm text-slate-400">إجمالي العهد الأصلي</p><p class="font-bold text-blue-400 text-lg" x-text="formatCurrency(inquiryResult.totalAmount)"></p></div><div class="text-center"><p class="text-sm text-slate-400">إجمالي المصروف</p><p class="font-bold text-red-400 text-lg" x-text="formatCurrency(inquiryResult.totalSpent)"></p></div><div class="text-center"><p class="text-sm text-slate-400">المتبقي الفعلي</p><p class="font-bold text-emerald-400 text-lg" x-text="formatCurrency(inquiryResult.remaining)"></p></div></div><div class="space-y-4"><template x-for="cd in inquiryResult.custodyDetails" :key="cd.id"><div class="bg-slate-800 rounded-lg border border-slate-700 p-4"><div class="flex justify-between items-center mb-2"><div class="flex items-center gap-2"><span class="font-bold text-white" x-text="'عهدة ' + cd.date"></span><span x-show="cd.isCarriedForward" class="text-amber-400 text-xs bg-amber-900/30 px-2 py-0.5 rounded">مرحّل</span><span :class="cd.status === 'مفتوحة' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-0.5 rounded text-xs font-bold" x-text="cd.status"></span></div><div class="flex gap-4 text-sm"><span class="text-slate-400">المبلغ: <span class="text-blue-400 font-bold" x-text="formatCurrency(cd.amount)"></span></span><span class="text-slate-400">المصروف: <span class="text-red-400 font-bold" x-text="formatCurrency(cd.spent)"></span></span></div></div><template x-if="cd.settlements && cd.settlements.length > 0"><table class="w-full text-sm mt-2"><thead><tr class="bg-slate-700/50"><th class="p-2 text-right text-slate-400 text-xs">التاريخ</th><th class="p-2 text-right text-slate-400 text-xs">البند</th><th class="p-2 text-right text-slate-400 text-xs">التصنيف</th><th class="p-2 text-right text-slate-400 text-xs">التوجيه</th><th class="p-2 text-right text-slate-400 text-xs">المبلغ</th></tr></thead><tbody><template x-for="s in cd.settlements" :key="s.id"><tr class="border-t border-slate-700/50"><td class="p-2 text-slate-300" x-text="s.date"></td><td class="p-2 text-slate-300" x-text="s.item"></td><td class="p-2 text-slate-400 text-xs" x-text="s.category"></td><td class="p-2 text-amber-400 text-xs" x-text="s.accountingDirection || '-'"></td><td class="p-2 text-red-400" x-text="formatCurrency(s.amount)"></td></tr></template></tbody></table></template></div></template></div></div></template><div x-show="!inquiryResult" class="text-center py-10 text-slate-500">أدخل بيانات الاستعلام</div></div>
+                    <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 mb-6"><div class="flex flex-wrap gap-4 items-end"><div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">الموظف</label><select x-model="inquiry.employee" class="p-2 rounded-lg input-dark w-64"><option value="">اختر الموظف</option><template x-for="emp in employees" :key="emp.id"><option :value="emp.name" x-text="emp.name"></option></template></select></div><div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">من تاريخ</label><input type="date" x-model="inquiry.from" class="p-2 rounded-lg input-dark"></div><div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">إلى تاريخ</label><input type="date" x-model="inquiry.to" class="p-2 rounded-lg input-dark"></div><button @click="applyInquiry()" class="primary-gradient text-white px-4 py-2 rounded-lg shadow-md">استعلام</button><button @click="exportInquiryExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-excel"></i></button><button @click="exportPDF('inquiry-print')" class="bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-pdf"></i></button></div></div>
+                    <div id="inquiry-print" class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700"><template x-if="inquiryResult"><div><h3 class="text-xl font-bold mb-4 text-center text-white">تقرير عهدة: <span x-text="inquiryResult.employee"></span></h3><div class="grid grid-cols-3 gap-4 mb-6 bg-slate-800 p-4 rounded-lg border border-slate-700"><div class="text-center"><p class="text-sm text-slate-400">إجمالي العهد الأصلي</p><p class="font-bold text-blue-400 text-lg" x-text="formatCurrency(inquiryResult.totalAmount)"></p></div><div class="text-center"><p class="text-sm text-slate-400">إجمالي المصروف</p><p class="font-bold text-red-400 text-lg" x-text="formatCurrency(inquiryResult.totalSpent)"></p></div><div class="text-center"><p class="text-sm text-slate-400">المتبقي الفعلي</p><p class="font-bold text-emerald-400 text-lg" x-text="formatCurrency(inquiryResult.remaining)"></p></div></div><div class="space-y-4"><template x-for="cd in inquiryResult.custodyDetails" :key="cd.id"><div class="bg-slate-800 rounded-lg border border-slate-700 p-4"><div class="flex justify-between items-center mb-2"><div class="flex items-center gap-2"><span class="font-bold text-white" x-text="'عهدة ' + cd.date"></span><span x-show="cd.isCarriedForward" class="text-amber-400 text-xs bg-amber-900/30 px-2 py-0.5 rounded">مرحّل</span><span :class="cd.status === 'مفتوحة' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-0.5 rounded text-xs font-bold" x-text="cd.status"></span></div><div class="flex gap-4 text-sm"><span class="text-slate-400">المبلغ: <span class="text-blue-400 font-bold" x-text="formatCurrency(cd.amount)"></span></span><span class="text-slate-400">المصروف: <span class="text-red-400 font-bold" x-text="formatCurrency(cd.spent)"></span></span></div></div><template x-if="cd.settlements && cd.settlements.length > 0"><table class="w-full text-sm mt-2"><thead><tr class="bg-slate-700/50"><th class="p-2 text-right text-slate-400 text-xs">التاريخ</th><th class="p-2 text-right text-slate-400 text-xs">البند</th><th class="p-2 text-right text-slate-400 text-xs">التصنيف</th><th class="p-2 text-right text-slate-400 text-xs">التوجيه</th><th class="p-2 text-right text-slate-400 text-xs">المبلغ</th></tr></thead><tbody><template x-for="s in cd.settlements" :key="s.id"><tr class="border-t border-slate-700/50"><td class="p-2 text-slate-300" x-text="s.date"></td><td class="p-2 text-slate-300" x-text="s.item"></td><td class="p-2 text-slate-400 text-xs" x-text="s.category"></td><td class="p-2 text-amber-400 text-xs" x-text="s.accountingDirection || '-'"></td><td class="p-2 text-red-400" x-text="formatCurrency(s.totalAmount || s.amount)"></td></tr></template></tbody></table></template></div></template></div></div></template><div x-show="!inquiryResult" class="text-center py-10 text-slate-500">اختر الموظف واضغط استعلام</div></div>
                 </div>
 
                 <!-- ANALYSIS -->
@@ -245,43 +293,12 @@
 
                 <!-- USERS -->
                 <div x-show="activeTab === 'users'" x-cloak>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                        <div class="glass-dark p-5 rounded-xl user-card border border-slate-700">
-                            <div class="flex items-center justify-between">
-                                <div><p class="text-slate-400 text-sm">إجمالي المستخدمين</p><p class="text-3xl font-bold text-white mt-1" x-text="users.length"></p></div>
-                                <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center"><i class="fas fa-users text-blue-400 text-xl"></i></div>
-                            </div>
-                        </div>
-                        <div class="glass-dark p-5 rounded-xl user-card border border-slate-700">
-                            <div class="flex items-center justify-between">
-                                <div><p class="text-slate-400 text-sm">المديرون</p><p class="text-3xl font-bold text-indigo-400 mt-1" x-text="users.filter(u => u.role === 'admin').length"></p></div>
-                                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center"><i class="fas fa-user-shield text-indigo-400 text-xl"></i></div>
-                            </div>
-                        </div>
-                        <div class="glass-dark p-5 rounded-xl user-card border border-slate-700">
-                            <div class="flex items-center justify-between">
-                                <div><p class="text-slate-400 text-sm">المستخدمون العاديون</p><p class="text-3xl font-bold text-slate-300 mt-1" x-text="users.filter(u => u.role !== 'admin').length"></p></div>
-                                <div class="w-12 h-12 rounded-xl bg-slate-500/10 flex items-center justify-center"><i class="fas fa-user text-slate-400 text-xl"></i></div>
-                            </div>
-                        </div>
-                        <div class="glass-dark p-5 rounded-xl user-card border border-slate-700">
-                            <div class="flex items-center justify-between">
-                                <div><p class="text-slate-400 text-sm">أنت</p><p class="text-sm font-bold gold-accent mt-1 truncate" x-text="currentUser?.email"></p><p class="text-xs text-slate-500 mt-0.5" x-text="currentUser?.role === 'admin' ? 'مدير النظام' : 'مستخدم'"></p></div>
-                                <div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center"><i class="fas fa-id-badge text-amber-400 text-xl"></i></div>
-                            </div>
-                        </div>
-                    </div>
                     <div class="flex flex-wrap justify-between items-center mb-4 gap-3">
                         <div class="flex items-center gap-2">
                             <div class="relative">
                                 <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
                                 <input type="text" x-model="userSearchQuery" placeholder="بحث بالبريد..." class="pr-9 pl-4 py-2 rounded-lg input-dark text-sm w-64">
                             </div>
-                            <select x-model="userFilterRole" class="p-2 rounded-lg input-dark text-sm">
-                                <option value="all">جميع الأدوار</option>
-                                <option value="admin">مدير</option>
-                                <option value="user">مستخدم</option>
-                            </select>
                         </div>
                         <button @click="openAddUserModal()" class="primary-gradient text-white px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-lg hover:shadow-blue-500/20 transition font-bold">
                             <i class="fas fa-user-plus"></i> إضافة مستخدم جديد
@@ -289,82 +306,18 @@
                     </div>
                     <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700">
                         <div class="overflow-x-auto">
-                            <table class="w-full text-sm">
-                                <thead class="table-dark-header border-b border-slate-700">
-                                    <tr>
-                                        <th class="p-4 text-right text-slate-300 w-12">#</th>
-                                        <th class="p-4 text-right text-slate-300">المستخدم</th>
-                                        <th class="p-4 text-right text-slate-300">الدور</th>
-                                        <th class="p-4 text-right text-slate-300">تاريخ الإنشاء</th>
-                                        <th class="p-4 text-right text-slate-300">الصلاحيات</th>
-                                        <th class="p-4 text-center text-slate-300">إجراءات</th>
+                            <table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-4 text-right text-slate-300 w-12">#</th><th class="p-4 text-right text-slate-300">المستخدم</th><th class="p-4 text-right text-slate-300">الدور</th><th class="p-4 text-right text-slate-300">الصلاحيات</th><th class="p-4 text-center text-slate-300">إجراءات</th></tr></thead>
+                            <tbody>
+                                <template x-for="(u, idx) in getFilteredUsers()" :key="u.id">
+                                    <tr class="table-dark-row" :class="u.id === currentUser?.id ? 'bg-blue-900/10' : ''">
+                                        <td class="p-4 text-slate-500 font-mono text-xs" x-text="idx + 1"></td>
+                                        <td class="p-4"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm" :class="u.role === 'admin' ? 'role-badge-admin' : 'role-badge-user'" x-text="u.email?.charAt(0).toUpperCase()"></div><div><p class="font-bold text-slate-200 text-sm" x-text="u.email"></p></div></div></td>
+                                        <td class="p-4"><span :class="u.role === 'admin' ? 'role-badge-admin' : 'role-badge-user'" class="px-3 py-1 rounded-full text-xs font-bold text-white"><span x-text="u.role === 'admin' ? 'مدير' : 'مستخدم'"></span></span></td>
+                                        <td class="p-4"><span class="text-slate-500 text-xs mr-1" x-text="Object.values(u.permissions || {}).filter(Boolean).length + '/' + allTabs.length"></span></td>
+                                        <td class="p-4"><div class="flex items-center justify-center gap-2"><button @click="editPermissions(u)" class="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition" title="تعديل الصلاحيات"><i class="fas fa-key text-sm"></i></button><button x-show="u.id !== currentUser?.id" @click="deleteUser(u)" class="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition" title="حذف"><i class="fas fa-trash-alt text-sm"></i></button></div></td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    <template x-for="(u, idx) in getFilteredUsers()" :key="u.id">
-                                        <tr class="table-dark-row" :class="u.id === currentUser?.id ? 'bg-blue-900/10' : ''">
-                                            <td class="p-4 text-slate-500 font-mono text-xs" x-text="idx + 1"></td>
-                                            <td class="p-4">
-                                                <div class="flex items-center gap-3">
-                                                    <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm" 
-                                                         :class="u.role === 'admin' ? 'role-badge-admin' : 'role-badge-user'"
-                                                         x-text="u.email?.charAt(0).toUpperCase()"></div>
-                                                    <div>
-                                                        <p class="font-bold text-slate-200 text-sm" x-text="u.email"></p>
-                                                        <p class="text-slate-500 text-xs" x-show="u.id === currentUser?.id">
-                                                            <i class="fas fa-check-circle text-blue-400"></i> حسابك الحالي
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="p-4">
-                                                <span :class="u.role === 'admin' ? 'role-badge-admin' : 'role-badge-user'" 
-                                                      class="px-3 py-1 rounded-full text-xs font-bold text-white">
-                                                    <i :class="u.role === 'admin' ? 'fas fa-shield-alt' : 'fas fa-user'" class="ml-1"></i>
-                                                    <span x-text="u.role === 'admin' ? 'مدير' : 'مستخدم'"></span>
-                                                </span>
-                                            </td>
-                                            <td class="p-4 text-slate-400 text-xs" x-text="u.createdAt ? new Date(u.createdAt).toLocaleDateString('ar-SA') : '-'"></td>
-                                            <td class="p-4">
-                                                <div class="flex flex-wrap gap-1">
-                                                    <template x-for="tab in allTabs" :key="tab.id">
-                                                        <span x-show="u.permissions?.[tab.id]" 
-                                                              class="w-2 h-2 rounded-full bg-emerald-400 inline-block" 
-                                                              :title="tab.name"></span>
-                                                    </template>
-                                                    <span class="text-slate-500 text-xs mr-1" x-text="Object.values(u.permissions || {}).filter(Boolean).length + '/' + allTabs.length"></span>
-                                                </div>
-                                            </td>
-                                            <td class="p-4">
-                                                <div class="flex items-center justify-center gap-2">
-                                                    <button @click="editPermissions(u)" class="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition" title="تعديل الصلاحيات"><i class="fas fa-key text-sm"></i></button>
-                                                    <button @click="changeUserRole(u)" class="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition" title="تغيير الدور"><i class="fas fa-user-tag text-sm"></i></button>
-                                                    <button @click="resetUserPassword(u)" class="p-2 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition" title="إعادة تعيين كلمة المرور"><i class="fas fa-key text-sm"></i></button>
-                                                    <button x-show="u.id !== currentUser?.id" @click="deleteUser(u)" class="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition" title="حذف المستخدم"><i class="fas fa-trash-alt text-sm"></i></button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </template>
-                                    <tr x-show="getFilteredUsers().length === 0">
-                                        <td colspan="6" class="p-10 text-center text-slate-500">
-                                            <i class="fas fa-users text-4xl mb-3 block text-slate-600"></i>
-                                            لا يوجد مستخدمون مطابقون
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="mt-4 bg-amber-900/10 border border-amber-800/30 rounded-lg p-4 text-amber-300 text-xs flex items-start gap-3">
-                        <i class="fas fa-exclamation-triangle mt-0.5"></i>
-                        <div>
-                            <p class="font-bold mb-1">ملاحظات هامة:</p>
-                            <ul class="space-y-1 list-disc list-inside">
-                                <li>إنشاء المستخدمين يتم من هنا مباشرة دون الحاجة لتسجيل خروج المدير</li>
-                                <li>إعادة تعيين كلمة المرور ترسل رابطاً على بريد المستخدم</li>
-                                <li>حذف المستخدم يزيل صلاحياته فقط (لا يمكن حذف حساب Auth من العميل)</li>
-                                <li>لا يمكنك حذف حسابك الحالي أو تغيير دورك</li>
-                            </ul>
+                                </template>
+                            </tbody></table>
                         </div>
                     </div>
                 </div>
@@ -373,121 +326,26 @@
     </div>
 
     <!-- نافذة إضافة مستخدم جديد -->
-    <div x-show="showAddUserModal" x-cloak 
-         class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" 
-         @click.self="showAddUserModal = false">
+    <div x-show="showAddUserModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showAddUserModal = false">
         <div class="glass-dark rounded-2xl shadow-2xl w-full max-w-lg border border-slate-700 overflow-hidden">
-            <div class="primary-gradient p-5 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                    <i class="fas fa-user-plus"></i> إضافة مستخدم جديد
-                </h3>
-                <button @click="showAddUserModal = false" class="text-white/70 hover:text-white transition">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
-            </div>
-            <div class="flex items-center justify-center gap-3 py-4 bg-slate-800/50 border-b border-slate-700">
-                <div class="flex items-center gap-2">
-                    <div class="step-indicator w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" 
-                         :class="addUserStep >= 1 ? (addUserStep > 1 ? 'completed' : 'active') : 'pending'">
-                        <span x-show="addUserStep <= 1">1</span>
-                        <i x-show="addUserStep > 1" class="fas fa-check text-xs"></i>
-                    </div>
-                    <span class="text-xs font-bold" :class="addUserStep >= 1 ? 'text-slate-200' : 'text-slate-500'">الحساب</span>
-                </div>
-                <div class="w-10 h-px" :class="addUserStep > 1 ? 'bg-emerald-500' : 'bg-slate-600'"></div>
-                <div class="flex items-center gap-2">
-                    <div class="step-indicator w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" 
-                         :class="addUserStep >= 2 ? (addUserStep > 2 ? 'completed' : 'active') : 'pending'">
-                        <span x-show="addUserStep <= 2">2</span>
-                        <i x-show="addUserStep > 2" class="fas fa-check text-xs"></i>
-                    </div>
-                    <span class="text-xs font-bold" :class="addUserStep >= 2 ? 'text-slate-200' : 'text-slate-500'">الدور</span>
-                </div>
-                <div class="w-10 h-px" :class="addUserStep > 2 ? 'bg-emerald-500' : 'bg-slate-600'"></div>
-                <div class="flex items-center gap-2">
-                    <div class="step-indicator w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" 
-                         :class="addUserStep >= 3 ? 'active' : 'pending'">3</div>
-                    <span class="text-xs font-bold" :class="addUserStep >= 3 ? 'text-slate-200' : 'text-slate-500'">الصلاحيات</span>
-                </div>
-            </div>
+            <div class="primary-gradient p-5 flex justify-between items-center"><h3 class="text-xl font-bold text-white flex items-center gap-2"><i class="fas fa-user-plus"></i> إضافة مستخدم جديد</h3><button @click="showAddUserModal = false" class="text-white/70 hover:text-white transition"><i class="fas fa-times text-lg"></i></button></div>
             <div x-show="addUserStep === 1" class="p-6 space-y-4">
-                <div>
-                    <label class="block text-sm font-bold text-slate-300 mb-2"><i class="fas fa-envelope ml-1 text-blue-400"></i> البريد الإلكتروني</label>
-                    <input type="email" x-model="addUserForm.email" placeholder="example@company.com" class="w-full p-3 rounded-xl input-dark text-sm" :class="addUserForm.email && !addUserForm.email.includes('@') ? 'border-red-500' : ''">
-                    <p x-show="addUserForm.email && !addUserForm.email.includes('@')" class="text-red-400 text-xs mt-1"><i class="fas fa-exclamation-circle"></i> بريد إلكتروني غير صالح</p>
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-slate-300 mb-2"><i class="fas fa-lock ml-1 text-blue-400"></i> كلمة المرور</label>
-                    <div class="relative">
-                        <input :type="showAddPassword ? 'text' : 'password'" x-model="addUserForm.password" placeholder="6 أحرف على الأقل" class="w-full p-3 rounded-xl input-dark text-sm pl-12">
-                        <button @click="showAddPassword = !showAddPassword" type="button" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"><i :class="showAddPassword ? 'fas fa-eye-slash' : 'fas fa-eye'" class="text-sm"></i></button>
-                    </div>
-                    <div class="mt-2 h-1.5 rounded-full bg-slate-700 overflow-hidden" x-show="addUserForm.password">
-                        <div class="h-full rounded-full transition-all duration-300" :class="addUserForm.password.length >= 8 ? 'bg-emerald-500' : (addUserForm.password.length >= 6 ? 'bg-amber-500' : 'bg-red-500')" :style="'width:' + Math.min(100, (addUserForm.password.length / 8) * 100) + '%'"></div>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-slate-300 mb-2"><i class="fas fa-lock ml-1 text-blue-400"></i> تأكيد كلمة المرور</label>
-                    <input type="password" x-model="addUserForm.confirmPassword" placeholder="أعد كتابة كلمة المرور" class="w-full p-3 rounded-xl input-dark text-sm" :class="addUserForm.confirmPassword && addUserForm.confirmPassword !== addUserForm.password ? 'border-red-500' : ''">
-                </div>
-                <div class="flex gap-3 pt-2">
-                    <button @click="validateAddUserStep1()" class="flex-1 primary-gradient text-white py-3 rounded-xl font-bold hover:shadow-lg transition flex items-center justify-center gap-2" :disabled="addUserLoading">
-                        <span>التالي</span><i x-show="!addUserLoading" class="fas fa-arrow-left"></i><i x-show="addUserLoading" class="fas fa-spinner fa-spin"></i>
-                    </button>
-                    <button @click="showAddUserModal = false" class="px-6 bg-slate-700 text-slate-300 py-3 rounded-xl hover:bg-slate-600 transition">إلغاء</button>
-                </div>
+                <div><label class="block text-sm font-bold text-slate-300 mb-2">البريد الإلكتروني</label><input type="email" x-model="addUserForm.email" placeholder="example@company.com" class="w-full p-3 rounded-xl input-dark text-sm"></div>
+                <div><label class="block text-sm font-bold text-slate-300 mb-2">كلمة المرور</label><input type="password" x-model="addUserForm.password" placeholder="6 أحرف على الأقل" class="w-full p-3 rounded-xl input-dark text-sm"></div>
+                <div><label class="block text-sm font-bold text-slate-300 mb-2">تأكيد كلمة المرور</label><input type="password" x-model="addUserForm.confirmPassword" placeholder="أعد كتابة كلمة المرور" class="w-full p-3 rounded-xl input-dark text-sm"></div>
+                <p class="text-red-400 text-sm text-center" x-show="addUserError" x-text="addUserError"></p>
+                <div class="flex gap-3 pt-2"><button @click="validateAddUserStep1()" class="flex-1 primary-gradient text-white py-3 rounded-xl font-bold" :disabled="addUserLoading"><span>التالي</span></button><button @click="showAddUserModal = false" class="px-6 bg-slate-700 text-slate-300 py-3 rounded-xl hover:bg-slate-600">إلغاء</button></div>
             </div>
             <div x-show="addUserStep === 2" class="p-6 space-y-4">
-                <p class="text-slate-400 text-sm mb-2">اختر دور المستخدم في النظام:</p>
-                <label class="flex items-center gap-4 bg-slate-800 p-4 rounded-xl border-2 cursor-pointer transition-all hover:border-indigo-500/50" :class="addUserForm.role === 'admin' ? 'border-indigo-500 bg-indigo-900/10' : 'border-slate-700'">
-                    <input type="radio" x-model="addUserForm.role" value="admin" class="w-5 h-5 text-indigo-600">
-                    <div class="w-12 h-12 rounded-xl role-badge-admin flex items-center justify-center"><i class="fas fa-shield-alt text-white text-xl"></i></div>
-                    <div class="flex-1"><p class="font-bold text-white">مدير النظام</p><p class="text-slate-400 text-xs">صلاحيات كاملة على جميع أقسام النظام</p></div>
-                </label>
-                <label class="flex items-center gap-4 bg-slate-800 p-4 rounded-xl border-2 cursor-pointer transition-all hover:border-blue-500/50" :class="addUserForm.role === 'user' ? 'border-blue-500 bg-blue-900/10' : 'border-slate-700'">
-                    <input type="radio" x-model="addUserForm.role" value="user" class="w-5 h-5 text-blue-600">
-                    <div class="w-12 h-12 rounded-xl role-badge-user flex items-center justify-center"><i class="fas fa-user text-white text-xl"></i></div>
-                    <div class="flex-1"><p class="font-bold text-white">مستخدم عادي</p><p class="text-slate-400 text-xs">صلاحيات محددة يتم تخصيصها في الخطوة التالية</p></div>
-                </label>
-                <div class="flex gap-3 pt-2">
-                    <button @click="addUserStep = 1" class="px-6 bg-slate-700 text-slate-300 py-3 rounded-xl hover:bg-slate-600 transition">السابق</button>
-                    <button @click="addUserStep = 3; if(addUserForm.role === 'admin') applyAdminPermissions();" class="flex-1 primary-gradient text-white py-3 rounded-xl font-bold hover:shadow-lg transition flex items-center justify-center gap-2"><span>التالي</span><i class="fas fa-arrow-left"></i></button>
-                </div>
+                <p class="text-slate-400 text-sm mb-2">اختر دور المستخدم:</p>
+                <label class="flex items-center gap-4 bg-slate-800 p-4 rounded-xl border-2 cursor-pointer" :class="addUserForm.role === 'admin' ? 'border-indigo-500 bg-indigo-900/10' : 'border-slate-700'"><input type="radio" x-model="addUserForm.role" value="admin" class="w-5 h-5"><div class="flex-1"><p class="font-bold text-white">مدير النظام</p><p class="text-slate-400 text-xs">صلاحيات كاملة</p></div></label>
+                <label class="flex items-center gap-4 bg-slate-800 p-4 rounded-xl border-2 cursor-pointer" :class="addUserForm.role === 'user' ? 'border-blue-500 bg-blue-900/10' : 'border-slate-700'"><input type="radio" x-model="addUserForm.role" value="user" class="w-5 h-5"><div class="flex-1"><p class="font-bold text-white">مستخدم عادي</p><p class="text-slate-400 text-xs">صلاحيات محددة</p></div></label>
+                <div class="flex gap-3 pt-2"><button @click="addUserStep = 1" class="px-6 bg-slate-700 text-slate-300 py-3 rounded-xl hover:bg-slate-600">السابق</button><button @click="addUserStep = 3; if(addUserForm.role === 'admin') applyAdminPermissions();" class="flex-1 primary-gradient text-white py-3 rounded-xl font-bold">التالي</button></div>
             </div>
             <div x-show="addUserStep === 3" class="p-6 space-y-4">
-                <div class="flex items-center justify-between mb-2">
-                    <p class="text-slate-300 font-bold text-sm">تخصيص الصلاحيات:</p>
-                    <div class="flex gap-2">
-                        <button @click="selectAllPermissions(true)" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-lg hover:bg-emerald-500/20 transition">تحديد الكل</button>
-                        <button @click="selectAllPermissions(false)" class="text-xs bg-red-500/10 text-red-400 px-3 py-1 rounded-lg hover:bg-red-500/20 transition">إلغاء الكل</button>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <template x-for="tab in allTabs" :key="tab.id">
-                        <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all"
-                               :class="addUserForm.permissions[tab.id] ? 'perm-toggle active bg-blue-500/10 border-blue-500/50' : 'perm-toggle bg-slate-800/50 border-slate-700 hover:border-slate-500'">
-                            <input type="checkbox" x-model="addUserForm.permissions[tab.id]" class="w-4 h-4 text-blue-600 rounded bg-slate-900 border-slate-600">
-                            <i :class="tab.icon" class="text-sm" :class="addUserForm.permissions[tab.id] ? 'text-blue-400' : 'text-slate-500'"></i>
-                            <span class="text-sm font-medium" :class="addUserForm.permissions[tab.id] ? 'text-slate-200' : 'text-slate-400'" x-text="tab.name"></span>
-                        </label>
-                    </template>
-                </div>
-                <div class="bg-slate-800/80 border border-slate-600 rounded-xl p-4 mt-4">
-                    <h4 class="text-sm font-bold text-slate-300 mb-3"><i class="fas fa-clipboard-check ml-1 text-emerald-400"></i> ملخص المستخدم الجديد</h4>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between"><span class="text-slate-400">البريد:</span><span class="text-white font-bold" x-text="addUserForm.email"></span></div>
-                        <div class="flex justify-between"><span class="text-slate-400">الدور:</span><span class="font-bold" :class="addUserForm.role === 'admin' ? 'text-indigo-400' : 'text-slate-300'" x-text="addUserForm.role === 'admin' ? 'مدير النظام' : 'مستخدم عادي'"></span></div>
-                        <div class="flex justify-between"><span class="text-slate-400">الصلاحيات:</span><span class="text-emerald-400 font-bold" x-text="Object.values(addUserForm.permissions).filter(Boolean).length + ' من ' + allTabs.length"></span></div>
-                    </div>
-                </div>
-                <p class="text-red-400 text-sm text-center" x-show="addUserError" x-text="addUserError"></p>
-                <div class="flex gap-3 pt-2">
-                    <button @click="addUserStep = 2" class="px-6 bg-slate-700 text-slate-300 py-3 rounded-xl hover:bg-slate-600 transition">السابق</button>
-                    <button @click="addNewUser()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2" :disabled="addUserLoading">
-                        <i x-show="!addUserLoading" class="fas fa-user-plus"></i><i x-show="addUserLoading" class="fas fa-spinner fa-spin"></i>
-                        <span x-text="addUserLoading ? 'جارٍ الإنشاء...' : 'إنشاء المستخدم'"></span>
-                    </button>
-                </div>
+                <div class="flex items-center justify-between mb-2"><p class="text-slate-300 font-bold text-sm">الصلاحيات:</p><div class="flex gap-2"><button @click="selectAllPermissions(true)" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-lg">تحديد الكل</button><button @click="selectAllPermissions(false)" class="text-xs bg-red-500/10 text-red-400 px-3 py-1 rounded-lg">إلغاء الكل</button></div></div>
+                <div class="grid grid-cols-2 gap-3"><template x-for="tab in allTabs" :key="tab.id"><label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer" :class="addUserForm.permissions[tab.id] ? 'perm-toggle active bg-blue-500/10 border-blue-500/50' : 'perm-toggle bg-slate-800/50 border-slate-700'"><input type="checkbox" x-model="addUserForm.permissions[tab.id]" class="w-4 h-4 text-blue-600 rounded bg-slate-900 border-slate-600"><i :class="tab.icon" class="text-sm" :class="addUserForm.permissions[tab.id] ? 'text-blue-400' : 'text-slate-500'"></i><span class="text-sm font-medium" :class="addUserForm.permissions[tab.id] ? 'text-slate-200' : 'text-slate-400'" x-text="tab.name"></span></label></template></div>
+                <div class="flex gap-3 pt-2"><button @click="addUserStep = 2" class="px-6 bg-slate-700 text-slate-300 py-3 rounded-xl hover:bg-slate-600">السابق</button><button @click="addNewUser()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2" :disabled="addUserLoading"><i x-show="addUserLoading" class="fas fa-spinner fa-spin"></i><span x-text="addUserLoading ? 'جارٍ الإنشاء...' : 'إنشاء المستخدم'"></span></button></div>
             </div>
         </div>
     </div>
@@ -495,37 +353,9 @@
     <!-- نافذة تعديل صلاحيات المستخدم -->
     <div x-show="showUserModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showUserModal = false">
         <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-lg space-y-4 border border-slate-700">
-            <h3 class="text-xl font-bold text-white flex items-center gap-2"><i class="fas fa-key text-amber-400"></i> تعديل صلاحيات المستخدم</h3>
-            <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white" 
-                     :class="users.find(u=>u.id===userForm.id)?.role === 'admin' ? 'role-badge-admin' : 'role-badge-user'"
-                     x-text="userForm.email?.charAt(0).toUpperCase()"></div>
-                <div>
-                    <p class="font-bold text-white text-sm" x-text="userForm.email"></p>
-                    <p class="text-slate-500 text-xs" x-text="users.find(u=>u.id===userForm.id)?.role === 'admin' ? 'مدير' : 'مستخدم'"></p>
-                </div>
-            </div>
-            <div class="flex items-center justify-between mb-2">
-                <p class="text-slate-300 font-bold text-sm">الصلاحيات:</p>
-                <div class="flex gap-2">
-                    <button @click="userForm.permissions = Object.fromEntries(allTabs.map(t=>[t.id,true]))" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-lg hover:bg-emerald-500/20 transition">تحديد الكل</button>
-                    <button @click="userForm.permissions = Object.fromEntries(allTabs.map(t=>[t.id,false]))" class="text-xs bg-red-500/10 text-red-400 px-3 py-1 rounded-lg hover:bg-red-500/20 transition">إلغاء الكل</button>
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3 mt-4">
-                <template x-for="tab in allTabs" :key="tab.id">
-                    <label class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all"
-                           :class="userForm.permissions[tab.id] ? 'bg-blue-500/10 border-blue-500/40' : 'bg-slate-800 border-slate-700 hover:border-slate-500'">
-                        <input type="checkbox" x-model="userForm.permissions[tab.id]" class="w-4 h-4 text-blue-600 rounded bg-slate-900 border-slate-600">
-                        <i :class="tab.icon" class="text-xs" :class="userForm.permissions[tab.id] ? 'text-blue-400' : 'text-slate-500'"></i>
-                        <span x-text="tab.name" class="text-sm" :class="userForm.permissions[tab.id] ? 'text-slate-200' : 'text-slate-400'"></span>
-                    </label>
-                </template>
-            </div>
-            <div class="flex gap-4 mt-4">
-                <button @click="savePermissions()" class="flex-1 primary-gradient text-white py-2 rounded-lg shadow-md font-bold">حفظ الصلاحيات</button>
-                <button @click="showUserModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg hover:bg-slate-600">إلغاء</button>
-            </div>
+            <h3 class="text-xl font-bold text-white">تعديل صلاحيات المستخدم</h3>
+            <div class="grid grid-cols-2 gap-3 mt-4"><template x-for="tab in allTabs" :key="tab.id"><label class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer" :class="userForm.permissions[tab.id] ? 'bg-blue-500/10 border-blue-500/40' : 'bg-slate-800 border-slate-700'"><input type="checkbox" x-model="userForm.permissions[tab.id]" class="w-4 h-4 text-blue-600 rounded bg-slate-900 border-slate-600"><span x-text="tab.name" class="text-sm" :class="userForm.permissions[tab.id] ? 'text-slate-200' : 'text-slate-400'"></span></label></template></div>
+            <div class="flex gap-4 mt-4"><button @click="savePermissions()" class="flex-1 primary-gradient text-white py-2 rounded-lg shadow-md font-bold">حفظ</button><button @click="showUserModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg hover:bg-slate-600">إلغاء</button></div>
         </div>
     </div>
 
@@ -542,11 +372,24 @@
         </div>
     </div>
 
+    <!-- نافذة الموظفين -->
+    <div x-show="showEmployeeModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showEmployeeModal = false">
+        <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-4 border border-slate-700">
+            <h3 class="text-xl font-bold text-white" x-text="employeeForm.id ? 'تعديل موظف' : 'إضافة موظف'"></h3>
+            <input type="text" x-model="employeeForm.name" placeholder="اسم الموظف" class="w-full p-2 rounded-lg input-dark">
+            <input type="text" x-model="employeeForm.position" placeholder="المنصب / الوظيفة (اختياري)" class="w-full p-2 rounded-lg input-dark">
+            <div class="flex gap-4"><button @click="saveEmployee()" class="flex-1 primary-gradient text-white py-2 rounded-lg">حفظ</button><button @click="showEmployeeModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg hover:bg-slate-600">إلغاء</button></div>
+        </div>
+    </div>
+
     <!-- نافذة عهدة -->
     <div x-show="showCustodyModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showCustodyModal = false">
         <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-4 border border-slate-700">
             <h3 class="text-xl font-bold text-white" x-text="custodyForm.isEnhance ? 'تعزيز عهدة' : (custodyForm.id ? 'تعديل' : 'إنشاء عهدة')"></h3>
-            <input type="text" x-model="custodyForm.employee" placeholder="اسم الموظف" class="w-full p-2 rounded-lg input-dark" :readonly="custodyForm.isEnhance">
+            <select x-model="custodyForm.employee" class="w-full p-2 rounded-lg input-dark" :disabled="custodyForm.isEnhance">
+                <option value="">اختر الموظف</option>
+                <template x-for="emp in employees" :key="emp.id"><option :value="emp.name" x-text="emp.name"></option></template>
+            </select>
             <input type="date" x-model="custodyForm.date" class="w-full p-2 rounded-lg input-dark" x-show="!custodyForm.isEnhance">
             <input type="number" x-model="custodyForm.amount" placeholder="قيمة العهدة" class="w-full p-2 rounded-lg input-dark" x-show="!custodyForm.isEnhance">
             <label x-show="!custodyForm.isEnhance && !custodyForm.id" class="flex items-center gap-2 text-slate-300 text-sm cursor-pointer"><input type="checkbox" x-model="custodyForm.isOpeningBalance" class="w-4 h-4 text-purple-600 rounded bg-slate-900 border-slate-600"><span>رصيد بداية عهد</span></label>
@@ -555,7 +398,7 @@
         </div>
     </div>
 
-    <!-- نافذة تقفيل العهدة - محسّنة بالضريبة -->
+    <!-- نافذة تقفيل العهدة -->
     <div x-show="showCloseCustodyModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showCloseCustodyModal = false">
         <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-lg space-y-5 border border-slate-700">
             <h3 class="text-xl font-bold text-amber-400"><i class="fas fa-file-invoice"></i> تقفيل العهدة</h3>
@@ -563,40 +406,6 @@
                 <p class="text-slate-300">الموظف: <span class="font-bold text-white" x-text="closeCustodyData?.employee"></span></p>
                 <p class="text-slate-300">المتبقي: <span class="font-bold text-emerald-400" x-text="formatCurrency(closeCustodyData ? closeCustodyData.amount - getCustodySpent(closeCustodyData) : 0)"></span></p>
             </div>
-
-            <!-- حقول الضريبة الجديدة -->
-            <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 space-y-3">
-                <p class="text-slate-300 font-bold text-sm mb-2"><i class="fas fa-calculator text-blue-400"></i> بيانات المبلغ والضريبة</p>
-
-                <div class="flex items-center gap-3 mb-2">
-                    <label class="flex items-center gap-2 text-slate-300 text-sm cursor-pointer">
-                        <input type="checkbox" x-model="closeTaxData.isTaxable" class="w-4 h-4 text-blue-600 rounded bg-slate-900 border-slate-600">
-                        <span>المبلغ شامل الضريبة</span>
-                    </label>
-                </div>
-
-                <div x-show="closeTaxData.isTaxable">
-                    <label class="block text-xs text-slate-400 mb-1">المبلغ قبل الضريبة</label>
-                    <input type="number" x-model="closeTaxData.amountBeforeTax" @input="calculateTax()" placeholder="المبلغ قبل الضريبة" class="w-full p-2 rounded-lg input-dark">
-                </div>
-
-                <div x-show="closeTaxData.isTaxable">
-                    <label class="block text-xs text-slate-400 mb-1">نسبة الضريبة (%)</label>
-                    <input type="number" x-model="closeTaxData.taxRate" @input="calculateTax()" placeholder="مثلاً: 15" class="w-full p-2 rounded-lg input-dark">
-                </div>
-
-                <div x-show="closeTaxData.isTaxable" class="bg-blue-900/20 border border-blue-800/30 p-3 rounded-lg">
-                    <div class="flex justify-between text-sm mb-1"><span class="text-slate-400">المبلغ قبل الضريبة:</span><span class="text-white font-bold" x-text="formatCurrency(closeTaxData.amountBeforeTax || 0)"></span></div>
-                    <div class="flex justify-between text-sm mb-1"><span class="text-slate-400">قيمة الضريبة:</span><span class="text-amber-400 font-bold" x-text="formatCurrency(closeTaxData.taxAmount || 0)"></span></div>
-                    <div class="flex justify-between text-sm border-t border-slate-700 pt-1 mt-1"><span class="text-slate-300 font-bold">المبلغ الإجمالي:</span><span class="text-emerald-400 font-bold text-lg" x-text="formatCurrency(closeTaxData.totalAmount || 0)"></span></div>
-                </div>
-
-                <div x-show="!closeTaxData.isTaxable">
-                    <label class="block text-xs text-slate-400 mb-1">المبلغ الإجمالي (بدون ضريبة)</label>
-                    <input type="number" x-model="closeTaxData.totalAmount" placeholder="المبلغ" class="w-full p-2 rounded-lg input-dark">
-                </div>
-            </div>
-
             <div class="space-y-3">
                 <p class="text-slate-400 font-bold">ماذا تريد عمله بالمتبقي؟</p>
                 <label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer hover:border-blue-500 transition"><input type="radio" x-model="closeAction" value="return" class="w-4 h-4 text-blue-600"><span class="text-slate-200">رد للصندوق</span></label>
@@ -617,28 +426,25 @@
 function financialSystem() {
     return {
         isLoggedIn: false, currentUser: null, authMode: 'login', authForm: { email: '', password: '' }, authError: '', authLoading: false,
-        activeTab: 'dashboard', sidebarOpen: false, flows: [], custodies: [], users: [],
+        activeTab: 'dashboard', sidebarOpen: false, flows: [], custodies: [], users: [], employees: [],
         showFlowModal: false, flowForm: { id:null, type:'inflow', date:'', item:'', subItem:'', category:'تشغيلية', amount:'', notes:'' },
         showCustodyModal: false, custodyForm: { id:null, employee:'', date:'', amount:'', notes:'', additionalAmount:'', isEnhance:false, isOpeningBalance:false, linkedFlowId:null },
         showCloseCustodyModal: false, closeCustodyData: null, closeAction: 'return', custodyReportHTML: '',
         showUserModal: false, userForm: { id:'', email:'', permissions:{} },
-
+        showEmployeeModal: false, employeeForm: { id: '', name: '', position: '' },
         showAddUserModal: false, addUserStep: 1, showAddPassword: false, addUserLoading: false, addUserError: '',
         addUserForm: { email: '', password: '', confirmPassword: '', role: 'user', permissions: {} },
         userSearchQuery: '', userFilterRole: 'all',
-
-        closeTaxData: { isTaxable: false, amountBeforeTax: '', taxRate: 15, taxAmount: 0, totalAmount: '' },
-
-        settlement: { selectedCustodyId:'', date:'', item:'', subItem:'', category:'تشغيلية', amount:'', accountingDirection:'' },
+        settlement: { selectedCustodyId:'', date:'', item:'', subItem:'', category:'تشغيلية', amount:'', accountingDirection:'', isTaxable: false, amountBeforeTax: '', taxRate: 15, taxAmount: 0, totalAmount: '' },
         inquiry: { employee:'', from:'', to:'' }, inquiryResult: null,
         analysis: { from:'', to:'', type:'all', category:'all', data:null },
         report: { from:'', to:'', data:null }, flowChartInstance: null, balanceChartInstance: null,
-
         toast: { show: false, message: '', type: 'success' },
 
         allTabs: [
             { id: 'dashboard', name: 'لوحة التحكم', icon: 'fas fa-chart-pie' },
             { id: 'cashflow', name: 'التدفقات النقدية', icon: 'fas fa-money-bill-wave' },
+            { id: 'employees', name: 'إدارة الموظفين', icon: 'fas fa-user-tie' },
             { id: 'custody', name: 'العهد المالية', icon: 'fas fa-wallet' },
             { id: 'settlement', name: 'تقفيل العهد', icon: 'fas fa-file-invoice-dollar' },
             { id: 'inquiry', name: 'استعلام العهد', icon: 'fas fa-search-dollar' },
@@ -646,59 +452,37 @@ function financialSystem() {
             { id: 'report', name: 'قائمة التدفقات', icon: 'fas fa-file-alt' },
             { id: 'users', name: 'إدارة المستخدمين', icon: 'fas fa-users-cog' }
         ],
-        tabNames: { 'dashboard':'لوحة التحكم', 'cashflow':'التدفقات النقدية', 'custody':'العهد المالية', 'settlement':'تقفيل العهد', 'inquiry':'استعلام العهد', 'analysis':'تحليل التدفقات النقدية', 'report':'قائمة التدفقات', 'users':'إدارة المستخدمين' },
+        tabNames: { 'dashboard':'لوحة التحكم', 'cashflow':'التدفقات النقدية', 'employees':'إدارة الموظفين', 'custody':'العهد المالية', 'settlement':'تقفيل العهد', 'inquiry':'استعلام العهد', 'analysis':'تحليل التدفقات النقدية', 'report':'قائمة التدفقات', 'users':'إدارة المستخدمين' },
 
-        get allowedTabs() { 
-            if(!this.currentUser) return []; 
-            if(this.currentUser.role==='admin') return this.allTabs; 
-            return this.allTabs.filter(t=>this.currentUser.permissions?.[t.id]); 
-        },
-
+        get allowedTabs() { if(!this.currentUser) return []; if(this.currentUser.role==='admin') return this.allTabs; return this.allTabs.filter(t=>this.currentUser.permissions?.[t.id]); },
         get isAdmin() { return this.currentUser?.role === 'admin'; },
 
-        showToast(message, type) {
-            this.toast = { show: true, message, type };
-            setTimeout(() => { this.toast.show = false; }, 3000);
-        },
+        showToast(message, type) { this.toast = { show: true, message, type }; setTimeout(() => { this.toast.show = false; }, 3000); },
 
         async init() {
             let attempts = 0;
-            while(!window.firebaseAuth || !window.firebaseDb) {
-                await new Promise(r => setTimeout(r, 100));
-                attempts++;
-                if(attempts > 100) {
-                    this.authError = 'فشل تحميل Firebase، تحقق من الاتصال بالإنترنت';
-                    console.error('Firebase failed to load');
-                    return;
-                }
-            }
+            while(!window.firebaseAuth || !window.firebaseDb) { await new Promise(r => setTimeout(r, 100)); attempts++; if(attempts > 100) { this.authError = 'فشل تحميل Firebase'; return; } }
             try {
                 window.firebaseOnAuth(window.firebaseAuth, async(user) => {
                     if(user) {
                         const ud = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, "users", user.uid));
-                        if(ud.exists()) {
-                            this.currentUser = {id: user.uid, email: user.email, ...ud.data()};
-                            this.isLoggedIn = true;
-                            this.initFirestoreListeners();
-                            this.updateCharts();
-                        } else {
-                            this.authError = "حسابك غير مسجل في النظام";
-                            await this.logout();
-                        }
-                    } else {
-                        this.isLoggedIn = false;
-                        this.currentUser = null;
-                    }
+                        if(ud.exists()) { this.currentUser = {id: user.uid, email: user.email, ...ud.data()}; this.isLoggedIn = true; this.initFirestoreListeners(); this.updateCharts(); } 
+                        else { this.authError = "حسابك غير مسجل"; await this.logout(); }
+                    } else { this.isLoggedIn = false; this.currentUser = null; }
                 });
-            } catch(e) {
-                console.error('Init error:', e);
-                this.authError = 'خطأ في تهيئة النظام';
-            }
+            } catch(e) { this.authError = 'خطأ في تهيئة النظام'; }
         },
         async login(){this.authLoading=true;this.authError='';try{await window.firebaseSignIn(window.firebaseAuth,this.authForm.email,this.authForm.password);}catch(e){this.authError="خطأ في الدخول";}this.authLoading=false;},
-        async register(){this.authLoading=true;this.authError='';try{const uc=await window.firebaseSignUp(window.firebaseAuth,this.authForm.email,this.authForm.password);const us=await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb,"users"));const r=us.empty?'admin':'user';const p=r==='admin'?{dashboard:true,cashflow:true,custody:true,settlement:true,inquiry:true,analysis:true,report:true,users:true}:{dashboard:true,cashflow:true,custody:true,settlement:true,inquiry:true,analysis:true,report:true,users:false};await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"users",uc.user.uid),{email:this.authForm.email,role:r,permissions:p,createdAt:new Date().toISOString()});}catch(e){this.authError=e.message;}this.authLoading=false;},
+        async register(){this.authLoading=true;this.authError='';try{const uc=await window.firebaseSignUp(window.firebaseAuth,this.authForm.email,this.authForm.password);const us=await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb,"users"));const r=us.empty?'admin':'user';const p=r==='admin'?{dashboard:true,cashflow:true,employees:true,custody:true,settlement:true,inquiry:true,analysis:true,report:true,users:true}:{dashboard:true,cashflow:true,employees:true,custody:true,settlement:true,inquiry:true,analysis:true,report:true,users:false};await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"users",uc.user.uid),{email:this.authForm.email,role:r,permissions:p,createdAt:new Date().toISOString()});}catch(e){this.authError=e.message;}this.authLoading=false;},
         async logout(){try{await window.firebaseSignOut(window.firebaseAuth);}catch(e){}this.authMode='login';},
-        initFirestoreListeners(){window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"cashFlows"),(s)=>{this.flows=s.docs.map(d=>({id:d.id,...d.data()}));this.updateCharts();});window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"custodies"),(s)=>{this.custodies=s.docs.map(d=>({id:d.id,...d.data()}));});if(this.currentUser.role==='admin'){window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"users"),(s)=>{this.users=s.docs.map(d=>({id:d.id,...d.data()}));});}},
+        
+        initFirestoreListeners(){
+            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"cashFlows"),(s)=>{this.flows=s.docs.map(d=>({id:d.id,...d.data()}));this.updateCharts();});
+            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"custodies"),(s)=>{this.custodies=s.docs.map(d=>({id:d.id,...d.data()}));});
+            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"employees"),(s)=>{this.employees=s.docs.map(d=>({id:d.id,...d.data()}));});
+            if(this.currentUser.role==='admin'){window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"users"),(s)=>{this.users=s.docs.map(d=>({id:d.id,...d.data()}));});}
+        },
+        
         formatCurrency(a){return new Intl.NumberFormat('ar-SA',{style:'currency',currency:'SAR'}).format(a||0);},
         get hasOpeningBalance(){return this.flows.some(f=>f.item==='رصيد بداية المدة');},
         get totalInflow(){return this.flows.filter(f=>f.type==='inflow').reduce((s,f)=>s+Number(f.amount),0);},
@@ -707,155 +491,35 @@ function financialSystem() {
         get openCustodies(){return this.custodies.filter(c=>c.status==='مفتوحة');},
         getSortedFlows(){let b=0;const o=this.flows.filter(f=>f.item==='رصيد بداية المدة');const t=this.flows.filter(f=>f.item!=='رصيد بداية المدة').sort((a,c)=>new Date(a.date||'1970-01-01')-new Date(c.date||'1970-01-01'));return[...o,...t].map(f=>{b+=f.type==='inflow'?Number(f.amount):-Number(f.amount);return{...f,runningBalance:b};});},
 
-        getFilteredUsers() {
-            let result = this.users;
-            if (this.userSearchQuery) {
-                const q = this.userSearchQuery.toLowerCase();
-                result = result.filter(u => u.email?.toLowerCase().includes(q));
-            }
-            if (this.userFilterRole !== 'all') {
-                result = result.filter(u => u.role === this.userFilterRole);
-            }
-            return result;
-        },
-
-        openAddUserModal() {
-            this.addUserStep = 1;
-            this.addUserError = '';
-            this.showAddPassword = false;
-            this.addUserLoading = false;
-            this.addUserForm = {
-                email: '', password: '', confirmPassword: '',
-                role: 'user',
-                permissions: {
-                    dashboard: true, cashflow: true, custody: true,
-                    settlement: true, inquiry: true, analysis: true,
-                    report: true, users: false
-                }
-            };
-            this.showAddUserModal = true;
-        },
-
-        validateAddUserStep1() {
-            this.addUserError = '';
-            if (!this.addUserForm.email || !this.addUserForm.email.includes('@')) {
-                this.addUserError = 'أدخل بريد إلكتروني صحيح';
-                return;
-            }
-            if (this.users.some(u => u.email === this.addUserForm.email)) {
-                this.addUserError = 'هذا البريد مسجل بالفعل في النظام';
-                return;
-            }
-            if (!this.addUserForm.password || this.addUserForm.password.length < 6) {
-                this.addUserError = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
-                return;
-            }
-            if (this.addUserForm.password !== this.addUserForm.confirmPassword) {
-                this.addUserError = 'كلمتا المرور غير متطابقتين';
-                return;
-            }
-            this.addUserStep = 2;
-        },
-
-        applyAdminPermissions() {
-            this.addUserForm.permissions = Object.fromEntries(this.allTabs.map(t => [t.id, true]));
-        },
-
-        selectAllPermissions(value) {
-            this.addUserForm.permissions = Object.fromEntries(this.allTabs.map(t => [t.id, value]));
-        },
-
-        async addNewUser() {
-            this.addUserLoading = true;
-            this.addUserError = '';
+        // Employees
+        openEmployeeModal(emp = null) { this.employeeForm = emp ? {...emp} : {id: '', name: '', position: ''}; this.showEmployeeModal = true; },
+        async saveEmployee() {
+            if(!this.employeeForm.name) return alert("أدخل اسم الموظف");
             try {
-                const userCredential = await window.firebaseCreateUserSecondary(
-                    this.addUserForm.email, 
-                    this.addUserForm.password
-                );
-                await window.firebaseSetDoc(
-                    window.firebaseDoc(window.firebaseDb, "users", userCredential.user.uid), 
-                    {
-                        email: this.addUserForm.email,
-                        role: this.addUserForm.role,
-                        permissions: this.addUserForm.permissions,
-                        createdAt: new Date().toISOString()
-                    }
-                );
-                await window.firebaseSignOutSecondary();
-                this.showAddUserModal = false;
-                this.showToast('تم إنشاء المستخدم ' + this.addUserForm.email + ' بنجاح', 'success');
-            } catch (e) {
-                let errorMsg = 'حدث خطأ أثناء إنشاء المستخدم';
-                if (e.code === 'auth/email-already-in-use') errorMsg = 'هذا البريد الإلكتروني مسجل بالفعل';
-                else if (e.code === 'auth/invalid-email') errorMsg = 'بريد إلكتروني غير صالح';
-                else if (e.code === 'auth/weak-password') errorMsg = 'كلمة المرور ضعيفة (6 أحرف على الأقل)';
-                else if (e.code === 'auth/network-request-failed') errorMsg = 'خطأ في الاتصال بالشبكة';
-                this.addUserError = errorMsg;
-            }
-            this.addUserLoading = false;
+                if(this.employeeForm.id) { await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "employees", this.employeeForm.id), {name: this.employeeForm.name, position: this.employeeForm.position}); }
+                else { await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "employees"), {name: this.employeeForm.name, position: this.employeeForm.position}); }
+                this.showEmployeeModal = false;
+            } catch(e) { alert(e.message); }
         },
+        async deleteEmployee(id) { if(!confirm("حذف الموظف؟")) return; try { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "employees", id)); } catch(e){} },
 
-        async changeUserRole(u) {
-            if (u.id === this.currentUser?.id) {
-                this.showToast('لا يمكنك تغيير دورك الخاص', 'error');
-                return;
-            }
-            const newRole = u.role === 'admin' ? 'user' : 'admin';
-            const roleName = newRole === 'admin' ? 'مدير' : 'مستخدم عادي';
-            if (!confirm('هل تريد تغيير دور ' + u.email + ' إلى "' + roleName + '"؟')) return;
-            try {
-                const newPermissions = newRole === 'admin' 
-                    ? Object.fromEntries(this.allTabs.map(t => [t.id, true]))
-                    : { dashboard:true, cashflow:true, custody:true, settlement:true, inquiry:true, analysis:true, report:true, users:false };
-                await window.firebaseUpdateDoc(
-                    window.firebaseDoc(window.firebaseDb, "users", u.id), 
-                    { role: newRole, permissions: newPermissions }
-                );
-                this.showToast('تم تغيير الدور بنجاح', 'success');
-            } catch (e) {
-                this.showToast('خطأ في تغيير الدور: ' + e.message, 'error');
-            }
-        },
-
-        async resetUserPassword(u) {
-            if (!confirm('سيتم إرسال رابط إعادة تعيين كلمة المرور إلى:\n' + u.email + '\n\nهل تريد المتابعة؟')) return;
-            try {
-                await window.firebaseSendPasswordReset(u.email);
-                this.showToast('تم إرسال رابط إعادة التعيين إلى ' + u.email, 'info');
-            } catch (e) {
-                let msg = 'خطأ في إرسال الرابط';
-                if (e.code === 'auth/user-not-found') msg = 'لم يتم العثور على الحساب';
-                else if (e.code === 'auth/too-many-requests') msg = 'طلبات كثيرة، حاول لاحقاً';
-                this.showToast(msg, 'error');
-            }
-        },
-
-        async deleteUser(u) {
-            if (u.id === this.currentUser?.id) {
-                this.showToast('لا يمكنك حذف حسابك الخاص', 'error');
-                return;
-            }
-            const adminCount = this.users.filter(usr => usr.role === 'admin').length;
-            if (u.role === 'admin' && adminCount <= 1) {
-                this.showToast('لا يمكن حذف آخر مدير في النظام', 'error');
-                return;
-            }
-            if (!confirm('هل أنت متأكد من حذف المستخدم:\n' + u.email + '\n\nملاحظة: يتم حذف الصلاحيات فقط، حساب المصادقة يبقى موجوداً')) return;
-            try {
-                await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "users", u.id));
-                this.showToast('تم حذف صلاحيات المستخدم ' + u.email, 'success');
-            } catch (e) {
-                this.showToast('خطأ في الحذف: ' + e.message, 'error');
-            }
-        },
+        // Users
+        getFilteredUsers() { let r = this.users; if(this.userSearchQuery) r = r.filter(u => u.email?.toLowerCase().includes(this.userSearchQuery.toLowerCase())); return r; },
+        openAddUserModal() { this.addUserStep = 1; this.addUserError = ''; this.addUserLoading = false; this.addUserForm = { email: '', password: '', confirmPassword: '', role: 'user', permissions: {dashboard:true,cashflow:true,employees:true,custody:true,settlement:true,inquiry:true,analysis:true,report:true,users:false} }; this.showAddUserModal = true; },
+        validateAddUserStep1() { this.addUserError = ''; if (!this.addUserForm.email.includes('@')) { this.addUserError = 'بريد غير صالح'; return; } if (this.addUserForm.password.length < 6) { this.addUserError = 'كلمة المرور قصيرة'; return; } if (this.addUserForm.password !== this.addUserForm.confirmPassword) { this.addUserError = 'كلمتا المرور غير متطابقتين'; return; } this.addUserStep = 2; },
+        applyAdminPermissions() { this.addUserForm.permissions = Object.fromEntries(this.allTabs.map(t => [t.id, true])); },
+        selectAllPermissions(v) { this.addUserForm.permissions = Object.fromEntries(this.allTabs.map(t => [t.id, v])); },
+        async addNewUser() { this.addUserLoading = true; this.addUserError = ''; try { const uc = await window.firebaseCreateUserSecondary(this.addUserForm.email, this.addUserForm.password); await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, "users", uc.user.uid), {email: this.addUserForm.email, role: this.addUserForm.role, permissions: this.addUserForm.permissions, createdAt: new Date().toISOString()}); await window.firebaseSignOutSecondary(); this.showAddUserModal = false; } catch (e) { this.addUserError = e.message; } this.addUserLoading = false; },
+        async deleteUser(u) { if(u.id === this.currentUser?.id) return; if (!confirm('حذف المستخدم:\n' + u.email + '؟')) return; try { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "users", u.id)); } catch(e){} },
+        editPermissions(u){this.userForm={id:u.id,email:u.email,permissions:{...u.permissions}||{}};this.showUserModal=true;},
+        async savePermissions(){try{await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"users",this.userForm.id),{permissions:this.userForm.permissions});this.showUserModal=false;this.showToast('تم حفظ الصلاحيات','success');}catch(e){}},
 
         // FLOW
         openFlowModal(t){this.flowForm={id:null,type:t,date:new Date().toISOString().split('T')[0],item:'',subItem:'',category:'تشغيلية',amount:'',notes:''};this.showFlowModal=true;},
         openOpeningBalanceModal(){if(this.hasOpeningBalance){alert("مسجل مسبقاً");return;}this.flowForm={id:null,type:'inflow',date:new Date().toISOString().split('T')[0],item:'رصيد بداية المدة',subItem:'',category:'رصيد بداية',amount:'',notes:''};this.showFlowModal=true;},
         editFlow(f){this.flowForm={...f,subItem:f.subItem||'',category:f.category||'تشغيلية'};this.showFlowModal=true;},
         async saveFlow(){if(!this.flowForm.date||!this.flowForm.item||!this.flowForm.amount)return alert("أكمل البيانات");try{const isOp=this.flowForm.item==='رصيد بداية المدة';const d={date:this.flowForm.date,item:this.flowForm.item,subItem:isOp?'':(this.flowForm.subItem||''),category:isOp?'رصيد بداية':this.flowForm.category,amount:Number(this.flowForm.amount),type:this.flowForm.type,notes:this.flowForm.notes||''};if(this.flowForm.id)await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",this.flowForm.id),d);else await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),d);this.showFlowModal=false;}catch(e){alert("خطأ");}},
-        async deleteFlow(id){if(!confirm("حذف؟"))return;try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",id));}catch(e){alert(e.message);}},
+        async deleteFlow(id){if(!confirm("حذف؟"))return;try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",id));}catch(e){}},
         downloadFlowTemplate(){const ws=XLSX.utils.aoa_to_sheet([["التاريخ","النوع","البند الرئيسي","التفصيل","التصنيف","المبلغ"],["2024-01-15","outflow","مدفوعات","شركة","تشغيلية",5000]]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"قالب");XLSX.writeFile(wb,"Template.xlsx");},
         async importFlowsFromExcel(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=async(e)=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);let c=0;for(let ro of rows){const dt=ro['التاريخ']||'',it=ro['البند الرئيسي']||'',am=Number(ro['المبلغ'])||0;let ty=ro['النوع']||'outflow',ct=ro['التصنيف']||'تشغيلية';if(it==='رصيد بداية المدة'&&this.hasOpeningBalance)continue;if(it==='رصيد بداية المدة'){ty='inflow';ct='رصيد بداية';}if(dt&&it&&am>0){await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{date:dt,type:(ty==='inflow'||ty==='outflow')?ty:'outflow',item:it,subItem:ro['التفصيل']||'',category:['تشغيلية','استثمارية','تمويلية','رصيد بداية'].includes(ct)?ct:'تشغيلية',amount:am,notes:'Excel'});c++;}}alert("تم استيراد "+c);}catch(err){alert(err.message);}};r.readAsArrayBuffer(f);ev.target.value='';},
 
@@ -863,165 +527,112 @@ function financialSystem() {
         openCustodyModal(){this.custodyForm={id:null,employee:'',date:new Date().toISOString().split('T')[0],amount:'',notes:'',additionalAmount:'',isEnhance:false,isOpeningBalance:false,linkedFlowId:null};this.showCustodyModal=true;},
         editCustody(c){this.custodyForm={...c,isEnhance:false,additionalAmount:'',isOpeningBalance:false};this.showCustodyModal=true;},
         enhanceCustody(c){this.custodyForm={...c,isEnhance:true,additionalAmount:'',isOpeningBalance:false};this.showCustodyModal=true;},
-        async deleteCustody(cu){if(!cu||!cu.id)return;if(!confirm("حذف العهدة؟"))return;if(cu.linkedFlowId&&typeof cu.linkedFlowId==='string'){try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",cu.linkedFlowId));}catch(e){}}try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"custodies",String(cu.id)));}catch(e){alert(e.message);}},
+        async deleteCustody(cu){if(!cu||!cu.id)return;if(!confirm("حذف العهدة؟"))return;if(cu.linkedFlowId){try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",cu.linkedFlowId));}catch(e){}}try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"custodies",String(cu.id)));}catch(e){}},
         async saveCustody(){try{if(this.custodyForm.isEnhance){if(!this.custodyForm.additionalAmount)return alert("أدخل المبلغ");await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",this.custodyForm.id),{amount:Number(this.custodyForm.amount)+Number(this.custodyForm.additionalAmount)});await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{type:'outflow',date:new Date().toISOString().split('T')[0],item:'تعزيز عهدة',subItem:this.custodyForm.employee,category:'تشغيلية',amount:Number(this.custodyForm.additionalAmount)});}else if(this.custodyForm.id){if(!this.custodyForm.employee||!this.custodyForm.amount)return alert("أكمل");await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",this.custodyForm.id),{employee:this.custodyForm.employee,date:this.custodyForm.date,amount:Number(this.custodyForm.amount)});if(this.custodyForm.linkedFlowId){try{await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",this.custodyForm.linkedFlowId),{date:this.custodyForm.date,amount:Number(this.custodyForm.amount)});}catch(e){}}}else{if(!this.custodyForm.employee||!this.custodyForm.amount)return alert("أكمل");if(!this.custodyForm.isOpeningBalance){const fr=await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{type:'outflow',date:this.custodyForm.date,item:'عهد موظفين',subItem:this.custodyForm.employee,category:'تشغيلية',amount:Number(this.custodyForm.amount)});await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"),{employee:this.custodyForm.employee,date:this.custodyForm.date,amount:Number(this.custodyForm.amount),notes:this.custodyForm.notes,status:'مفتوحة',settlements:[],linkedFlowId:fr.id,isOpeningBalance:false,isCarriedForward:false});}else{await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"),{employee:this.custodyForm.employee,date:this.custodyForm.date,amount:Number(this.custodyForm.amount),notes:this.custodyForm.notes+' (رصيد بداية)',status:'مفتوحة',settlements:[],linkedFlowId:null,isOpeningBalance:true,isCarriedForward:false});}}this.showCustodyModal=false;}catch(e){alert(e.message);}},
 
         // SETTLEMENT
         getSelectedCustody(){return this.custodies.find(c=>c.id===this.settlement.selectedCustodyId);},
-        getCustodySpent(c){return c?(c.settlements||[]).reduce((s,st)=>s+Number(st.amount),0):0;},
-        async settleCustody(){if(!this.settlement.item||!this.settlement.amount)return alert("أكمل");try{await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",this.settlement.selectedCustodyId),{settlements:window.arrayUnion({id:Date.now().toString(),date:this.settlement.date,item:this.settlement.item,subItem:this.settlement.subItem||'',category:this.settlement.category,amount:Number(this.settlement.amount),accountingDirection:this.settlement.accountingDirection||''})});this.settlement={selectedCustodyId:this.settlement.selectedCustodyId,date:'',item:'',subItem:'',category:'تشغيلية',amount:'',accountingDirection:''};}catch(e){alert(e.message);}},
+        getCustodySpent(c){return c?(c.settlements||[]).reduce((s,st)=>s+Number(st.totalAmount || st.amount),0):0;},
+        
+        calcSettlementTax() {
+            const amt = Number(this.settlement.amountBeforeTax) || 0;
+            this.settlement.taxAmount = amt * 0.15;
+            this.settlement.totalAmount = amt + this.settlement.taxAmount;
+        },
+
+        async settleCustody(){
+            if(!this.settlement.item || !this.settlement.totalAmount) return alert("أكمل البيانات");
+            try {
+                const itemData = {
+                    id: Date.now().toString(),
+                    date: this.settlement.date,
+                    item: this.settlement.item,
+                    subItem: this.settlement.subItem || '',
+                    category: this.settlement.category,
+                    amount: this.settlement.isTaxable ? Number(this.settlement.totalAmount) : Number(this.settlement.totalAmount), // Legacy support
+                    accountingDirection: this.settlement.accountingDirection || '',
+                    isTaxable: this.settlement.isTaxable,
+                    amountBeforeTax: this.settlement.isTaxable ? Number(this.settlement.amountBeforeTax) : 0,
+                    taxRate: this.settlement.isTaxable ? 15 : 0,
+                    taxAmount: this.settlement.isTaxable ? Number(this.settlement.taxAmount) : 0,
+                    totalAmount: Number(this.settlement.totalAmount)
+                };
+                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",this.settlement.selectedCustodyId),{settlements:window.arrayUnion(itemData)});
+                this.settlement = {selectedCustodyId:this.settlement.selectedCustodyId,date:'',item:'',subItem:'',category:'تشغيلية',amount:'',accountingDirection:'',isTaxable:false,amountBeforeTax:'',taxRate:15,taxAmount:0,totalAmount:''};
+            } catch(e) { alert(e.message); }
+        },
         async deleteSettlementItem(sid){if(!confirm("حذف البند؟"))return;const c=this.getSelectedCustody();if(!c)return;try{await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id),{settlements:c.settlements.filter(s=>s.id!==sid)});}catch(e){}},
 
-        openCloseCustodyModal(c) {
-            this.closeCustodyData = c;
-            this.closeAction = 'return';
-            this.closeTaxData = { isTaxable: false, amountBeforeTax: '', taxRate: 15, taxAmount: 0, totalAmount: '' };
-            this.showCloseCustodyModal = true;
-        },
-
-        calculateTax() {
-            const amount = Number(this.closeTaxData.amountBeforeTax) || 0;
-            const rate = Number(this.closeTaxData.taxRate) || 0;
-            this.closeTaxData.taxAmount = amount * (rate / 100);
-            this.closeTaxData.totalAmount = amount + this.closeTaxData.taxAmount;
-        },
+        openCloseCustodyModal(c) { this.closeCustodyData = c; this.closeAction = 'return'; this.showCloseCustodyModal = true; },
 
         async closeAndGenerateCustodyReport() {
-            const c = this.closeCustodyData; 
-            if(!c) return;
-            const sp = this.getCustodySpent(c); 
-            const rem = c.amount - sp; 
-            const td = new Date().toISOString().split('T')[0];
+            const c = this.closeCustodyData; if(!c) return;
+            const sp = this.getCustodySpent(c); const rem = c.amount - sp; const td = new Date().toISOString().split('T')[0];
             const closeResult = rem <= 0 ? 'fully_settled' : (this.closeAction === 'return' ? 'returned' : 'carried_forward');
 
-            const taxInfo = {
-                isTaxable: this.closeTaxData.isTaxable,
-                amountBeforeTax: Number(this.closeTaxData.amountBeforeTax) || 0,
-                taxRate: Number(this.closeTaxData.taxRate) || 0,
-                taxAmount: Number(this.closeTaxData.taxAmount) || 0,
-                totalAmount: Number(this.closeTaxData.totalAmount) || 0
-            };
-
             try {
-                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id), {
-                    status:'مقفلة', 
-                    closedAt:td, 
-                    closeResult: closeResult,
-                    taxInfo: taxInfo
-                });
-
-                if(c.linkedFlowId) {
-                    await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows", c.linkedFlowId));
-                }
-
+                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id), { status:'مقفلة', closedAt:td, closeResult: closeResult });
+                if(c.linkedFlowId) { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows", c.linkedFlowId)); }
                 if(c.settlements && c.settlements.length > 0) {
                     for(let s of c.settlements) {
-                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), {
-                            type:'outflow',
-                            date: s.date || td,
-                            item: s.item,
-                            subItem: s.subItem || c.employee,
-                            category: s.category || 'تشغيلية',
-                            amount: Number(s.amount),
-                            notes: 'تقفيل عهدة - ' + c.employee
-                        });
+                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), { type:'outflow', date: s.date || td, item: s.item, subItem: s.subItem || c.employee, category: s.category || 'تشغيلية', amount: Number(s.totalAmount || s.amount), notes: 'تقفيل عهدة' });
                     }
                 }
-
                 if(rem > 0) {
-                    if(this.closeAction === 'return') {
-                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), {
-                            type:'inflow', date:td, item:'رد عهدة مقفلة', subItem:c.employee, category:'تشغيلية', amount:rem
-                        });
-                    } else {
-                        const newFlowRef = await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), {
-                            type:'outflow', date:td, item:'عهدة مرحلة', subItem:c.employee, category:'تشغيلية', amount:rem
-                        });
-                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"), {
-                            employee:c.employee, date:td, amount:rem, notes:'متبقي عهدة مرحّل', status:'مفتوحة', settlements:[], linkedFlowId:newFlowRef.id, isOpeningBalance:true, isCarriedForward:true
-                        });
-                    }
+                    if(this.closeAction === 'return') { await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), { type:'inflow', date:td, item:'رد عهدة مقفلة', subItem:c.employee, category:'تشغيلية', amount:rem }); } 
+                    else { const newFlowRef = await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), { type:'outflow', date:td, item:'عهدة مرحلة', subItem:c.employee, category:'تشغيلية', amount:rem }); await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"), { employee:c.employee, date:td, amount:rem, notes:'متبقي عهدة مرحّل', status:'مفتوحة', settlements:[], linkedFlowId:newFlowRef.id, isOpeningBalance:true, isCarriedForward:true }); }
                 }
-
                 this.showCloseCustodyModal = false;
-                c.closeResult = closeResult;
-                c.taxInfo = taxInfo;
-                this.generateCustodyReportHTML(c, sp, rem, td);
-            } catch(e) { 
-                alert("خطأ: "+e.message); 
-            }
+                this.generateCustodyReportHTML(c, sp, rem, td, closeResult);
+            } catch(e) { alert("خطأ: "+e.message); }
         },
 
         rePrintCustodyReport(c) {
             const sp = this.getCustodySpent(c); const rem = c.amount - sp;
-            const closeDate = c.closedAt || new Date().toISOString().split('T')[0];
-            this.generateCustodyReportHTML(c, sp, rem, closeDate);
+            this.generateCustodyReportHTML(c, sp, rem, c.closedAt || new Date().toISOString().split('T')[0], c.closeResult || 'fully_settled');
         },
 
-        generateCustodyReportHTML(c, spent, remaining, closeDate) {
-            const act = c.closeResult === 'returned' ? 'تم رد المبلغ للصندوق' : (c.closeResult === 'carried_forward' ? 'تم ترحيل المتبقي لعهدة جديدة' : 'مقفلة بالكامل');
+        generateCustodyReportHTML(c, spent, remaining, closeDate, closeResult) {
+            const act = closeResult === 'returned' ? 'تم رد المبلغ للصندوق' : (closeResult === 'carried_forward' ? 'تم ترحيل المتبقي لعهدة جديدة' : 'مقفلة بالكامل');
             let rows = '';
             (c.settlements||[]).forEach((s,i) => { 
-                rows += '<tr><td style="text-align:center">'+(i+1)+'</td><td>'+(s.date||'')+'</td><td>'+(s.item||'')+'<br><small style="color:#64748b">'+(s.subItem||'')+'</small></td><td>'+(s.category||'')+'</td><td>'+(s.accountingDirection||'-')+'</td><td style="text-align:left">'+Number(s.amount).toLocaleString('ar-SA')+'</td></tr>'; 
+                let taxInfoStr = '';
+                if(s.isTaxable) { taxInfoStr = `<br><small style="color:#3b82f6">ضريبي: قبل الضريبة ${Number(s.amountBeforeTax).toLocaleString('ar-SA')} | ضريبة 15%: ${Number(s.taxAmount).toLocaleString('ar-SA')}</small>`; }
+                rows += `<tr><td style="text-align:center">${(i+1)}</td><td>${(s.date||'')}</td><td>${(s.item||'')}<br><small style="color:#64748b">${(s.subItem||'')}</small>${taxInfoStr}</td><td>${(s.category||'')}</td><td>${(s.accountingDirection||'-')}</td><td style="text-align:left">${Number(s.totalAmount || s.amount).toLocaleString('ar-SA')}</td></tr>`; 
             });
 
-            let taxRow = '';
-            if (c.taxInfo && c.taxInfo.isTaxable) {
-                taxRow = '<div class="summary-box" style="border-color:#3b82f6;margin-top:10px"><h4 style="color:#3b82f6;margin-bottom:10px"><i class="fas fa-calculator"></i> بيانات الضريبة</h4>' +
-                    '<div class="summary-row"><span style="font-weight:bold">المبلغ قبل الضريبة:</span><span>'+Number(c.taxInfo.amountBeforeTax).toLocaleString('ar-SA')+' ر.س</span></div>' +
-                    '<div class="summary-row"><span style="font-weight:bold">نسبة الضريبة:</span><span>'+c.taxInfo.taxRate+'%</span></div>' +
-                    '<div class="summary-row"><span style="font-weight:bold">قيمة الضريبة:</span><span style="color:#f59e0b">'+Number(c.taxInfo.taxAmount).toLocaleString('ar-SA')+' ر.س</span></div>' +
-                    '<div class="summary-row" style="border-bottom:none;font-size:16px"><span style="font-weight:bold">المبلغ الإجمالي:</span><span style="color:#16a34a;font-weight:bold">'+Number(c.taxInfo.totalAmount).toLocaleString('ar-SA')+' ر.س</span></div>' +
-                    '</div>';
-            }
-
             this.custodyReportHTML = 
-                '<div style="text-align:center;margin-bottom:30px"><h2 style="margin:0;font-size:24px">تقرير تقفيل عهدة</h2><p style="color:#64748b;margin:5px 0 0 0">تاريخ التقفيل: '+closeDate+'</p></div>' +
-                '<div class="summary-box"><div class="summary-row"><span style="font-weight:bold">الموظف:</span><span>'+c.employee+'</span></div><div class="summary-row"><span style="font-weight:bold">تاريخ العهدة:</span><span>'+c.date+'</span></div></div>' +
-                '<table><thead><tr><th style="text-align:center">#</th><th>التاريخ</th><th>البند</th><th>التصنيف</th><th>التوجيه</th><th style="text-align:left">المبلغ</th></tr></thead><tbody>'+rows+'</tbody><tfoot><tr class="total-row"><td colspan="5" style="text-align:left;font-weight:bold">إجمالي المصروفات</td><td style="text-align:left;font-weight:bold">'+spent.toLocaleString('ar-SA')+'</td></tr></tfoot></table>' +
-                taxRow +
-                '<div class="summary-box" style="margin-top:20px;border-color:#16a34a"><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">رصيد بداية العهدة:</span><span>'+Number(c.amount).toLocaleString('ar-SA')+' ر.س</span></div><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">(-) المصروفات:</span><span style="color:#dc2626">'+spent.toLocaleString('ar-SA')+' ر.س</span></div><div class="summary-row" style="font-size:18px;border-bottom:none"><span style="font-weight:bold">رصيد نهاية التقفيل:</span><span style="color:#16a34a">'+remaining.toLocaleString('ar-SA')+' ر.س</span></div><div style="text-align:center;margin-top:15px;padding:10px;background:#f0fdf4;border-radius:6px;color:#166534;font-weight:bold">الإجراء: '+act+'</div></div>' +
-                '<div style="margin-top:60px;display:flex;justify-content:space-between"><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع الموظف</p><br><br><p style="border-top:1px solid #94a3b8">.............................</p></div><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع المدير المالي</p><br><br><p style="border-top:1px solid #94a3b8">.............................</p></div></div>';
+                `<div style="text-align:center;margin-bottom:30px"><h2 style="margin:0;font-size:24px">تقرير تقفيل عهدة</h2><p style="color:#64748b;margin:5px 0 0 0">تاريخ التقفيل: ${closeDate}</p></div>` +
+                `<div class="summary-box"><div class="summary-row"><span style="font-weight:bold">الموظف:</span><span>${c.employee}</span></div><div class="summary-row"><span style="font-weight:bold">تاريخ العهدة:</span><span>${c.date}</span></div></div>` +
+                `<table><thead><tr><th style="text-align:center">#</th><th>التاريخ</th><th>البند</th><th>التصنيف</th><th>التوجيه</th><th style="text-align:left">المبلغ</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="total-row"><td colspan="5" style="text-align:left;font-weight:bold">إجمالي المصروفات</td><td style="text-align:left;font-weight:bold">${spent.toLocaleString('ar-SA')}</td></tr></tfoot></table>` +
+                `<div class="summary-box" style="margin-top:20px;border-color:#16a34a"><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">رصيد بداية العهدة:</span><span>${Number(c.amount).toLocaleString('ar-SA')} ر.س</span></div><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">(-) المصروفات:</span><span style="color:#dc2626">${spent.toLocaleString('ar-SA')} ر.س</span></div><div class="summary-row" style="font-size:18px;border-bottom:none"><span style="font-weight:bold">رصيد نهاية التقفيل:</span><span style="color:#16a34a">${remaining.toLocaleString('ar-SA')} ر.س</span></div><div style="text-align:center;margin-top:15px;padding:10px;background:#f0fdf4;border-radius:6px;color:#166534;font-weight:bold">الإجراء: ${act}</div></div>` +
+                `<div style="margin-top:60px;display:flex;justify-content:space-between"><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع الموظف</p><br><br><p style="border-top:1px solid #94a3b8">.............................</p></div><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع المدير المالي</p><br><br><p style="border-top:1px solid #94a3b8">.............................</p></div></div>`;
 
             setTimeout(() => { const ch=confirm("موافق = PDF\nإلغاء = Excel"); if(ch) this.exportPDF('custody-report-print'); else this.exportCustodyReportExcel(c,spent,remaining,act,closeDate); }, 300);
         },
 
         exportCustodyReportExcel(c,sp,rem,act,cd){
-            const rows=(c.settlements||[]).map(s=>[s.date,s.item,s.subItem||'',s.category,s.accountingDirection||'',Number(s.amount)]);
-            rows.push(["","","","","إجمالي المصروفات",sp]);
-            if (c.taxInfo && c.taxInfo.isTaxable) {
-                rows.push(["","","","","",""]);
-                rows.push(["بيانات الضريبة","","","","",""]);
-                rows.push(["المبلغ قبل الضريبة","","","","",Number(c.taxInfo.amountBeforeTax)]);
-                rows.push(["نسبة الضريبة","","","","",c.taxInfo.taxRate+"%"]);
-                rows.push(["قيمة الضريبة","","","","",Number(c.taxInfo.taxAmount)]);
-                rows.push(["المبلغ الإجمالي","","","","",Number(c.taxInfo.totalAmount)]);
-            }
-            rows.push(["","","","","",""]);
-            rows.push(["","","","","رصيد بداية",Number(c.amount)]);
-            rows.push(["","","","","المصروفات",-sp]);
-            rows.push(["","","","","المتبقي",rem]);
-            rows.push(["","","","","الإجراء",act]);
-            const ws=XLSX.utils.aoa_to_sheet([['تقرير تقفيل عهدة: '+c.employee],[],["التاريخ","البند","التفصيل","التصنيف","التوجيه","المبلغ"],...rows]);
+            const rows=(c.settlements||[]).map(s=>[s.date,s.item,s.subItem||'',s.category,s.accountingDirection||'', s.isTaxable ? 'نعم':'لا', s.amountBeforeTax || '', s.taxAmount || '', Number(s.totalAmount || s.amount)]);
+            rows.push(["","","","","","","","إجمالي المصروفات",sp]);
+            rows.push(["","","","","","","","رصيد بداية",Number(c.amount)]);
+            rows.push(["","","","","","","","المتبقي",rem]);
+            const ws=XLSX.utils.aoa_to_sheet([['تقرير تقفيل عهدة: '+c.employee],[],["التاريخ","البند","التفصيل","التصنيف","التوجيه","ضريبي?","قبل الضريبة","الضريبة","الإجمالي"],...rows]);
             const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"تقفيل");
             XLSX.writeFile(wb,'Report_'+c.employee+'_'+cd+'.xlsx');
         },
 
         applyInquiry(){
             const emp=this.inquiry.employee;
-            if(!emp)return alert("أدخل اسم الموظف");
-            let f=this.custodies.filter(c=>c.employee.includes(emp));
+            if(!emp)return alert("اختر الموظف");
+            let f=this.custodies.filter(c=>c.employee === emp);
             if(this.inquiry.from)f=f.filter(c=>c.date>=this.inquiry.from);
             if(this.inquiry.to)f=f.filter(c=>c.date<=this.inquiry.to);
             let res={employee:emp,totalAmount:0,totalSpent:0,remaining:0,settlements:[],custodyDetails:[]};
             f.forEach(c=>{
                 const sp=this.getCustodySpent(c);
                 if(!c.isCarriedForward)res.totalAmount+=Number(c.amount);
-                (c.settlements||[]).forEach(s=>{
-                    res.totalSpent+=Number(s.amount);
-                    res.settlements.push(s);
-                });
-                res.custodyDetails.push({id:c.id,date:c.date,amount:Number(c.amount),spent:sp,status:c.status,isCarriedForward:c.isCarriedForward||false,settlements:c.settlements||[],taxInfo:c.taxInfo||null});
+                (c.settlements||[]).forEach(s=>{ res.totalSpent+=Number(s.totalAmount || s.amount); res.settlements.push(s); });
+                res.custodyDetails.push({id:c.id,date:c.date,amount:Number(c.amount),spent:sp,status:c.status,isCarriedForward:c.isCarriedForward||false,settlements:c.settlements||[]});
             });
             res.remaining=res.totalAmount-res.totalSpent;
             this.inquiryResult=res;
@@ -1029,125 +640,19 @@ function financialSystem() {
 
         exportInquiryExcel(){
             if(!this.inquiryResult)return;
-
             const wb = XLSX.utils.book_new();
-
-            const summaryData = [
-                ['تقرير استعلام العهد'],
-                [''],
-                ['اسم الموظف:', this.inquiryResult.employee],
-                ['تاريخ التقرير:', new Date().toLocaleDateString('ar-SA')],
-                [''],
-                ['إجمالي العهد الأصلي:', this.inquiryResult.totalAmount],
-                ['إجمالي المصروف:', this.inquiryResult.totalSpent],
-                ['المتبقي الفعلي:', this.inquiryResult.remaining],
-                ['']
-            ];
-            const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-            XLSX.utils.book_append_sheet(wb, wsSummary, "ملخص");
-
-            const detailHeaders = [
-                'رقم العهدة', 'تاريخ العهدة', 'تاريخ الصرف', 'البند', 'التفصيل', 
-                'التصنيف', 'التوجيه المحاسبي', 'المبلغ قبل الضريبة', 'نسبة الضريبة %', 
-                'قيمة الضريبة', 'المبلغ الإجمالي', 'حالة العهدة', 'ملاحظات'
-            ];
-
-            const detailRows = [detailHeaders];
-
-            this.inquiryResult.custodyDetails.forEach((cd, idx) => {
-                if (cd.settlements && cd.settlements.length > 0) {
-                    cd.settlements.forEach(s => {
-                        let amountBeforeTax = '-';
-                        let taxRate = '-';
-                        let taxAmount = '-';
-                        let totalAmount = s.amount;
-                        let notes = '';
-
-                        if (cd.taxInfo && cd.taxInfo.isTaxable) {
-                            amountBeforeTax = cd.taxInfo.amountBeforeTax;
-                            taxRate = cd.taxInfo.taxRate + '%';
-                            taxAmount = cd.taxInfo.taxAmount;
-                            totalAmount = cd.taxInfo.totalAmount;
-                            notes = 'شامل الضريبة';
-                        } else if (cd.taxInfo && !cd.taxInfo.isTaxable) {
-                            notes = 'غير شامل الضريبة';
-                        }
-
-                        detailRows.push([
-                            idx + 1,
-                            cd.date,
-                            s.date || '-',
-                            s.item || '-',
-                            s.subItem || '-',
-                            s.category || '-',
-                            s.accountingDirection || '-',
-                            amountBeforeTax,
-                            taxRate,
-                            taxAmount,
-                            totalAmount,
-                            cd.status,
-                            notes
-                        ]);
-                    });
-                } else {
-                    detailRows.push([
-                        idx + 1,
-                        cd.date,
-                        '-',
-                        '-',
-                        '-',
-                        '-',
-                        '-',
-                        '-',
-                        '-',
-                        '-',
-                        cd.amount,
-                        cd.status,
-                        'لا توجد بنود صرف'
-                    ]);
-                }
-            });
-
-            detailRows.push(['', '', '', '', '', '', '', '', '', '', '', '', '']);
-            detailRows.push([
-                'الإجمالي', '', '', '', '', '', '', '', '', '', 
-                this.inquiryResult.totalSpent, '', ''
-            ]);
-
-            const wsDetails = XLSX.utils.aoa_to_sheet(detailRows);
-
-            wsDetails['!cols'] = [
-                {wch: 12}, {wch: 14}, {wch: 14}, {wch: 20}, {wch: 18},
-                {wch: 12}, {wch: 18}, {wch: 18}, {wch: 14}, {wch: 14},
-                {wch: 16}, {wch: 12}, {wch: 18}
-            ];
-
-            XLSX.utils.book_append_sheet(wb, wsDetails, "تفاصيل البنود");
-
-            const custodyHeaders = ['#', 'تاريخ العهدة', 'المبلغ الأصلي', 'المصروف', 'المتبقي', 'الحالة', 'مرحّل', 'شامل ضريبة'];
-            const custodyRows = [custodyHeaders];
-
-            this.inquiryResult.custodyDetails.forEach((cd, idx) => {
-                custodyRows.push([
-                    idx + 1,
-                    cd.date,
-                    cd.amount,
-                    cd.spent,
-                    cd.amount - cd.spent,
-                    cd.status,
-                    cd.isCarriedForward ? 'نعم' : 'لا',
-                    (cd.taxInfo && cd.taxInfo.isTaxable) ? 'نعم' : 'لا'
-                ]);
-            });
-
-            const wsCustody = XLSX.utils.aoa_to_sheet(custodyRows);
-            wsCustody['!cols'] = [{wch: 6}, {wch: 14}, {wch: 14}, {wch: 14}, {wch: 14}, {wch: 12}, {wch: 10}, {wch: 14}];
-            XLSX.utils.book_append_sheet(wb, wsCustody, "ملخص العهد");
-
-            XLSX.writeFile(wb, 'Inquiry_' + this.inquiryResult.employee + '_' + new Date().toISOString().split('T')[0] + '.xlsx');
+            const detailRows = this.inquiryResult.custodyDetails.flatMap(cd => 
+                (cd.settlements.length > 0 ? cd.settlements : [{}]).map(s => [
+                    cd.date, s.date || '-', s.item || '-', s.subItem || '-', s.category || '-', 
+                    s.isTaxable ? 'نعم' : 'لا', s.amountBeforeTax || '-', s.taxAmount || '-', 
+                    Number(s.totalAmount || s.amount || 0), cd.status
+                ])
+            );
+            const ws = XLSX.utils.aoa_to_sheet([["تقرير عهدة: "+this.inquiryResult.employee], [], ["تاريخ العهدة","تاريخ الصرف","البند","التفصيل","التصنيف","ضريبي?","قبل الضريبة","الضريبة","الإجمالي","الحالة"], ...detailRows]);
+            XLSX.utils.book_append_sheet(wb, ws, "تفاصيل");
+            XLSX.writeFile(wb, 'Inquiry_'+this.inquiryResult.employee+'.xlsx');
         },
 
-        // ANALYSIS
         generateAnalysis() {
             if(!this.analysis.from||!this.analysis.to) return alert("حدد الفترة");
             const from=this.analysis.from, to=this.analysis.to;
@@ -1157,62 +662,27 @@ function financialSystem() {
             const totalIn = pf.filter(f=>f.type==='inflow').reduce((s,f)=>s+Number(f.amount),0);
             const totalOut = pf.filter(f=>f.type==='outflow').reduce((s,f)=>s+Number(f.amount),0);
             const net = totalIn - totalOut;
-            const inflows = pf.filter(f=>f.type==='inflow').sort((a,b)=>Number(b.amount)-Number(a.amount));
-            const outflows = pf.filter(f=>f.type==='outflow').sort((a,b)=>Number(b.amount)-Number(a.amount));
             const daysDiff = Math.max(1, (new Date(to) - new Date(from)) / (1000 * 60 * 60 * 24));
-            const dailyNet = net / daysDiff;
-            const currentBal = this.currentBalance;
-            this.analysis.data = {
-                totalIn, totalOut, net, 
-                topIn: inflows[0] || null, topOut: outflows[0] || null,
-                forecast30: currentBal + (dailyNet * 30), forecast60: currentBal + (dailyNet * 60), forecast90: currentBal + (dailyNet * 90),
-                flows: pf.sort((a,b) => new Date(a.date)-new Date(b.date))
-            };
+            const dailyNet = net / daysDiff; const currentBal = this.currentBalance;
+            this.analysis.data = { totalIn, totalOut, net, forecast30: currentBal + (dailyNet * 30), forecast60: currentBal + (dailyNet * 60), forecast90: currentBal + (dailyNet * 90), flows: pf.sort((a,b) => new Date(a.date)-new Date(b.date)) };
         },
-        exportAnalysisExcel() {
-            if(!this.analysis.data) return;
-            const rows = this.analysis.data.flows.map(f => ({'التاريخ':f.date, 'النوع':f.type==='inflow'?'داخل':'خارج', 'البند':f.item, 'التفصيل':f.subItem||'', 'التصنيف':f.category, 'المبلغ':f.amount}));
-            const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "تحليل"); XLSX.writeFile(wb, "Analysis.xlsx");
-        },
+        exportAnalysisExcel() { if(!this.analysis.data) return; const ws=XLSX.utils.json_to_sheet(this.analysis.data.flows.map(f => ({'التاريخ':f.date, 'النوع':f.type==='inflow'?'داخل':'خارج', 'البند':f.item, 'التصنيف':f.category, 'المبلغ':f.amount}))); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "تحليل"); XLSX.writeFile(wb, "Analysis.xlsx"); },
 
-        // REPORT
         generateReport(){if(!this.report.from||!this.report.to)return alert("حدد الفترة");const from=this.report.from,to=this.report.to;const oF=this.flows.find(f=>f.item==='رصيد بداية المدة');const oA=oF?Number(oF.amount):0;const bN=this.flows.filter(f=>f.date<from&&f.item!=='رصيد بداية المدة').reduce((a,c)=>a+(c.type==='inflow'?Number(c.amount):-Number(c.amount)),0);const oB=oA+bN;const pf=this.flows.filter(f=>f.date>=from&&f.date<=to&&f.item!=='رصيد بداية المدة');const calc=(t,cat)=>pf.filter(f=>f.type===t&&f.category===cat).reduce((s,f)=>s+Number(f.amount),0);const oI=calc('inflow','تشغيلية'),oO=calc('outflow','تشغيلية'),iI=calc('inflow','استثمارية'),iO=calc('outflow','استثمارية'),fI=calc('inflow','تمويلية'),fO=calc('outflow','تمويلية');const nO=oI-oO,nI=iI-iO,nF=fI-fO,nCF=nO+nI+nF;this.report.data={openingBalance:oB,operatingIn:oI,operatingOut:oO,netOperating:nO,investingIn:iI,investingOut:iO,netInvesting:nI,financingIn:fI,financingOut:fO,netFinancing:nF,netCashFlow:nCF,closingBalance:oB+nCF};},
         exportReportExcel(){if(!this.report.data)return;const ws=XLSX.utils.json_to_sheet([this.report.data]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"تقرير");XLSX.writeFile(wb,"Cash_Flow_Statement.xlsx");},
 
-        exportPDF(divId){const input=document.getElementById(divId);const orig={position:input.style.position,left:input.style.left,top:input.style.top,zIndex:input.style.zIndex,opacity:input.style.opacity};input.style.position='fixed';input.style.left='0';input.style.top='0';input.style.zIndex='-1';input.style.opacity='1';setTimeout(()=>{html2canvas(input,{scale:2,backgroundColor:divId==='custody-report-print'?"#ffffff":"#0f172a",useCORS:true, windowWidth: 1200}).then(canvas=>{const{jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');const w=pdf.internal.pageSize.getWidth();pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,w,(canvas.height*w)/canvas.width);pdf.save("Report.pdf");Object.assign(input.style,orig);}).catch(err=>{alert("خطأ في PDF");Object.assign(input.style,orig);});},200);},
+        exportPDF(divId){const input=document.getElementById(divId);if(!input)return;const orig={position:input.style.position,left:input.style.left,top:input.style.top,zIndex:input.style.zIndex,opacity:input.style.opacity};input.style.position='fixed';input.style.left='0';input.style.top='0';input.style.zIndex='-1';input.style.opacity='1';setTimeout(()=>{html2canvas(input,{scale:2,backgroundColor:divId==='custody-report-print'?"#ffffff":"#0f172a",useCORS:true,windowWidth:1200}).then(canvas=>{const{jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');const w=pdf.internal.pageSize.getWidth();pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,w,(canvas.height*w)/canvas.width);pdf.save("Report.pdf");Object.assign(input.style,orig);}).catch(err=>{alert("خطأ في PDF");Object.assign(input.style,orig);});},200);},
 
-        // RBAC
-        editPermissions(u){this.userForm={id:u.id,email:u.email,permissions:{...u.permissions}||{}};this.showUserModal=true;},
-        async savePermissions(){try{await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"users",this.userForm.id),{permissions:this.userForm.permissions});this.showUserModal=false;this.showToast('تم حفظ الصلاحيات بنجاح','success');}catch(e){this.showToast('خطأ في الحفظ','error');}},
-
-        // CHARTS
         updateCharts(){
             if(this.activeTab!=='dashboard') return;
             setTimeout(()=>{
                 const sf=this.getSortedFlows().filter(f=>f.item!=='رصيد بداية المدة');
                 const labels=sf.map(f=>f.date), inD=sf.map(f=>f.type==='inflow'?Number(f.amount):0), outD=sf.map(f=>f.type==='outflow'?Number(f.amount):0);
                 const allSF=this.getSortedFlows(), balD=allSF.map(f=>f.runningBalance), balL=allSF.map(f=>f.date);
-
                 const ctx1=document.getElementById('flowChart')?.getContext('2d');
-                if(ctx1){
-                    if(this.flowChartInstance) this.flowChartInstance.destroy();
-                    this.flowChartInstance=new Chart(ctx1,{
-                        type:'bar',
-                        data:{labels, datasets:[{label:'داخلة', data:inD, backgroundColor:'#34d399', borderRadius:4},{label:'خارجة', data:outD, backgroundColor:'#f87171', borderRadius:4}]},
-                        options:{responsive:true, maintainAspectRatio:false, scales:{x:{ticks:{color:'#94a3b8'}, grid:{color:'#1e293b'}}, y:{ticks:{color:'#94a3b8'}, grid:{color:'#1e293b'}}}, plugins:{legend:{labels:{color:'#e2e8f0'}}}}
-                    });
-                }
-
+                if(ctx1){ if(this.flowChartInstance) this.flowChartInstance.destroy(); this.flowChartInstance=new Chart(ctx1,{ type:'bar', data:{labels, datasets:[{label:'داخلة', data:inD, backgroundColor:'#34d399', borderRadius:4},{label:'خارجة', data:outD, backgroundColor:'#f87171', borderRadius:4}]}, options:{responsive:true, maintainAspectRatio:false, scales:{x:{ticks:{color:'#94a3b8'}, grid:{color:'#1e293b'}}, y:{ticks:{color:'#94a3b8'}, grid:{color:'#1e293b'}}}, plugins:{legend:{labels:{color:'#e2e8f0'}}}} }); }
                 const ctx2=document.getElementById('balanceChart')?.getContext('2d');
-                if(ctx2){
-                    if(this.balanceChartInstance) this.balanceChartInstance.destroy();
-                    this.balanceChartInstance=new Chart(ctx2,{
-                        type:'line',
-                        data:{labels:balL, datasets:[{label:'الرصيد', data:balD, borderColor:'#3b82f6', fill:true, tension:0.4, backgroundColor:'rgba(59,130,246,0.1)'}]},
-                        options:{responsive:true, maintainAspectRatio:false, scales:{x:{ticks:{color:'#94a3b8'}, grid:{color:'#1e293b'}}, y:{ticks:{color:'#94a3b8'}, grid:{color:'#1e293b'}}}, plugins:{legend:{labels:{color:'#e2e8f0'}}}}
-                    });
-                }
+                if(ctx2){ if(this.balanceChartInstance) this.balanceChartInstance.destroy(); this.balanceChartInstance=new Chart(ctx2,{ type:'line', data:{labels:balL, datasets:[{label:'الرصيد', data:balD, borderColor:'#3b82f6', fill:true, tension:0.4, backgroundColor:'rgba(59,130,246,0.1)'}]}, options:{responsive:true, maintainAspectRatio:false, scales:{x:{ticks:{color:'#94a3b8'}, grid:{color:'#1e293b'}}, y:{ticks:{color:'#94a3b8'}, grid:{color:'#1e293b'}}}, plugins:{legend:{labels:{color:'#e2e8f0'}}}} }); }
             }, 200);
         }
     }
