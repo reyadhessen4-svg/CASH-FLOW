@@ -49,6 +49,8 @@
 
     <style>
         [x-cloak] { display: none !important; }
+        /* Ensure Alpine elements are hidden before initialization */
+        [x-data]:not(.initialized) { visibility: hidden; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #e2e8f0; }
         .glass-dark { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(71, 85, 105, 0.5); }
         .chart-container { position: relative; height: 320px; width: 100%; }
@@ -98,11 +100,17 @@
 <base target="_blank">
 </head>
 <body>
-<div x-data="financialSystem()" class="min-h-screen">
+<div x-data="financialSystem()" x-init="init()" class="min-h-screen">
     <div x-show="toast.show" x-cloak class="toast-notification" :class="'toast-' + toast.type" x-text="toast.message" x-transition></div>
 
     <div x-show="!isLoggedIn" x-cloak class="min-h-screen flex items-center justify-center bg-slate-900 p-4">
-        <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-6 border border-slate-700">
+        <!-- Loading State -->
+        <div x-show="authLoading" class="text-center">
+            <i class="fas fa-circle-notch fa-spin text-5xl text-blue-500 mb-4"></i>
+            <p class="text-slate-400">جاري تحميل النظام...</p>
+        </div>
+        <!-- Login Form -->
+        <div x-show="!authLoading" class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-6 border border-slate-700">
             <div class="text-center">
                 <i class="fas fa-gem text-5xl text-blue-500 mb-4"></i>
                 <h2 class="text-3xl font-bold text-white">متابعة التدفقات النقدية والعهد</h2>
@@ -116,6 +124,7 @@
                 <p class="text-center text-red-400 text-sm" x-text="authError"></p>
                 <div class="text-center mt-4"><button @click="authMode = authMode === 'login' ? 'register' : 'login'; authError = ''" class="text-blue-400 hover:text-blue-300 text-sm font-bold hover:underline"><span x-show="authMode === 'login'">ليس لديك حساب؟ إنشاء حساب جديد</span><span x-show="authMode === 'register'">لديك حساب بالفعل؟ تسجيل الدخول</span></button></div>
             </div>
+        </div>
         </div>
     </div>
 
@@ -669,8 +678,51 @@ function financialSystem() {
         },
 
         async init() {
-            while(!window.firebaseAuth||!window.firebaseDb){await new Promise(r=>setTimeout(r,100));}
-            try { window.firebaseOnAuth(window.firebaseAuth, async(user)=>{ if(user){ const ud=await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb,"users",user.uid)); if(ud.exists()){this.currentUser={id:user.uid,email:user.email,...ud.data()};this.isLoggedIn=true;this.initFirestoreListeners();this.updateCharts();}else{this.authError="خطأ";await this.logout();}} else{this.isLoggedIn=false;this.currentUser=null;} }); } catch(e){}
+            console.log('System initializing...');
+            this.authLoading = true;
+            try {
+                // Wait for firebase to be ready (max 10 seconds)
+                let attempts = 0;
+                while((!window.firebaseAuth || !window.firebaseDb) && attempts < 100) {
+                    await new Promise(r => setTimeout(r, 100));
+                    attempts++;
+                }
+                if (!window.firebaseAuth || !window.firebaseDb) {
+                    console.error('Firebase failed to load');
+                    this.authError = 'خطأ في تحميل النظام - أعد تحميل الصفحة';
+                    this.authLoading = false;
+                    return;
+                }
+
+                // Setup auth state listener
+                window.firebaseOnAuth(window.firebaseAuth, async(user) => {
+                    if(user) {
+                        try {
+                            const ud = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, "users", user.uid));
+                            if(ud.exists()) {
+                                this.currentUser = {id: user.uid, email: user.email, ...ud.data()};
+                                this.isLoggedIn = true;
+                                this.initFirestoreListeners();
+                                this.updateCharts();
+                            } else {
+                                this.authError = 'خطأ في بيانات المستخدم';
+                                await this.logout();
+                            }
+                        } catch(e) {
+                            console.error('Auth error:', e);
+                            this.authError = 'خطأ في المصادقة';
+                        }
+                    } else {
+                        this.isLoggedIn = false;
+                        this.currentUser = null;
+                    }
+                    this.authLoading = false;
+                });
+            } catch(e) {
+                console.error('Init error:', e);
+                this.authError = 'خطأ في تشغيل النظام';
+                this.authLoading = false;
+            }
         },
         async login(){this.authLoading=true;this.authError='';try{await window.firebaseSignIn(window.firebaseAuth,this.authForm.email,this.authForm.password);}catch(e){this.authError="خطأ في الدخول";}this.authLoading=false;},
         async register(){this.authLoading=true;this.authError='';try{const uc=await window.firebaseSignUp(window.firebaseAuth,this.authForm.email,this.authForm.password);const us=await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb,"users"));const r=us.empty?'admin':'user';const p=r==='admin'?{dashboard:true,cashflow:true,custody:true,settlement:true,inquiry:true,analysis:true,report:true,users:true}:{dashboard:true,cashflow:true,custody:true,settlement:true,inquiry:true,analysis:true,report:true,users:false};await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"users",uc.user.uid),{email:this.authForm.email,role:r,permissions:p,createdAt:new Date().toISOString()});}catch(e){this.authError=e.message;}this.authLoading=false;},
