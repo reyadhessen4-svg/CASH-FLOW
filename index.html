@@ -279,23 +279,26 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- صف رصيد بداية الفترة -->
-                                    <tr class="bg-purple-900/10 border-b border-slate-700">
-                                        <td class="p-3 text-slate-500">-</td>
-                                        <td class="p-3 text-purple-300 font-bold" x-text="custodyStatement.data?.from"></td>
-                                        <td class="p-3 text-purple-300 font-bold"><i class="fas fa-flag ml-1"></i> رصيد بداية الفترة</td>
-                                        <td class="p-3 text-purple-400 font-bold" x-text="formatCurrency(custodyStatement.data?.openingBalance)"></td>
-                                        <td class="p-3">-</td>
-                                        <td class="p-3 text-purple-400 font-bold text-lg" x-text="formatCurrency(custodyStatement.data?.openingBalance)"></td>
-                                    </tr>
+                                    <!-- صف رصيد بداية الفترة - يظهر فقط إذا كان أكبر من صفر -->
+                                    <template x-if="custodyStatement.data?.openingBalance > 0">
+                                        <tr class="bg-purple-900/10 border-b border-slate-700">
+                                            <td class="p-3 text-slate-500">-</td>
+                                            <td class="p-3 text-purple-300 font-bold" x-text="custodyStatement.data?.from"></td>
+                                            <td class="p-3 text-purple-300 font-bold"><i class="fas fa-flag ml-1"></i> رصيد بداية الفترة (من عهد سابقة)</td>
+                                            <td class="p-3 text-purple-400 font-bold" x-text="formatCurrency(custodyStatement.data?.openingBalance)"></td>
+                                            <td class="p-3">-</td>
+                                            <td class="p-3 text-purple-400 font-bold text-lg" x-text="formatCurrency(custodyStatement.data?.openingBalance)"></td>
+                                        </tr>
+                                    </template>
                                     <template x-for="(row, idx) in custodyStatement.data?.transactions || []" :key="idx">
                                         <tr class="table-dark-row" :class="idx % 2 === 0 ? 'stmt-row-even' : 'stmt-row-odd'">
                                             <td class="p-3 text-slate-500" x-text="idx + 1"></td>
                                             <td class="p-3 text-slate-300 whitespace-nowrap" x-text="row.date"></td>
                                             <td class="p-3">
                                                 <span class="font-medium" :class="row.debit > 0 ? 'text-emerald-300' : 'text-red-300'" x-text="row.description"></span>
-                                                <span x-show="row.type === 'enhancement'" class="text-emerald-400 text-xs mr-1"><i class="fas fa-plus-circle"></i></span>
-                                                <span x-show="row.type === 'settlement'" class="text-red-400 text-xs mr-1"><i class="fas fa-minus-circle"></i></span>
+                                                <span x-show="row.type === 'creation'" class="text-blue-400 text-xs mr-1"><i class="fas fa-plus-circle"></i></span>
+                                                <span x-show="row.type === 'enhancement'" class="text-emerald-400 text-xs mr-1"><i class="fas fa-arrow-up"></i></span>
+                                                <span x-show="row.type === 'settlement'" class="text-red-400 text-xs mr-1"><i class="fas fa-arrow-down"></i></span>
                                                 <span x-show="row.type === 'return'" class="text-amber-400 text-xs mr-1"><i class="fas fa-undo"></i></span>
                                             </td>
                                             <td class="p-3 font-bold text-emerald-400" x-text="row.debit > 0 ? formatCurrency(row.debit) : '-'"></td>
@@ -318,8 +321,6 @@
                             <p class="text-lg font-bold">اختر الموظف وحدد الفترة لعرض كشف الحساب</p>
                         </div>
                     </div>
-                </div>
-
                 <!-- ═══ تحليل التدفقات ═══ -->
                 <div x-show="activeTab === 'analysis'" x-cloak>
                     <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 mb-6">
@@ -783,7 +784,7 @@ function financialSystem() {
                         await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), { type:'inflow', date:td, item:'رد عهدة مقفلة', subItem:c.employee, category:'تشغيلية', amount:rem });
                     } else {
                         const newFlowRef = await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), { type:'outflow', date:td, item:'عهدة مرحلة', subItem:c.employee, category:'تشغيلية', amount:rem });
-                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"), { employee:c.employee, date:td, amount:rem, notes:'متبقي عهدة مرحّل', status:'مفتوحة', settlements:[], linkedFlowId:newFlowRef.id, isOpeningBalance:true, isCarriedForward:true, enhancements:[] });
+                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"), { employee:c.employee, date:td, amount:rem, notes:'متبقي عهدة مرحّل', status:'مفتوحة', settlements:[], linkedFlowId:newFlowRef.id, isOpeningBalance:false, isCarriedForward:true, enhancements:[] });
                     }
                 }
 
@@ -954,28 +955,41 @@ function financialSystem() {
             let openingBalance = 0;
 
             empCustodies.forEach(c => {
-                // ═══ الإصلاح: حساب المبلغ الأصلي للعهدة بطرح مجموع التعزيزات ═══
+                // ═══ حساب المبلغ الأصلي للعهدة (بدون التعزيزات) ═══
                 const totalEnhancementsAmount = (c.enhancements || []).reduce((sum, e) => sum + Number(e.amount), 0);
                 const originalCustodyAmount = Number(c.amount) - totalEnhancementsAmount;
 
+                // ═══ تحديد وصف العهدة بشكل صحيح (الترحيل له الأولوية) ═══
+                const getCustodyDescription = (custody) => {
+                    if (custody.isCarriedForward) return 'عهدة مرحّلة من عهدة سابقة';
+                    if (custody.isOpeningBalance) return 'رصيد بداية عهدة';
+                    return 'صرف عهدة جديدة';
+                };
+
                 // 1. إذا تم إنشاء العهدة قبل فترة الاستعلام
                 if(c.date < from) {
-                    openingBalance += originalCustodyAmount; // استخدام المبلغ الأصلي فقط
+                    // حساب رصيد هذه العهدة في بداية الفترة
+                    let custodyBalanceBeforePeriod = originalCustodyAmount;
+                    
                     // خصم تسويات ما قبل الفترة
                     (c.settlements||[]).filter(s => s.date < from).forEach(s => {
-                        openingBalance -= Number(s.amount);
+                        custodyBalanceBeforePeriod -= Number(s.amount);
                     });
+                    
                     // إضافة تعزيزات ما قبل الفترة
                     (c.enhancements||[]).filter(e => e.date < from).forEach(e => {
-                        openingBalance += Number(e.amount);
+                        custodyBalanceBeforePeriod += Number(e.amount);
                     });
+                    
+                    // إضافة الرصيد المتبقي لبداية الفترة
+                    openingBalance += custodyBalanceBeforePeriod;
                 } 
                 // 2. إذا تم إنشاء العهدة خلال فترة الاستعلام
                 else if(c.date >= from && c.date <= to) {
                     transactions.push({
                         date: c.date,
-                        description: c.isOpeningBalance ? 'رصيد بداية عهدة' : (c.isCarriedForward ? 'عهدة مرحّلة' : 'صرف عهدة جديدة'),
-                        debit: originalCustodyAmount, // استخدام المبلغ الأصلي فقط
+                        description: getCustodyDescription(c),
+                        debit: originalCustodyAmount,
                         credit: 0,
                         type: 'creation',
                         sortDate: new Date(c.date).getTime()
@@ -991,7 +1005,7 @@ function financialSystem() {
                             debit: Number(e.amount),
                             credit: 0,
                             type: 'enhancement',
-                            sortDate: new Date(e.date).getTime() + 1
+                            sortDate: new Date(e.date + 'T01:00:00').getTime()
                         });
                     }
                 });
@@ -1005,7 +1019,7 @@ function financialSystem() {
                             debit: 0,
                             credit: Number(s.amount),
                             type: 'settlement',
-                            sortDate: new Date(s.date).getTime() + 2
+                            sortDate: new Date(s.date + 'T02:00:00').getTime()
                         });
                     }
                 });
@@ -1021,13 +1035,13 @@ function financialSystem() {
                             debit: 0,
                             credit: remaining,
                             type: 'return',
-                            sortDate: new Date(c.closedAt).getTime() + 3
+                            sortDate: new Date(c.closedAt + 'T03:00:00').getTime()
                         });
                     }
                 }
             });
 
-            // ترتيب المعاملات حسب التاريخ (مع مراعاة أن الإضافة تسبق الصرف في نفس اليوم)
+            // ترتيب المعاملات حسب التاريخ (الإضافة قبل الصرف في نفس اليوم)
             transactions.sort((a,b) => a.sortDate - b.sortDate);
 
             // حساب الرصيد الجاري والإجماليات
@@ -1053,7 +1067,6 @@ function financialSystem() {
                 transactions: transactions
             };
         },
-
         async exportCustodyStatementExcel() {
             if(!this.custodyStatement.data) return;
             try {
