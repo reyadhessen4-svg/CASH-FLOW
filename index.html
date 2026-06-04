@@ -8,6 +8,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -16,7 +17,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, updateDoc, doc, setDoc, getDoc, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-        
+
         const firebaseConfig = {
             apiKey: "AIzaSyBdHCWNck3JD1s6yWPYeu_uXNqPAIZFvuk",
             authDomain: "cash-flow-37ee8.firebaseapp.com",
@@ -28,30 +29,21 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app); 
-        const db = getFirestore(app);
+        const auth = getAuth(app); const db = getFirestore(app);
         const secondaryApp = initializeApp(firebaseConfig, "Secondary");
         const secondaryAuth = getAuth(secondaryApp);
 
-        window.firebaseAuth = auth; 
-        window.firebaseDb = db;
-        window.firebaseSignIn = signInWithEmailAndPassword; 
-        window.firebaseSignUp = createUserWithEmailAndPassword;
-        window.firebaseSignOut = signOut;
-        window.firebaseOnAuth = onAuthStateChanged;
+        window.firebaseAuth = auth; window.firebaseDb = db;
+        window.firebaseSignIn = signInWithEmailAndPassword; window.firebaseSignUp = createUserWithEmailAndPassword;
+        window.firebaseSignOut = signOut; window.firebaseOnAuth = onAuthStateChanged;
         window.firebaseSendPasswordReset = (email) => sendPasswordResetEmail(auth, email);
         window.firebaseCreateUserSecondary = (email, password) => createUserWithEmailAndPassword(secondaryAuth, email, password);
         window.firebaseSignOutSecondary = () => signOut(secondaryAuth);
-        window.firebaseCollection = collection; 
-        window.firebaseAddDoc = addDoc;
-        window.firebaseGetDocs = getDocs; 
-        window.firebaseDeleteDoc = deleteDoc;
-        window.firebaseUpdateDoc = updateDoc;
-        window.firebaseDoc = doc;
-        window.firebaseSetDoc = setDoc; 
-        window.firebaseGetDoc = getDoc;
-        window.firebaseOnSnapshot = onSnapshot; 
-        window.arrayUnion = arrayUnion;
+        window.firebaseCollection = collection; window.firebaseAddDoc = addDoc;
+        window.firebaseGetDocs = getDocs; window.firebaseDeleteDoc = deleteDoc;
+        window.firebaseUpdateDoc = updateDoc; window.firebaseDoc = doc;
+        window.firebaseSetDoc = setDoc; window.firebaseGetDoc = getDoc;
+        window.firebaseOnSnapshot = onSnapshot; window.arrayUnion = arrayUnion;
         window.firebaseReady = true;
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
@@ -70,6 +62,27 @@
         .input-dark { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; }
         .input-dark:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); }
         .input-dark::placeholder { color: #64748b; }
+        .report-print-area { background: #ffffff; color: #1e293b; font-family: 'Segoe UI', Tahoma, sans-serif; padding: 40px; direction: rtl; }
+        .report-print-area h2 { color: #1e3a8a; border-bottom: 3px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 20px; }
+        .report-print-area table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        .report-print-area th { background: #1e3a8a; color: #fff; padding: 10px; text-align: right; font-size: 13px; }
+        .report-print-area td { padding: 8px 10px; border: 1px solid #cbd5e1; text-align: right; font-size: 13px; }
+        .report-print-area tr:nth-child(even) { background: #f1f5f9; }
+        .report-print-area .summary-box { background: #f8fafc; border: 2px solid #1e3a8a; border-radius: 8px; padding: 15px; margin: 15px 0; }
+        .report-print-area .summary-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #cbd5e1; }
+        .report-print-area .total-row { background: #1e3a8a; color: #fff; }
+        .report-print-area .total-row td { color: #fff; font-weight: bold; border-color: #1e3a8a; }
+        .user-card { transition: all 0.3s ease; }
+        .user-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+        .role-badge-admin { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .role-badge-user { background: linear-gradient(135deg, #475569, #64748b); }
+        .perm-toggle { transition: all 0.2s ease; }
+        .perm-toggle.active { background: rgba(59, 130, 246, 0.2); border-color: #3b82f6; }
+        .perm-toggle:not(.active) { background: rgba(51, 65, 85, 0.5); border-color: #475569; }
+        .step-indicator { transition: all 0.3s ease; }
+        .step-indicator.active { background: #3b82f6; color: white; }
+        .step-indicator.completed { background: #22c55e; color: white; }
+        .step-indicator.pending { background: #334155; color: #94a3b8; }
         .toast-notification {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
             z-index: 9999; padding: 16px 28px; border-radius: 12px;
@@ -82,13 +95,14 @@
         .toast-info { background: rgba(37, 99, 235, 0.9); color: white; }
         @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
         @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(-50%) translateY(-20px); } }
+        .tax-highlight { background: rgba(59, 130, 246, 0.05); border: 1px dashed rgba(59, 130, 246, 0.3); border-radius: 10px; padding: 12px; }
     </style>
-<base target="_blank">
 </head>
 <body>
 <div x-data="financialSystem()" class="min-h-screen">
     <div x-show="toast.show" x-cloak class="toast-notification" :class="'toast-' + toast.type" x-text="toast.message" x-transition></div>
 
+    <!-- ═══════════ شاشة تسجيل الدخول ═══════════ -->
     <div x-show="!isLoggedIn" x-cloak class="min-h-screen flex items-center justify-center bg-slate-900 p-4">
         <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-6 border border-slate-700">
             <div class="text-center">
@@ -102,68 +116,35 @@
                 <button x-show="authMode === 'login'" @click="login()" class="w-full primary-gradient text-white py-3 rounded-xl font-bold hover:shadow-lg hover:shadow-blue-500/20 transition flex justify-center items-center gap-2"><span>تسجيل الدخول</span> <i x-show="authLoading" class="fas fa-spinner fa-spin"></i></button>
                 <button x-show="authMode === 'register'" @click="register()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold shadow-lg transition flex justify-center items-center gap-2"><span>إنشاء الحساب</span> <i x-show="authLoading" class="fas fa-spinner fa-spin"></i></button>
                 <p class="text-center text-red-400 text-sm" x-text="authError"></p>
-                <div class="text-center mt-4">
-                    <button @click="authMode = authMode === 'login' ? 'register' : 'login'; authError = ''" class="text-blue-400 hover:text-blue-300 text-sm font-bold hover:underline">
-                        <span x-show="authMode === 'login'">ليس لديك حساب؟ إنشاء حساب جديد</span>
-                        <span x-show="authMode === 'register'">لديك حساب بالفعل؟ تسجيل الدخول</span>
-                    </button>
-                </div>
+                <div class="text-center mt-4"><button @click="authMode = authMode === 'login' ? 'register' : 'login'; authError = ''" class="text-blue-400 hover:text-blue-300 text-sm font-bold hover:underline"><span x-show="authMode === 'login'">ليس لديك حساب؟ إنشاء حساب جديد</span><span x-show="authMode === 'register'">لديك حساب بالفعل؟ تسجيل الدخول</span></button></div>
             </div>
         </div>
     </div>
 
+    <!-- ═══════════ الشاشة الرئيسية ═══════════ -->
     <div x-show="isLoggedIn" x-cloak class="flex h-screen overflow-hidden">
+        <!-- الشريط الجانبي -->
         <div class="w-72 sidebar-gradient text-white flex flex-col shadow-2xl border-r border-slate-800 transition-all duration-300 max-md:absolute max-md:z-50 max-md:h-full" :class="{'max-md:-right-72': !sidebarOpen, 'max-md:right-0': sidebarOpen}">
-            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-gem text-3xl gold-accent"></i>
-                    <div>
-                        <h1 class="text-xl font-bold text-white">متابعة التدفقات</h1>
-                        <p class="text-xs text-slate-500">Pro Edition</p>
-                    </div>
-                </div>
-                <button @click="sidebarOpen = false" class="md:hidden text-slate-400 hover:text-white">&times;</button>
-            </div>
-            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-                <template x-for="tab in allowedTabs" :key="tab.id">
-                    <button @click="activeTab = tab.id; sidebarOpen = false" :class="activeTab === tab.id ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'hover:bg-slate-800 border-transparent text-slate-400 hover:text-white'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-r-4 transition-all duration-200">
-                        <i :class="tab.icon" class="w-5 text-center"></i> 
-                        <span class="text-sm font-medium" x-text="tab.name"></span>
-                    </button>
-                </template>
-            </nav>
-            <div class="p-4 border-t border-slate-800">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-full primary-gradient flex items-center justify-center font-bold text-lg text-white" x-text="currentUser?.email?.charAt(0).toUpperCase()"></div>
-                    <div class="flex-1 overflow-hidden">
-                        <p class="text-sm font-bold truncate text-slate-200" x-text="currentUser?.email"></p>
-                        <p class="text-xs gold-accent font-bold" x-text="currentUser?.role === 'admin' ? 'مدير النظام' : 'مستخدم عادي'"></p>
-                    </div>
-                </div>
-                <button @click="logout()" class="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-red-600/10 hover:bg-red-600/20 text-red-400 transition border border-red-600/20"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button>
-            </div>
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center"><div class="flex items-center gap-3"><i class="fas fa-gem text-3xl gold-accent"></i><div><h1 class="text-xl font-bold text-white">متابعة التدفقات</h1><p class="text-xs text-slate-500">Pro Edition</p></div></div><button @click="sidebarOpen = false" class="md:hidden text-slate-400 hover:text-white">&times;</button></div>
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto"><template x-for="tab in allowedTabs" :key="tab.id"><button @click="activeTab = tab.id; sidebarOpen = false" :class="activeTab === tab.id ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'hover:bg-slate-800 border-transparent text-slate-400 hover:text-white'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-r-4 transition-all duration-200"><i :class="tab.icon" class="w-5 text-center"></i> <span class="text-sm font-medium" x-text="tab.name"></span></button></template></nav>
+            <div class="p-4 border-t border-slate-800"><div class="flex items-center gap-3 mb-4"><div class="w-10 h-10 rounded-full primary-gradient flex items-center justify-center font-bold text-lg text-white" x-text="currentUser?.email?.charAt(0).toUpperCase()"></div><div class="flex-1 overflow-hidden"><p class="text-sm font-bold truncate text-slate-200" x-text="currentUser?.email"></p><p class="text-xs gold-accent font-bold" x-text="currentUser?.role === 'admin' ? 'مدير النظام' : 'مستخدم عادي'"></p></div></div><button @click="logout()" class="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-red-600/10 hover:bg-red-600/20 text-red-400 transition border border-red-600/20"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button></div>
         </div>
 
         <div class="flex-1 overflow-y-auto bg-slate-900">
-            <div class="bg-slate-900/80 backdrop-blur-md p-4 shadow-sm flex justify-between items-center sticky top-0 z-40 border-b border-slate-800">
-                <button @click="sidebarOpen = true" class="md:hidden text-slate-300"><i class="fas fa-bars fa-lg"></i></button>
-                <h2 class="text-xl font-bold text-white" x-text="tabNames[activeTab]"></h2>
-                <div></div>
-            </div>
+            <div class="bg-slate-900/80 backdrop-blur-md p-4 shadow-sm flex justify-between items-center sticky top-0 z-40 border-b border-slate-800"><button @click="sidebarOpen = true" class="md:hidden text-slate-300"><i class="fas fa-bars fa-lg"></i></button><h2 class="text-xl font-bold text-white" x-text="tabNames[activeTab]"></h2><div></div></div>
             <div class="p-6">
-          
+
+                <!-- ═══ لوحة التحكم ═══ -->
                 <div x-show="activeTab === 'dashboard'" x-cloak>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                         <div class="glass-dark p-6 rounded-xl shadow-lg flex items-center gap-4"><div class="p-4 bg-emerald-500/10 rounded-xl text-emerald-400"><i class="fas fa-arrow-down fa-2x"></i></div><div><p class="text-sm text-slate-400">إجمالي الداخلة</p><p class="text-2xl font-bold text-emerald-400" x-text="formatCurrency(totalInflow)"></p></div></div>
                         <div class="glass-dark p-6 rounded-xl shadow-lg flex items-center gap-4"><div class="p-4 bg-red-500/10 rounded-xl text-red-400"><i class="fas fa-arrow-up fa-2x"></i></div><div><p class="text-sm text-slate-400">إجمالي الخارجة</p><p class="text-2xl font-bold text-red-400" x-text="formatCurrency(totalOutflow)"></p></div></div>
                         <div class="glass-dark p-6 rounded-xl shadow-lg flex items-center gap-4"><div class="p-4 bg-blue-500/10 rounded-xl text-blue-400"><i class="fas fa-coins fa-2x"></i></div><div><p class="text-sm text-slate-400">الرصيد الحالي</p><p class="text-2xl font-bold text-blue-400" x-text="formatCurrency(currentBalance)"></p></div></div>
                     </div>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="glass-dark p-6 rounded-xl shadow-lg"><h3 class="font-bold mb-4 text-slate-200">حركة التدفقات</h3><div class="chart-container"><canvas id="flowChart"></canvas></div></div>
-                        <div class="glass-dark p-6 rounded-xl shadow-lg"><h3 class="font-bold mb-4 text-slate-200">تطور الرصيد النقدي</h3><div class="chart-container"><canvas id="balanceChart"></canvas></div></div>
-                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="glass-dark p-6 rounded-xl shadow-lg"><h3 class="font-bold mb-4 text-slate-200">حركة التدفقات</h3><div class="chart-container"><canvas id="flowChart"></canvas></div></div><div class="glass-dark p-6 rounded-xl shadow-lg"><h3 class="font-bold mb-4 text-slate-200">تطور الرصيد النقدي</h3><div class="chart-container"><canvas id="balanceChart"></canvas></div></div></div>
                 </div>
 
+                <!-- ═══ التدفقات النقدية ═══ -->
                 <div x-show="activeTab === 'cashflow'" x-cloak>
                     <div class="flex justify-end mb-4 gap-2 flex-wrap">
                         <button @click="openFlowModal('inflow')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition"><i class="fas fa-plus"></i> تدفق داخل</button>
@@ -172,798 +153,819 @@
                         <button @click="downloadFlowTemplate()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition"><i class="fas fa-download"></i> قالب</button>
                         <label class="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition cursor-pointer"><i class="fas fa-upload"></i> استيراد<input type="file" accept=".xlsx,.xls" @change="importFlowsFromExcel($event)" class="hidden"></label>
                     </div>
-                    <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm">
-                                <thead class="table-dark-header border-b border-slate-700">
-                                    <tr><th class="p-3 text-right text-slate-300">التاريخ</th><th class="p-3 text-right text-slate-300">النوع</th><th class="p-3 text-right text-slate-300">البند</th><th class="p-3 text-right text-slate-300">التفصيل</th><th class="p-3 text-right text-slate-300">التصنيف</th><th class="p-3 text-right text-slate-300">المبلغ</th><th class="p-3 text-right text-slate-300">إجراء</th></tr>
-                                </thead>
-                                <tbody>
-                                    <template x-for="flow in getSortedFlows()" :key="flow.id">
-                                        <tr class="table-dark-row" :class="flow.item === 'رصيد بداية المدة' ? 'bg-purple-900/10' : ''">
-                                            <td class="p-3 text-slate-300 whitespace-nowrap" x-text="flow.date"></td>
-                                            <td class="p-3"><span :class="flow.item === 'رصيد بداية المدة' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : (flow.type === 'inflow' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400')" class="px-2 py-1 rounded text-xs font-bold" x-text="flow.item === 'رصيد بداية المدة' ? 'رصيد بداية' : (flow.type === 'inflow' ? 'داخل' : 'خارج')"></span></td>
-                                            <td class="p-3 font-medium" :class="flow.item === 'رصيد بداية المدة' ? 'text-purple-300' : 'text-slate-200'" x-text="flow.item"></td>
-                                            <td class="p-3 text-slate-400 text-xs" x-text="flow.subItem || '-'"></td>
-                                            <td class="p-3"><span :class="flow.category === 'رصيد بداية' ? 'bg-purple-500/10 text-purple-400' : 'bg-indigo-500/10 text-indigo-400'" class="px-2 py-1 rounded text-xs" x-text="flow.category"></span></td>
-                                            <td class="p-3 font-bold" :class="flow.type === 'inflow' ? 'text-emerald-400' : 'text-red-400'" x-text="formatCurrency(flow.amount)"></td>
-                                            <td class="p-3 flex gap-3"><button @click="editFlow(flow)" class="text-blue-400 hover:text-blue-300"><i class="fas fa-edit"></i></button><button @click="deleteFlow(flow.id)" class="text-red-400 hover:text-red-300" x-show="flow.item !== 'رصيد بداية المدة'"><i class="fas fa-trash"></i></button></td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700"><div class="overflow-x-auto">
+                        <table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-3 text-right text-slate-300">التاريخ</th><th class="p-3 text-right text-slate-300">النوع</th><th class="p-3 text-right text-slate-300">البند</th><th class="p-3 text-right text-slate-300">التفصيل</th><th class="p-3 text-right text-slate-300">التصنيف</th><th class="p-3 text-right text-slate-300">المبلغ</th><th class="p-3 text-right text-slate-300">إجراء</th></tr></thead>
+                        <tbody><template x-for="flow in getSortedFlows()" :key="flow.id"><tr class="table-dark-row" :class="flow.item === 'رصيد بداية المدة' ? 'bg-purple-900/10' : ''"><td class="p-3 text-slate-300 whitespace-nowrap" x-text="flow.date"></td><td class="p-3"><span :class="flow.item === 'رصيد بداية المدة' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : (flow.type === 'inflow' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400')" class="px-2 py-1 rounded text-xs font-bold" x-text="flow.item === 'رصيد بداية المدة' ? 'رصيد بداية' : (flow.type === 'inflow' ? 'داخل' : 'خارج')"></span></td><td class="p-3 font-medium text-slate-200" x-text="flow.item"></td><td class="p-3 text-slate-400 text-xs" x-text="flow.subItem || '-'"></td><td class="p-3"><span class="px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded text-xs" x-text="flow.category"></span></td><td class="p-3 font-bold" :class="flow.type === 'inflow' ? 'text-emerald-400' : 'text-red-400'" x-text="formatCurrency(flow.amount)"></td><td class="p-3 flex gap-3"><button @click="editFlow(flow)" class="text-blue-400 hover:text-blue-300"><i class="fas fa-edit"></i></button><button @click="deleteFlow(flow.id)" class="text-red-400 hover:text-red-300" x-show="flow.item !== 'رصيد بداية المدة'"><i class="fas fa-trash"></i></button></td></tr></template></tbody></table>
+                    </div></div>
                 </div>
 
+                <!-- ═══ العهد المالية ═══ -->
                 <div x-show="activeTab === 'custody'" x-cloak>
-                    <div class="flex justify-end mb-4 gap-2">
-                        <button @click="openCustodyModal()" class="primary-gradient text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md"><i class="fas fa-plus"></i> إنشاء عهدة</button>
-                    </div>
-                    <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm">
-                                <thead class="table-dark-header border-b border-slate-700">
-                                    <tr><th class="p-3 text-right text-slate-300">الموظف</th><th class="p-3 text-right text-slate-300">الإجمالي</th><th class="p-3 text-right text-slate-300">المصروف</th><th class="p-3 text-right text-slate-300">المتبقي</th><th class="p-3 text-right text-slate-300">ملاحظة</th><th class="p-3 text-right text-slate-300">الحالة</th><th class="p-3 text-right text-slate-300">إجراء</th></tr>
-                                </thead>
-                                <tbody>
-                                    <template x-for="c in custodies" :key="c.id">
-                                        <tr class="table-dark-row" :class="c.isCarriedForward ? 'bg-amber-900/5' : ''">
-                                            <td class="p-3 font-medium text-slate-200" x-text="c.employee"></td>
-                                            <td class="p-3 font-bold text-blue-400" x-text="formatCurrency(c.amount)"></td>
-                                            <td class="p-3 text-red-400" x-text="formatCurrency(getCustodySpent(c))"></td>
-                                            <td class="p-3 text-emerald-400 font-bold" x-text="formatCurrency(c.amount - getCustodySpent(c))"></td>
-                                            <td class="p-3 text-xs"><span x-show="c.isCarriedForward" class="text-amber-400"><i class="fas fa-exchange-alt"></i> مرحّل</span><span x-show="c.isOpeningBalance && !c.isCarriedForward" class="text-purple-400"><i class="fas fa-flag"></i> رصيد بداية</span></td>
-                                            <td class="p-3"><span :class="c.status === 'مفتوحة' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-1 rounded text-xs font-bold" x-text="c.status"></span></td>
-                                            <td class="p-3 flex gap-2 flex-wrap">
-                                                <button @click="editCustody(c)" class="text-blue-400 hover:text-blue-300" title="تعديل"><i class="fas fa-edit"></i></button>
-                                                <button @click="deleteCustody(c)" class="text-red-400 hover:text-red-300" title="حذف"><i class="fas fa-trash"></i></button>
-                                                <button x-show="c.status === 'مفتوحة'" @click="enhanceCustody(c)" class="text-emerald-400 hover:text-emerald-300" title="تعزيز"><i class="fas fa-plus-circle"></i></button>
-                                                <button x-show="c.status === 'مفتوحة'" @click="openCloseCustodyModal(c)" class="text-amber-400 hover:text-amber-300" title="تقفيل"><i class="fas fa-file-invoice"></i></button>
-                                                <button x-show="c.status === 'مقفلة'" @click="rePrintCustodyReport(c)" class="text-indigo-400 hover:text-indigo-300" title="إصدار تقرير التقفيل"><i class="fas fa-print"></i></button>
-                                            </td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <div class="flex justify-end mb-4 gap-2"><button @click="openCustodyModal()" class="primary-gradient text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md"><i class="fas fa-plus"></i> إنشاء عهدة</button></div>
+                    <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700"><div class="overflow-x-auto">
+                        <table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-3 text-right text-slate-300">الموظف</th><th class="p-3 text-right text-slate-300">الإجمالي</th><th class="p-3 text-right text-slate-300">المصروف</th><th class="p-3 text-right text-slate-300">المتبقي</th><th class="p-3 text-right text-slate-300">ملاحظة</th><th class="p-3 text-right text-slate-300">الحالة</th><th class="p-3 text-right text-slate-300">إجراء</th></tr></thead>
+                        <tbody><template x-for="c in custodies" :key="c.id"><tr class="table-dark-row" :class="c.isCarriedForward ? 'bg-amber-900/5' : ''"><td class="p-3 font-medium text-slate-200" x-text="c.employee"></td><td class="p-3 font-bold text-blue-400" x-text="formatCurrency(c.amount)"></td><td class="p-3 text-red-400" x-text="formatCurrency(getCustodySpent(c))"></td><td class="p-3 text-emerald-400 font-bold" x-text="formatCurrency(c.amount - getCustodySpent(c))"></td><td class="p-3 text-xs"><span x-show="c.isCarriedForward" class="text-amber-400"><i class="fas fa-exchange-alt"></i> مرحّل</span><span x-show="c.isOpeningBalance && !c.isCarriedForward" class="text-purple-400"><i class="fas fa-flag"></i> رصيد بداية</span></td><td class="p-3"><span :class="c.status === 'مفتوحة' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-1 rounded text-xs font-bold" x-text="c.status"></span></td><td class="p-3 flex gap-2 flex-wrap">
+                            <button @click="editCustody(c)" class="text-blue-400 hover:text-blue-300" title="تعديل"><i class="fas fa-edit"></i></button>
+                            <button @click="deleteCustody(c)" class="text-red-400 hover:text-red-300" title="حذف"><i class="fas fa-trash"></i></button>
+                            <button x-show="c.status === 'مفتوحة'" @click="enhanceCustody(c)" class="text-emerald-400 hover:text-emerald-300" title="تعزيز"><i class="fas fa-plus-circle"></i></button>
+                            <button x-show="c.status === 'مفتوحة'" @click="openCloseCustodyModal(c)" class="text-amber-400 hover:text-amber-300" title="تقفيل"><i class="fas fa-file-invoice"></i></button>
+                            <button x-show="c.status === 'مقفلة'" @click="rePrintCustodyReport(c)" class="text-indigo-400 hover:text-indigo-300" title="إصدار تقرير التقفيل"><i class="fas fa-print"></i></button>
+                        </td></tr></template></tbody></table>
+                    </div></div>
                 </div>
 
+                <!-- ═══ تقفيل العهد - مع الضريبة لكل بند ═══ -->
                 <div x-show="activeTab === 'settlement'" x-cloak>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 space-y-4">
-                            <h3 class="font-bold text-lg border-b border-slate-700 pb-2 text-white">تسوية وحساب ضريبي لبنود العهدة</h3>
-                            <select x-model="settlement.selectedCustodyId" class="w-full p-2 rounded-lg input-dark">
-                                <option value="">اختر عهدة مفتوحة</option>
-                                <template x-for="c in openCustodies" :key="c.id">
-                                    <option :value="c.id" x-text="c.employee + ' - متبقي: ' + formatCurrency(c.amount - getCustodySpent(c))"></option>
-                                </template>
-                            </select>
+                            <h3 class="font-bold text-lg border-b border-slate-700 pb-2 text-white">تسوية عهدة</h3>
+                            <select x-model="settlement.selectedCustodyId" class="w-full p-2 rounded-lg input-dark"><option value="">اختر عهدة مفتوحة</option><template x-for="c in openCustodies" :key="c.id"><option :value="c.id" x-text="c.employee + ' - متبقي: ' + formatCurrency(c.amount - getCustodySpent(c))"></option></template></select>
                             <div x-show="settlement.selectedCustodyId" class="space-y-3 pt-4 border-t border-slate-700">
                                 <input type="date" x-model="settlement.date" class="w-full p-2 rounded-lg input-dark">
                                 <input type="text" x-model="settlement.item" placeholder="البند" class="w-full p-2 rounded-lg input-dark">
                                 <input type="text" x-model="settlement.subItem" placeholder="التفصيل" class="w-full p-2 rounded-lg input-dark">
-                                <select x-model="settlement.category" class="w-full p-2 rounded-lg input-dark">
-                                    <option value="تشغيلية">تشغيلية</option>
-                                    <option value="استثمارية">استثمارية</option>
-                                    <option value="تمويلية">تمويلية</option>
-                                </select>
-                                
-                                <div class="flex items-center gap-4 bg-slate-800 p-2 rounded-lg border border-slate-700">
-                                    <label class="text-sm text-slate-300">نوع البند:</label>
-                                    <label class="flex items-center gap-1 text-sm text-slate-200 cursor-pointer">
-                                        <input type="radio" value="non_taxable" x-model="settlement.taxType" @change="calculateTaxValues()"> غير ضريبي
-                                    </label>
-                                    <label class="flex items-center gap-1 text-sm text-slate-200 cursor-pointer">
-                                        <input type="radio" value="taxable" x-model="settlement.taxType" @change="calculateTaxValues()"> ضريبي (15%)
-                                    </label>
-                                </div>
+                                <select x-model="settlement.category" class="w-full p-2 rounded-lg input-dark"><option value="تشغيلية">تشغيلية</option><option value="استثمارية">استثمارية</option><option value="تمويلية">تمويلية</option></select>
+                                <input type="text" x-model="settlement.accountingDirection" placeholder="التوجيه المحاسبي" class="w-full p-2 rounded-lg input-dark border-amber-500/50 focus:border-amber-500">
 
-                                <template x-if="settlement.taxType === 'taxable'">
-                                    <div class="grid grid-cols-2 gap-2 bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                                <!-- ═══ حقل الضريبة لكل بند ═══ -->
+                                <div class="tax-highlight space-y-3">
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input type="checkbox" x-model="settlement.isTaxable" class="w-5 h-5 text-blue-600 rounded bg-slate-900 border-slate-600">
+                                        <span class="text-blue-400 font-bold text-sm"><i class="fas fa-percent ml-1"></i> بند ضريبي (شامل ضريبة قيمة مضافة)</span>
+                                    </label>
+                                    <div x-show="settlement.isTaxable" x-transition class="space-y-3 pt-2">
                                         <div>
-                                            <label class="text-xs text-slate-400 block mb-1">المبلغ قبل الضريبة</label>
-                                            <input type="number" x-model="settlement.amountBeforeTax" @input="calculateTaxValues()" placeholder="0.00" class="w-full p-2 rounded-lg input-dark text-sm">
+                                            <label class="block text-xs text-slate-400 mb-1">المبلغ قبل الضريبة</label>
+                                            <input type="number" x-model="settlement.amountBeforeTax" @input="calcSettlementTax()" placeholder="المبلغ قبل الضريبة" class="w-full p-2 rounded-lg input-dark border-blue-500/30 focus:border-blue-500">
                                         </div>
                                         <div>
-                                            <label class="text-xs text-slate-400 block mb-1">قيمة الضريبة (15%)</label>
-                                            <input type="number" x-model="settlement.taxAmount" disabled class="w-full p-2 rounded-lg bg-slate-900 text-amber-400 font-bold text-sm border border-slate-700">
+                                            <label class="block text-xs text-slate-400 mb-1">نسبة ضريبة القيمة المضافة (%)</label>
+                                            <input type="number" x-model="settlement.taxRate" @input="calcSettlementTax()" class="w-full p-2 rounded-lg input-dark border-blue-500/30 focus:border-blue-500">
+                                        </div>
+                                        <div class="bg-blue-900/20 border border-blue-800/30 rounded-lg p-3 space-y-1">
+                                            <div class="flex justify-between text-sm"><span class="text-slate-400">المبلغ قبل الضريبة:</span><span class="text-white font-bold" x-text="formatCurrency(settlement.amountBeforeTax || 0)"></span></div>
+                                            <div class="flex justify-between text-sm"><span class="text-slate-400">قيمة الضريبة (<span x-text="settlement.taxRate || 15"></span>%):</span><span class="text-amber-400 font-bold" x-text="formatCurrency(settlementTaxAmount)"></span></div>
+                                            <div class="flex justify-between text-sm border-t border-slate-700 pt-1 mt-1"><span class="text-slate-300 font-bold">الإجمالي شامل الضريبة:</span><span class="text-emerald-400 font-bold text-lg" x-text="formatCurrency(settlementTotalAmount)"></span></div>
                                         </div>
                                     </div>
-                                </template>
-
-                                <div>
-                                    <label class="text-xs text-slate-400 block mb-1" x-text="settlement.taxType === 'taxable' ? 'المبلغ الإجمالي (شامل الضريبة)' : 'المبلغ المصروف'"></label>
-                                    <input type="number" x-model="settlement.amount" :disabled="settlement.taxType === 'taxable'" placeholder="المبلغ الإجمالي" class="w-full p-2 rounded-lg input-dark font-bold">
+                                    <div x-show="!settlement.isTaxable">
+                                        <label class="block text-xs text-slate-400 mb-1">المبلغ المصروف</label>
+                                        <input type="number" x-model="settlement.amount" placeholder="المبلغ المصروف" class="w-full p-2 rounded-lg input-dark">
+                                    </div>
                                 </div>
 
-                                <input type="text" x-model="settlement.accountingDirection" placeholder="التوجيه المحاسبي" class="w-full p-2 rounded-lg input-dark border-amber-500/50 focus:border-amber-500">
-                                <button @click="settleCustody()" class="w-full bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 transition font-bold">تسوية وحفظ البند</button>
+                                <button @click="settleCustody()" class="w-full bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 transition font-bold"><i class="fas fa-check ml-1"></i> تسوية البند</button>
                             </div>
                         </div>
                         <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700">
-                            <h3 class="font-bold text-lg border-b border-slate-700 pb-2 mb-4 text-white">بنود الصرف الحالية</h3>
-                            <div x-show="settlement.selectedCustodyId">
-                                <ul class="space-y-2 max-h-[500px] overflow-y-auto">
-                                    <template x-for="st in getSelectedCustody()?.settlements || []" :key="st.id">
-                                        <li class="bg-slate-800 p-3 rounded border border-slate-700 text-sm">
-                                            <div class="flex justify-between items-start">
-                                                <div class="flex-1">
-                                                    <span class="font-bold text-slate-200" x-text="st.item"></span> 
-                                                    <span class="text-slate-500 text-xs" x-text="st.subItem ? '('+st.subItem+')' : ''"></span>
-                                                    <template x-if="st.taxType === 'taxable'">
-                                                        <span class="bg-blue-500/20 text-blue-400 text-xs px-1.5 py-0.5 rounded font-medium mr-2">ضريبي</span>
-                                                    </template>
-                                                    <br>
-                                                    <template x-if="st.taxType === 'taxable'">
-                                                        <div class="text-slate-400 text-xs mt-1">
-                                                            قبل الضريبة: <span x-text="formatCurrency(st.amountBeforeTax)"></span> | الضريبة: <span x-text="formatCurrency(st.taxAmount)"></span>
-                                                        </div>
-                                                    </template>
-                                                    <span class="text-amber-400 text-xs mt-1 inline-block" x-show="st.accountingDirection"><i class="fas fa-book-open"></i> <span x-text="st.accountingDirection"></span></span>
-                                                    <div class="text-slate-500 text-xs mt-1"><span x-text="st.date"></span> | <span x-text="st.category"></span></div>
-                                                </div>
-                                                <div class="flex items-center gap-3">
-                                                    <span class="text-red-400 font-bold" x-text="formatCurrency(st.amount)"></span>
-                                                    <button @click="deleteSettlementItem(st.id)" class="text-red-500 hover:text-red-400"><i class="fas fa-trash-alt text-xs"></i></button>
-                                                </div>
-                                            </div>
-                                        </li>
-                                    </template>
-                                </ul>
-                            </div>
-                            <div x-show="!settlement.selectedCustodyId" class="text-center py-10 text-slate-500">اختر عهدة لعرض بنودها</div>
+                            <h3 class="font-bold text-lg border-b border-slate-700 pb-2 mb-4 text-white">بنود الصرف</h3>
+                            <div x-show="settlement.selectedCustodyId"><ul class="space-y-2 max-h-[500px] overflow-y-auto"><template x-for="st in getSelectedCustody()?.settlements || []" :key="st.id"><li class="bg-slate-800 p-3 rounded border border-slate-700 text-sm">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <span class="font-bold text-slate-200" x-text="st.item"></span> <span class="text-slate-500 text-xs" x-text="st.subItem ? '('+st.subItem+')' : ''"></span>
+                                        <span x-show="st.isTaxable" class="text-blue-400 text-xs mr-2 bg-blue-500/10 px-2 py-0.5 rounded"><i class="fas fa-percent"></i> ضريبي</span>
+                                        <br>
+                                        <span class="text-amber-400 text-xs mt-1 inline-block" x-show="st.accountingDirection"><i class="fas fa-book-open"></i> <span x-text="st.accountingDirection"></span></span>
+                                        <div x-show="st.isTaxable" class="text-xs mt-1 space-y-0.5 text-slate-500">
+                                            <div>قبل الضريبة: <span class="text-slate-300" x-text="formatCurrency(st.amountBeforeTax)"></span> | ضريبة <span x-text="st.taxRate || 15"></span>%: <span class="text-amber-400" x-text="formatCurrency(st.taxAmount)"></span></div>
+                                        </div>
+                                        <div class="text-slate-600 text-xs mt-1"><span x-text="st.date"></span> | <span x-text="st.category"></span></div>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="text-left">
+                                            <span class="text-red-400 font-bold" x-text="formatCurrency(st.amount)"></span>
+                                            <div x-show="st.isTaxable" class="text-xs text-slate-500">شامل الضريبة</div>
+                                        </div>
+                                        <button @click="deleteSettlementItem(st.id)" class="text-red-500 hover:text-red-400"><i class="fas fa-trash-alt text-xs"></i></button>
+                                    </div>
+                                </div>
+                            </li></template></ul></div>
+                            <div x-show="!settlement.selectedCustodyId" class="text-center py-10 text-slate-500">اختر عهدة</div>
                         </div>
                     </div>
                 </div>
 
+                <!-- ═══ استعلام العهد ═══ -->
                 <div x-show="activeTab === 'inquiry'" x-cloak>
+                    <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 mb-6"><div class="flex flex-wrap gap-4 items-end">
+                        <div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">الموظف</label>
+                            <select x-model="inquiry.employee" class="p-2 rounded-lg input-dark min-w-[200px]"><option value="">اختر الموظف</option><template x-for="emp in employeesList" :key="emp.id"><option :value="emp.name" x-text="emp.name + (emp.position ? ' ('+emp.position+')' : '')"></option></template></select>
+                        </div>
+                        <div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">من تاريخ</label><input type="date" x-model="inquiry.from" class="p-2 rounded-lg input-dark"></div>
+                        <div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">إلى تاريخ</label><input type="date" x-model="inquiry.to" class="p-2 rounded-lg input-dark"></div>
+                        <button @click="applyInquiry()" class="primary-gradient text-white px-4 py-2 rounded-lg shadow-md">استعلام</button>
+                        <button @click="exportInquiryExcelPro()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-excel"></i> Excel</button>
+                        <button @click="exportPDF('inquiry-print')" class="bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-pdf"></i> PDF</button>
+                    </div></div>
+                    <div id="inquiry-print" class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700"><template x-if="inquiryResult"><div><h3 class="text-xl font-bold mb-4 text-center text-white">تقرير عهدة: <span x-text="inquiryResult.employee"></span></h3><div class="grid grid-cols-3 gap-4 mb-6 bg-slate-800 p-4 rounded-lg border border-slate-700"><div class="text-center"><p class="text-sm text-slate-400">إجمالي العهد الأصلي</p><p class="font-bold text-blue-400 text-lg" x-text="formatCurrency(inquiryResult.totalAmount)"></p></div><div class="text-center"><p class="text-sm text-slate-400">إجمالي المصروف</p><p class="font-bold text-red-400 text-lg" x-text="formatCurrency(inquiryResult.totalSpent)"></p></div><div class="text-center"><p class="text-sm text-slate-400">المتبقي الفعلي</p><p class="font-bold text-emerald-400 text-lg" x-text="formatCurrency(inquiryResult.remaining)"></p></div></div><div class="space-y-4"><template x-for="cd in inquiryResult.custodyDetails" :key="cd.id"><div class="bg-slate-800 rounded-lg border border-slate-700 p-4"><div class="flex justify-between items-center mb-2"><div class="flex items-center gap-2"><span class="font-bold text-white" x-text="'عهدة ' + cd.date"></span><span x-show="cd.isCarriedForward" class="text-amber-400 text-xs bg-amber-900/30 px-2 py-0.5 rounded">مرحّل</span><span :class="cd.status === 'مفتوحة' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-0.5 rounded text-xs font-bold" x-text="cd.status"></span></div><div class="flex gap-4 text-sm"><span class="text-slate-400">المبلغ: <span class="text-blue-400 font-bold" x-text="formatCurrency(cd.amount)"></span></span><span class="text-slate-400">المصروف: <span class="text-red-400 font-bold" x-text="formatCurrency(cd.spent)"></span></span></div></div><template x-if="cd.settlements && cd.settlements.length > 0"><table class="w-full text-sm mt-2"><thead><tr class="bg-slate-700/50"><th class="p-2 text-right text-slate-400 text-xs">التاريخ</th><th class="p-2 text-right text-slate-400 text-xs">البند</th><th class="p-2 text-right text-slate-400 text-xs">التصنيف</th><th class="p-2 text-right text-slate-400 text-xs">التوجيه</th><th class="p-2 text-right text-slate-400 text-xs">ضريبي</th><th class="p-2 text-right text-slate-400 text-xs">قبل الضريبة</th><th class="p-2 text-right text-slate-400 text-xs">الضريبة</th><th class="p-2 text-right text-slate-400 text-xs">الإجمالي</th></tr></thead><tbody><template x-for="s in cd.settlements" :key="s.id"><tr class="border-t border-slate-700/50"><td class="p-2 text-slate-300" x-text="s.date"></td><td class="p-2 text-slate-300" x-text="s.item + (s.subItem ? ' ('+s.subItem+')' : '')"></td><td class="p-2 text-slate-400 text-xs" x-text="s.category"></td><td class="p-2 text-amber-400 text-xs" x-text="s.accountingDirection || '-'"></td><td class="p-2"><span x-show="s.isTaxable" class="text-blue-400 text-xs"><i class="fas fa-check-circle"></i></span><span x-show="!s.isTaxable" class="text-slate-600 text-xs">-</span></td><td class="p-2 text-slate-400 text-xs" x-text="s.isTaxable ? formatCurrency(s.amountBeforeTax) : '-'"></td><td class="p-2 text-amber-400 text-xs" x-text="s.isTaxable ? formatCurrency(s.taxAmount) : '-'"></td><td class="p-2 text-red-400 font-bold" x-text="formatCurrency(s.amount)"></td></tr></template></tbody></table></template></div></template></div></div></template><div x-show="!inquiryResult" class="text-center py-10 text-slate-500">أدخل بيانات الاستعلام</div></div>
+                </div>
+
+                <!-- ═══ تحليل التدفقات ═══ -->
+                <div x-show="activeTab === 'analysis'" x-cloak>
                     <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 mb-6">
                         <div class="flex flex-wrap gap-4 items-end">
-                            <div class="flex flex-col w-64">
-                                <label class="text-sm mb-1 text-slate-400">الموظف</label>
-                                <select x-model="inquiry.employee" class="p-2 rounded-lg input-dark">
-                                    <option value="">كل الموظفين</option>
-                                    <template x-for="emp in employees" :key="emp.id">
-                                        <option :value="emp.name" x-text="emp.name"></option>
-                                    </template>
-                                </select>
-                            </div>
-                            <div class="flex flex-col">
-                                <label class="text-sm mb-1 text-slate-400">من تاريخ</label>
-                                <input type="date" x-model="inquiry.from" class="p-2 rounded-lg input-dark">
-                            </div>
-                            <div class="flex flex-col">
-                                <label class="text-sm mb-1 text-slate-400">إلى تاريخ</label>
-                                <input type="date" x-model="inquiry.to" class="p-2 rounded-lg input-dark">
-                            </div>
-                            <button @click="applyInquiry()" class="primary-gradient text-white px-5 py-2 rounded-lg shadow-md font-bold">استعلام</button>
-                            <button @click="exportInquiryExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg shadow-md font-bold flex items-center gap-2" title="تصدير منسق إلى Excel"><i class="fas fa-file-excel"></i> تصدير إكسيل</button>
-                            <button @click="exportPDF('inquiry-print')" class="bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-pdf"></i></button>
+                            <div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">من تاريخ</label><input type="date" x-model="analysis.from" class="p-2 rounded-lg input-dark"></div>
+                            <div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">إلى تاريخ</label><input type="date" x-model="analysis.to" class="p-2 rounded-lg input-dark"></div>
+                            <div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">النوع</label><select x-model="analysis.type" class="p-2 rounded-lg input-dark"><option value="all">الكل</option><option value="inflow">داخلة</option><option value="outflow">خارجة</option></select></div>
+                            <div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">التصنيف</label><select x-model="analysis.category" class="p-2 rounded-lg input-dark"><option value="all">الكل</option><option value="تشغيلية">تشغيلية</option><option value="استثمارية">استثمارية</option><option value="تمويلية">تمويلية</option></select></div>
+                            <button @click="generateAnalysis()" class="primary-gradient text-white px-4 py-2 rounded-lg shadow-md">تحليل</button>
+                            <button @click="exportAnalysisExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-excel"></i></button>
+                            <button @click="exportPDF('analysis-print')" class="bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-pdf"></i></button>
                         </div>
                     </div>
-                    <div id="inquiry-print" class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700">
-                        <template x-if="inquiryResult">
-                            <div>
-                                <h3 class="text-xl font-bold mb-4 text-center text-white">تقرير العهد المستعلم عنها</h3>
-                                <div class="grid grid-cols-3 gap-4 mb-6 bg-slate-800 p-4 rounded-lg border border-slate-700">
-                                    <div class="text-center"><p class="text-sm text-slate-400">إجمالي العهد الأصلي</p><p class="font-bold text-blue-400 text-lg" x-text="formatCurrency(inquiryResult.totalAmount)"></p></div>
-                                    <div class="text-center"><p class="text-sm text-slate-400">إجمالي المصروف</p><p class="font-bold text-red-400 text-lg" x-text="formatCurrency(inquiryResult.totalSpent)"></p></div>
-                                    <div class="text-center"><p class="text-sm text-slate-400">المتبقي الفعلي</p><p class="font-bold text-emerald-400 text-lg" x-text="formatCurrency(inquiryResult.remaining)"></p></div>
-                                </div>
-                                <div class="space-y-4">
-                                    <template x-for="cd in inquiryResult.custodyDetails" :key="cd.id">
-                                        <div class="bg-slate-800 rounded-lg border border-slate-700 p-4">
-                                            <div class="flex justify-between items-center mb-2">
-                                                <div class="flex items-center gap-2">
-                                                    <span class="font-bold text-white" x-text="cd.employee + ' - عهدة ' + cd.date"></span>
-                                                    <span x-show="cd.isCarriedForward" class="text-amber-400 text-xs bg-amber-900/30 px-2 py-0.5 rounded">مرحّل</span>
-                                                    <span :class="cd.status === 'مفتوحة' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-0.5 rounded text-xs font-bold" x-text="cd.status"></span>
-                                                </div>
-                                                <div class="flex gap-4 text-sm">
-                                                    <span class="text-slate-400">المبلغ: <span class="text-blue-400 font-bold" x-text="formatCurrency(cd.amount)"></span></span>
-                                                    <span class="text-slate-400">المصروف: <span class="text-red-400 font-bold" x-text="formatCurrency(cd.spent)"></span></span>
-                                                </div>
-                                            </div>
-                                            <template x-if="cd.settlements && cd.settlements.length > 0">
-                                                <table class="w-full text-sm mt-2">
-                                                    <thead>
-                                                        <tr class="bg-slate-700/50">
-                                                            <th class="p-2 text-right text-slate-400 text-xs">التاريخ</th>
-                                                            <th class="p-2 text-right text-slate-400 text-xs">البند</th>
-                                                            <th class="p-2 text-right text-slate-400 text-xs">نوعه</th>
-                                                            <th class="p-2 text-right text-slate-400 text-xs">قبل الضريبة</th>
-                                                            <th class="p-2 text-right text-slate-400 text-xs">الضريبة</th>
-                                                            <th class="p-2 text-right text-slate-400 text-xs">الإجمالي</th>
-                                                            <th class="p-2 text-right text-slate-400 text-xs">التوجيه المحاسبي</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <template x-for="s in cd.settlements" :key="s.id">
-                                                            <tr class="border-t border-slate-700/50 text-xs">
-                                                                <td class="p-2 text-slate-300" x-text="s.date"></td>
-                                                                <td class="p-2 text-slate-300" x-text="s.item"></td>
-                                                                <td class="p-2 text-slate-300" x-text="s.taxType === 'taxable' ? 'ضريبي' : 'غير ضريبي'"></td>
-                                                                <td class="p-2 text-slate-400" x-text="s.taxType === 'taxable' ? formatCurrency(s.amountBeforeTax) : '-'"></td>
-                                                                <td class="p-2 text-amber-500" x-text="s.taxType === 'taxable' ? formatCurrency(s.taxAmount) : '-'"></td>
-                                                                <td class="p-2 text-red-400 font-bold" x-text="formatCurrency(s.amount)"></td>
-                                                                <td class="p-2 text-slate-400" x-text="s.accountingDirection || '-'"></td>
-                                                            </tr>
-                                                        </template>
-                                                    </tbody>
-                                                </table>
-                                            </template>
-                                        </div>
-                                    </template>
+                    <div id="analysis-print" class="space-y-6">
+                        <template x-if="analysis.data"><div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                <div class="glass-dark p-5 rounded-xl flex items-center gap-4"><div class="p-3 bg-emerald-500/10 rounded-xl text-emerald-400"><i class="fas fa-arrow-down fa-xl"></i></div><div><p class="text-sm text-slate-400">إجمالي الداخلة</p><p class="text-xl font-bold text-emerald-400" x-text="formatCurrency(analysis.data.totalIn)"></p></div></div>
+                                <div class="glass-dark p-5 rounded-xl flex items-center gap-4"><div class="p-3 bg-red-500/10 rounded-xl text-red-400"><i class="fas fa-arrow-up fa-xl"></i></div><div><p class="text-sm text-slate-400">إجمالي الخارجة</p><p class="text-xl font-bold text-red-400" x-text="formatCurrency(analysis.data.totalOut)"></p></div></div>
+                                <div class="glass-dark p-5 rounded-xl flex items-center gap-4"><div class="p-3 bg-blue-500/10 rounded-xl text-blue-400"><i class="fas fa-balance-scale fa-xl"></i></div><div><p class="text-sm text-slate-400">صافي التدفق</p><p class="text-xl font-bold" :class="analysis.data.net >= 0 ? 'text-emerald-400' : 'text-red-400'" x-text="formatCurrency(analysis.data.net)"></p></div></div>
+                            </div>
+                            <div class="glass-dark p-6 rounded-xl shadow-lg border border-amber-500/30 mb-6 bg-amber-900/5">
+                                <h3 class="font-bold text-amber-400 mb-4 flex items-center gap-2"><i class="fas fa-robot"></i> التنبؤ النقدي الذكي</h3>
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div class="bg-slate-800 p-4 rounded-lg text-center border border-slate-700"><p class="text-slate-400 text-xs mb-1">بعد 30 يوم</p><p class="font-bold text-lg" :class="analysis.data.forecast30 >= 0 ? 'text-emerald-400' : 'text-red-400'" x-text="formatCurrency(analysis.data.forecast30)"></p></div>
+                                    <div class="bg-slate-800 p-4 rounded-lg text-center border border-slate-700"><p class="text-slate-400 text-xs mb-1">بعد 60 يوم</p><p class="font-bold text-lg" :class="analysis.data.forecast60 >= 0 ? 'text-emerald-400' : 'text-red-400'" x-text="formatCurrency(analysis.data.forecast60)"></p></div>
+                                    <div class="bg-slate-800 p-4 rounded-lg text-center border border-slate-700"><p class="text-slate-400 text-xs mb-1">بعد 90 يوم</p><p class="font-bold text-lg" :class="analysis.data.forecast90 >= 0 ? 'text-emerald-400' : 'text-red-400'" x-text="formatCurrency(analysis.data.forecast90)"></p></div>
                                 </div>
                             </div>
-                        </template>
-                        <div x-show="!inquiryResult" class="text-center py-10 text-slate-500">اضغط على زر استعلام لعرض النتائج</div>
+                            <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700"><div class="overflow-x-auto">
+                                <table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-3 text-right text-slate-300">التاريخ</th><th class="p-3 text-right text-slate-300">النوع</th><th class="p-3 text-right text-slate-300">البند</th><th class="p-3 text-right text-slate-300">التفصيل</th><th class="p-3 text-right text-slate-300">التصنيف</th><th class="p-3 text-right text-slate-300">المبلغ</th></tr></thead>
+                                <tbody><template x-for="f in analysis.data.flows" :key="f.id"><tr class="table-dark-row"><td class="p-3 text-slate-300" x-text="f.date"></td><td class="p-3"><span :class="f.type === 'inflow' ? 'text-emerald-400' : 'text-red-400'" class="font-bold text-xs" x-text="f.type === 'inflow' ? 'داخل' : 'خارج'"></span></td><td class="p-3 text-slate-200" x-text="f.item"></td><td class="p-3 text-slate-400 text-xs" x-text="f.subItem || '-'"></td><td class="p-3"><span class="px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded text-xs" x-text="f.category"></span></td><td class="p-3 font-bold" :class="f.type === 'inflow' ? 'text-emerald-400' : 'text-red-400'" x-text="formatCurrency(f.amount)"></td></tr></template></tbody></table>
+                            </div></div>
+                        </div></template>
+                        <div x-show="!analysis.data" class="text-center py-10 text-slate-500 glass-dark rounded-xl border border-slate-700">حدد الفترة واضغط تحليل</div>
                     </div>
                 </div>
 
+                <!-- ═══ قائمة التدفقات ═══ -->
+                <div x-show="activeTab === 'report'" x-cloak>
+                    <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 mb-6"><div class="flex flex-wrap gap-4 items-end"><div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">من تاريخ</label><input type="date" x-model="report.from" class="p-2 rounded-lg input-dark"></div><div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">إلى تاريخ</label><input type="date" x-model="report.to" class="p-2 rounded-lg input-dark"></div><button @click="generateReport()" class="primary-gradient text-white px-4 py-2 rounded-lg shadow-md">عرض التقرير</button><button @click="exportReportExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-excel"></i></button><button @click="exportPDF('report-print')" class="bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"><i class="fas fa-file-pdf"></i></button></div></div>
+                    <div id="report-print" class="glass-dark p-8 rounded-xl shadow-lg border border-slate-700"><div class="text-center border-b border-slate-700 pb-4 mb-6"><h3 class="text-xl font-bold text-white">قائمة التدفقات النقدية</h3><p class="text-slate-400">من <span x-text="report.from"></span> إلى <span x-text="report.to"></span></p></div><template x-if="report.data"><div class="space-y-4"><div class="flex justify-between items-center bg-purple-900/20 border border-purple-800/30 p-3 rounded-lg"><span class="font-bold text-purple-400"><i class="fas fa-flag"></i> رصيد بداية الفترة</span><span class="font-bold text-purple-300 text-lg" x-text="formatCurrency(report.data.openingBalance)"></span></div><div class="border-b border-slate-700 pb-4 space-y-2"><h4 class="font-bold text-blue-400 bg-blue-900/20 p-2 rounded">التدفقات التشغيلية</h4><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الداخلة</span><span class="text-emerald-400" x-text="formatCurrency(report.data.operatingIn)"></span></div><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الخارجة</span><span class="text-red-400" x-text="'(' + formatCurrency(report.data.operatingOut) + ')'"></span></div><div class="flex justify-between font-bold mr-4 text-blue-400"><span>صافي التشغيلية</span><span x-text="formatCurrency(report.data.netOperating)"></span></div></div><div class="border-b border-slate-700 pb-4 space-y-2"><h4 class="font-bold text-purple-400 bg-purple-900/20 p-2 rounded">الاستثمارية</h4><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الداخلة</span><span class="text-emerald-400" x-text="formatCurrency(report.data.investingIn)"></span></div><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الخارجة</span><span class="text-red-400" x-text="'(' + formatCurrency(report.data.investingOut) + ')'"></span></div><div class="flex justify-between font-bold mr-4 text-purple-400"><span>الصافي</span><span x-text="formatCurrency(report.data.netInvesting)"></span></div></div><div class="border-b border-slate-700 pb-4 space-y-2"><h4 class="font-bold text-emerald-400 bg-emerald-900/20 p-2 rounded">التمويلية</h4><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الداخلة</span><span class="text-emerald-400" x-text="formatCurrency(report.data.financingIn)"></span></div><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الخارجة</span><span class="text-red-400" x-text="'(' + formatCurrency(report.data.financingOut) + ')'"></span></div><div class="flex justify-between font-bold mr-4 text-emerald-400"><span>الصافي</span><span x-text="formatCurrency(report.data.netFinancing)"></span></div></div><div class="space-y-3 pt-2"><div class="flex justify-between items-center bg-yellow-900/20 border border-yellow-800/30 p-3 rounded-lg"><span class="font-bold text-yellow-400">صافي التدفق النقدي</span><span class="font-bold text-yellow-300 text-lg" x-text="formatCurrency(report.data.netCashFlow)"></span></div><div class="flex justify-between items-center primary-gradient p-4 rounded-lg shadow-lg"><span class="font-bold text-lg text-white">رصيد نهاية الفترة</span><span class="font-bold text-xl text-white" x-text="formatCurrency(report.data.closingBalance)"></span></div></div></div></template><div x-show="!report.data" class="text-center py-10 text-slate-500">حدد الفترة</div></div>
+                </div>
+
+                <!-- ═══ إدارة الموظفين (جديد) ═══ -->
                 <div x-show="activeTab === 'employees'" x-cloak>
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 space-y-4">
-                            <h3 class="font-bold text-lg border-b border-slate-700 pb-2 text-white" x-text="employeeForm.id ? 'تعديل بيانات موظف' : 'إضافة موظف جديد'"></h3>
-                            <div>
-                                <label class="text-sm text-slate-400 block mb-1">اسم الموظف الثلاثي</label>
-                                <input type="text" x-model="employeeForm.name" placeholder="أدخل اسم الموظف" class="w-full p-2 rounded-lg input-dark">
-                            </div>
-                            <div>
-                                <label class="text-sm text-slate-400 block mb-1">الرقم الوظيفي / الملاحظات</label>
-                                <input type="text" x-model="employeeForm.notes" placeholder="ملاحظات اختيارية" class="w-full p-2 rounded-lg input-dark">
-                            </div>
-                            <div class="flex gap-2">
-                                <button @click="saveEmployee()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-bold transition" x-text="employeeForm.id ? 'تحديث' : 'إضافة وبناء'"></button>
-                                <button x-show="employeeForm.id" @click="resetEmployeeForm()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg transition">إلغاء</button>
-                            </div>
-                        </div>
-                        
-                        <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 lg:col-span-2">
-                            <h3 class="font-bold text-lg border-b border-slate-700 pb-2 mb-4 text-white">قائمة الموظفين المعتمدين بالنظام</h3>
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-sm">
-                                    <thead class="table-dark-header border-b border-slate-700">
-                                        <tr>
-                                            <th class="p-3 text-right text-slate-300">اسم الموظف</th>
-                                            <th class="p-3 text-right text-slate-300">ملاحظات</th>
-                                            <th class="p-3 text-right text-slate-300">التحكم</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <template x-for="emp in employees" :key="emp.id">
-                                            <tr class="table-dark-row">
-                                                <td class="p-3 font-medium text-slate-200" x-text="emp.name"></td>
-                                                <td class="p-3 text-slate-400 text-xs" x-text="emp.notes || '-'"></td>
-                                                <td class="p-3 flex gap-3">
-                                                    <button @click="editEmployee(emp)" class="text-blue-400 hover:text-blue-300"><i class="fas fa-edit"></i> تعديل</button>
-                                                    <button @click="deleteEmployee(emp.id)" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i> حذف</button>
-                                                </td>
-                                            </tr>
-                                        </template>
-                                        <template x-if="employees.length === 0">
-                                            <tr>
-                                                <td colspan="3" class="text-center py-6 text-slate-500">لا يوجد موظفين مسجلين حالياً. قم بإضافة الموظف الأول.</td>
-                                            </tr>
-                                        </template>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                    <div class="flex justify-end mb-4 gap-2">
+                        <button @click="openEmployeeModal()" class="primary-gradient text-white px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-lg hover:shadow-blue-500/20 transition font-bold"><i class="fas fa-user-plus"></i> إضافة موظف</button>
                     </div>
+                    <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700"><div class="overflow-x-auto">
+                        <table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-3 text-right text-slate-300">#</th><th class="p-3 text-right text-slate-300">الاسم</th><th class="p-3 text-right text-slate-300">المنصب/القسم</th><th class="p-3 text-right text-slate-300">رقم الهاتف</th><th class="p-3 text-right text-slate-300">عدد العهد</th><th class="p-3 text-right text-slate-300">إجراء</th></tr></thead>
+                        <tbody><template x-for="(emp, idx) in employeesList" :key="emp.id"><tr class="table-dark-row"><td class="p-3 text-slate-500" x-text="idx+1"></td><td class="p-3 font-bold text-slate-200"><i class="fas fa-user-tie text-blue-400 ml-2"></i><span x-text="emp.name"></span></td><td class="p-3 text-slate-400" x-text="emp.position || '-'"></td><td class="p-3 text-slate-400" x-text="emp.phone || '-'"></td><td class="p-3 text-blue-400 font-bold" x-text="custodies.filter(c => c.employee === emp.name).length"></td><td class="p-3 flex gap-2"><button @click="editEmployee(emp)" class="text-blue-400 hover:text-blue-300" title="تعديل"><i class="fas fa-edit"></i></button><button @click="deleteEmployee(emp)" class="text-red-400 hover:text-red-300" title="حذف"><i class="fas fa-trash"></i></button></td></tr></template>
+                        <tr x-show="employeesList.length === 0"><td colspan="6" class="p-10 text-center text-slate-500"><i class="fas fa-user-tie text-4xl mb-3 block text-slate-600"></i>لا يوجد موظفون مسجلون</td></tr>
+                        </tbody></table>
+                    </div></div>
                 </div>
 
-                <div x-show="activeTab === 'analysis'" x-cloak>
-                    <div class="glass-dark p-6 text-center text-slate-400 rounded-xl">شاشة التحليل المالي والرسوم البيانية الإضافية.</div>
-                </div>
+                <!-- ═══ إدارة المستخدمين ═══ -->
                 <div x-show="activeTab === 'users'" x-cloak>
-                    <div class="glass-dark p-6 text-center text-slate-400 rounded-xl">شاشة إدارة صلاحيات وصلاحيات النظام.</div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div class="glass-dark p-5 rounded-xl user-card border border-slate-700"><div class="flex items-center justify-between"><div><p class="text-slate-400 text-sm">إجمالي المستخدمين</p><p class="text-3xl font-bold text-white mt-1" x-text="users.length"></p></div><div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center"><i class="fas fa-users text-blue-400 text-xl"></i></div></div></div>
+                        <div class="glass-dark p-5 rounded-xl user-card border border-slate-700"><div class="flex items-center justify-between"><div><p class="text-slate-400 text-sm">المديرون</p><p class="text-3xl font-bold text-indigo-400 mt-1" x-text="users.filter(u => u.role === 'admin').length"></p></div><div class="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center"><i class="fas fa-user-shield text-indigo-400 text-xl"></i></div></div></div>
+                        <div class="glass-dark p-5 rounded-xl user-card border border-slate-700"><div class="flex items-center justify-between"><div><p class="text-slate-400 text-sm">المستخدمون العاديون</p><p class="text-3xl font-bold text-slate-300 mt-1" x-text="users.filter(u => u.role !== 'admin').length"></p></div><div class="w-12 h-12 rounded-xl bg-slate-500/10 flex items-center justify-center"><i class="fas fa-user text-slate-400 text-xl"></i></div></div></div>
+                        <div class="glass-dark p-5 rounded-xl user-card border border-slate-700"><div class="flex items-center justify-between"><div><p class="text-slate-400 text-sm">أنت</p><p class="text-sm font-bold gold-accent mt-1 truncate" x-text="currentUser?.email"></p><p class="text-xs text-slate-500 mt-0.5" x-text="currentUser?.role === 'admin' ? 'مدير النظام' : 'مستخدم'"></p></div><div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center"><i class="fas fa-id-badge text-amber-400 text-xl"></i></div></div></div>
+                    </div>
+                    <div class="flex flex-wrap justify-between items-center mb-4 gap-3">
+                        <div class="flex items-center gap-2"><div class="relative"><i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i><input type="text" x-model="userSearchQuery" placeholder="بحث بالبريد..." class="pr-9 pl-4 py-2 rounded-lg input-dark text-sm w-64"></div><select x-model="userFilterRole" class="p-2 rounded-lg input-dark text-sm"><option value="all">جميع الأدوار</option><option value="admin">مدير</option><option value="user">مستخدم</option></select></div>
+                        <button @click="openAddUserModal()" class="primary-gradient text-white px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-lg hover:shadow-blue-500/20 transition font-bold"><i class="fas fa-user-plus"></i> إضافة مستخدم جديد</button>
+                    </div>
+                    <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700"><div class="overflow-x-auto">
+                        <table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-4 text-right text-slate-300 w-12">#</th><th class="p-4 text-right text-slate-300">المستخدم</th><th class="p-4 text-right text-slate-300">الدور</th><th class="p-4 text-right text-slate-300">تاريخ الإنشاء</th><th class="p-4 text-right text-slate-300">الصلاحيات</th><th class="p-4 text-center text-slate-300">إجراءات</th></tr></thead>
+                        <tbody><template x-for="(u, idx) in getFilteredUsers()" :key="u.id"><tr class="table-dark-row" :class="u.id === currentUser?.id ? 'bg-blue-900/10' : ''"><td class="p-4 text-slate-500 font-mono text-xs" x-text="idx + 1"></td><td class="p-4"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm" :class="u.role === 'admin' ? 'role-badge-admin' : 'role-badge-user'" x-text="u.email?.charAt(0).toUpperCase()"></div><div><p class="font-bold text-slate-200 text-sm" x-text="u.email"></p><p class="text-slate-500 text-xs" x-show="u.id === currentUser?.id"><i class="fas fa-check-circle text-blue-400"></i> حسابك الحالي</p></div></div></td><td class="p-4"><span :class="u.role === 'admin' ? 'role-badge-admin' : 'role-badge-user'" class="px-3 py-1 rounded-full text-xs font-bold text-white"><i :class="u.role === 'admin' ? 'fas fa-shield-alt' : 'fas fa-user'" class="ml-1"></i><span x-text="u.role === 'admin' ? 'مدير' : 'مستخدم'"></span></span></td><td class="p-4 text-slate-400 text-xs" x-text="u.createdAt ? new Date(u.createdAt).toLocaleDateString('ar-SA') : '-'"></td><td class="p-4"><div class="flex flex-wrap gap-1"><template x-for="tab in allTabs" :key="tab.id"><span x-show="u.permissions?.[tab.id]" class="w-2 h-2 rounded-full bg-emerald-400 inline-block" :title="tab.name"></span></template><span class="text-slate-500 text-xs mr-1" x-text="Object.values(u.permissions || {}).filter(Boolean).length + '/' + allTabs.length"></span></div></td><td class="p-4"><div class="flex items-center justify-center gap-2"><button @click="editPermissions(u)" class="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition" title="تعديل الصلاحيات"><i class="fas fa-key text-sm"></i></button><button @click="changeUserRole(u)" class="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition" title="تغيير الدور"><i class="fas fa-user-tag text-sm"></i></button><button @click="resetUserPassword(u)" class="p-2 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition" title="إعادة تعيين كلمة المرور"><i class="fas fa-key text-sm"></i></button><button x-show="u.id !== currentUser?.id" @click="deleteUser(u)" class="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition" title="حذف"><i class="fas fa-trash-alt text-sm"></i></button></div></td></tr></template>
+                        <tr x-show="getFilteredUsers().length === 0"><td colspan="6" class="p-10 text-center text-slate-500"><i class="fas fa-users text-4xl mb-3 block text-slate-600"></i>لا يوجد مستخدمون مطابقون</td></tr>
+                        </tbody></table>
+                    </div></div>
                 </div>
 
             </div>
         </div>
     </div>
 
-    <div x-show="modals.custody" x-cloak class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div class="glass-dark p-6 rounded-2xl max-w-md w-full space-y-4 border border-slate-700">
-            <h3 class="text-xl font-bold text-white" x-text="custodyForm.id ? 'تعديل عهدة مالية' : 'إنشاء عهدة مالية لموظف'"></h3>
-            <div class="space-y-3">
-                <div>
-                    <label class="text-sm text-slate-400 block mb-1">الموظف المسؤول</label>
-                    <select x-model="custodyForm.employee" class="w-full p-2 rounded-lg input-dark">
-                        <option value="">اختر الموظف</option>
-                        <template x-for="emp in employees" :key="emp.id">
-                            <option :value="emp.name" x-text="emp.name"></option>
-                        </template>
-                    </select>
-                </div>
-                <input type="number" x-model="custodyForm.amount" placeholder="قيمة العهدة" class="w-full p-2 rounded-lg input-dark">
-                <input type="date" x-model="custodyForm.date" class="w-full p-2 rounded-lg input-dark">
-            </div>
-            <div class="flex justify-end gap-2">
-                <button @click="modals.custody = false" class="bg-slate-700 text-white px-4 py-2 rounded-lg">إلغاء</button>
-                <button @click="saveCustody()" class="primary-gradient text-white px-4 py-2 rounded-lg font-bold">حفظ البيانات</button>
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- نافذة إدارة الموظفين -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div x-show="showEmployeeModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showEmployeeModal = false">
+        <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-4 border border-slate-700">
+            <h3 class="text-xl font-bold text-white flex items-center gap-2"><i class="fas fa-user-tie text-blue-400"></i> <span x-text="employeeForm.id ? 'تعديل موظف' : 'إضافة موظف'"></span></h3>
+            <div><label class="block text-sm font-bold text-slate-300 mb-1">اسم الموظف *</label><input type="text" x-model="employeeForm.name" placeholder="اسم الموظف الثلاثي" class="w-full p-3 rounded-xl input-dark"></div>
+            <div><label class="block text-sm font-bold text-slate-300 mb-1">المنصب / القسم</label><input type="text" x-model="employeeForm.position" placeholder="مثال: مدير مالي" class="w-full p-3 rounded-xl input-dark"></div>
+            <div><label class="block text-sm font-bold text-slate-300 mb-1">رقم الهاتف</label><input type="tel" x-model="employeeForm.phone" placeholder="05xxxxxxxx" class="w-full p-3 rounded-xl input-dark"></div>
+            <div class="flex gap-4 pt-2">
+                <button @click="saveEmployee()" class="flex-1 primary-gradient text-white py-3 rounded-xl font-bold hover:shadow-lg transition"><i class="fas fa-save ml-1"></i> حفظ</button>
+                <button @click="showEmployeeModal = false" class="flex-1 bg-slate-700 text-slate-300 py-3 rounded-xl hover:bg-slate-600 transition">إلغاء</button>
             </div>
         </div>
     </div>
 
-    <div x-show="modals.flow" x-cloak class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div class="glass-dark p-6 rounded-2xl max-w-md w-full space-y-4 border border-slate-700">
-            <h3 class="text-xl font-bold text-white" x-text="flowForm.type === 'inflow' ? 'تسجيل تدفق نقدي داخل' : 'تسجيل تدفق نقدي خارج'"></h3>
-            <div class="space-y-3">
-                <input type="date" x-model="flowForm.date" class="w-full p-2 rounded-lg input-dark">
-                <input type="text" x-model="flowForm.item" placeholder="البند الرئيسي" class="w-full p-2 rounded-lg input-dark">
-                <input type="text" x-model="flowForm.subItem" placeholder="التفاصيل الفرعية" class="w-full p-2 rounded-lg input-dark">
-                <select x-model="flowForm.category" class="w-full p-2 rounded-lg input-dark">
-                    <option value="تشغيلية">تشغيلية</option>
-                    <option value="استثمارية">استثمارية</option>
-                    <option value="تمويلية">تمويلية</option>
+    <!-- ═══ نافذة إضافة مستخدم جديد ═══ -->
+    <div x-show="showAddUserModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showAddUserModal = false">
+        <div class="glass-dark rounded-2xl shadow-2xl w-full max-w-lg border border-slate-700 overflow-hidden">
+            <div class="primary-gradient p-5 flex justify-between items-center"><h3 class="text-xl font-bold text-white flex items-center gap-2"><i class="fas fa-user-plus"></i> إضافة مستخدم جديد</h3><button @click="showAddUserModal = false" class="text-white/70 hover:text-white transition"><i class="fas fa-times text-lg"></i></button></div>
+            <div class="flex items-center justify-center gap-3 py-4 bg-slate-800/50 border-b border-slate-700">
+                <div class="flex items-center gap-2"><div class="step-indicator w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" :class="addUserStep >= 1 ? (addUserStep > 1 ? 'completed' : 'active') : 'pending'"><span x-show="addUserStep <= 1">1</span><i x-show="addUserStep > 1" class="fas fa-check text-xs"></i></div><span class="text-xs font-bold" :class="addUserStep >= 1 ? 'text-slate-200' : 'text-slate-500'">الحساب</span></div>
+                <div class="w-10 h-px" :class="addUserStep > 1 ? 'bg-emerald-500' : 'bg-slate-600'"></div>
+                <div class="flex items-center gap-2"><div class="step-indicator w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" :class="addUserStep >= 2 ? (addUserStep > 2 ? 'completed' : 'active') : 'pending'"><span x-show="addUserStep <= 2">2</span><i x-show="addUserStep > 2" class="fas fa-check text-xs"></i></div><span class="text-xs font-bold" :class="addUserStep >= 2 ? 'text-slate-200' : 'text-slate-500'">الدور</span></div>
+                <div class="w-10 h-px" :class="addUserStep > 2 ? 'bg-emerald-500' : 'bg-slate-600'"></div>
+                <div class="flex items-center gap-2"><div class="step-indicator w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" :class="addUserStep >= 3 ? 'active' : 'pending'">3</div><span class="text-xs font-bold" :class="addUserStep >= 3 ? 'text-slate-200' : 'text-slate-500'">الصلاحيات</span></div>
+            </div>
+            <div x-show="addUserStep === 1" class="p-6 space-y-4">
+                <div><label class="block text-sm font-bold text-slate-300 mb-2"><i class="fas fa-envelope ml-1 text-blue-400"></i> البريد الإلكتروني</label><input type="email" x-model="addUserForm.email" placeholder="example@company.com" class="w-full p-3 rounded-xl input-dark text-sm" :class="addUserForm.email && !addUserForm.email.includes('@') ? 'border-red-500' : ''"><p x-show="addUserForm.email && !addUserForm.email.includes('@')" class="text-red-400 text-xs mt-1"><i class="fas fa-exclamation-circle"></i> بريد إلكتروني غير صالح</p></div>
+                <div><label class="block text-sm font-bold text-slate-300 mb-2"><i class="fas fa-lock ml-1 text-blue-400"></i> كلمة المرور</label><div class="relative"><input :type="showAddPassword ? 'text' : 'password'" x-model="addUserForm.password" placeholder="6 أحرف على الأقل" class="w-full p-3 rounded-xl input-dark text-sm pl-12"><button @click="showAddPassword = !showAddPassword" type="button" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"><i :class="showAddPassword ? 'fas fa-eye-slash' : 'fas fa-eye'" class="text-sm"></i></button></div><div class="mt-2 h-1.5 rounded-full bg-slate-700 overflow-hidden" x-show="addUserForm.password"><div class="h-full rounded-full transition-all duration-300" :class="addUserForm.password.length >= 8 ? 'bg-emerald-500' : (addUserForm.password.length >= 6 ? 'bg-amber-500' : 'bg-red-500')" :style="'width:' + Math.min(100, (addUserForm.password.length / 8) * 100) + '%'"></div></div></div>
+                <div><label class="block text-sm font-bold text-slate-300 mb-2"><i class="fas fa-lock ml-1 text-blue-400"></i> تأكيد كلمة المرور</label><input type="password" x-model="addUserForm.confirmPassword" placeholder="أعد كتابة كلمة المرور" class="w-full p-3 rounded-xl input-dark text-sm" :class="addUserForm.confirmPassword && addUserForm.confirmPassword !== addUserForm.password ? 'border-red-500' : ''"></div>
+                <div class="flex gap-3 pt-2"><button @click="validateAddUserStep1()" class="flex-1 primary-gradient text-white py-3 rounded-xl font-bold hover:shadow-lg transition flex items-center justify-center gap-2" :disabled="addUserLoading"><span>التالي</span><i x-show="!addUserLoading" class="fas fa-arrow-left"></i><i x-show="addUserLoading" class="fas fa-spinner fa-spin"></i></button><button @click="showAddUserModal = false" class="px-6 bg-slate-700 text-slate-300 py-3 rounded-xl hover:bg-slate-600 transition">إلغاء</button></div>
+            </div>
+            <div x-show="addUserStep === 2" class="p-6 space-y-4">
+                <p class="text-slate-400 text-sm mb-2">اختر دور المستخدم في النظام:</p>
+                <label class="flex items-center gap-4 bg-slate-800 p-4 rounded-xl border-2 cursor-pointer transition-all hover:border-indigo-500/50" :class="addUserForm.role === 'admin' ? 'border-indigo-500 bg-indigo-900/10' : 'border-slate-700'"><input type="radio" x-model="addUserForm.role" value="admin" class="w-5 h-5 text-indigo-600"><div class="w-12 h-12 rounded-xl role-badge-admin flex items-center justify-center"><i class="fas fa-shield-alt text-white text-xl"></i></div><div class="flex-1"><p class="font-bold text-white">مدير النظام</p><p class="text-slate-400 text-xs">صلاحيات كاملة على جميع أقسام النظام</p></div></label>
+                <label class="flex items-center gap-4 bg-slate-800 p-4 rounded-xl border-2 cursor-pointer transition-all hover:border-blue-500/50" :class="addUserForm.role === 'user' ? 'border-blue-500 bg-blue-900/10' : 'border-slate-700'"><input type="radio" x-model="addUserForm.role" value="user" class="w-5 h-5 text-blue-600"><div class="w-12 h-12 rounded-xl role-badge-user flex items-center justify-center"><i class="fas fa-user text-white text-xl"></i></div><div class="flex-1"><p class="font-bold text-white">مستخدم عادي</p><p class="text-slate-400 text-xs">صلاحيات محددة يتم تخصيصها في الخطوة التالية</p></div></label>
+                <div class="flex gap-3 pt-2"><button @click="addUserStep = 1" class="px-6 bg-slate-700 text-slate-300 py-3 rounded-xl hover:bg-slate-600 transition">السابق</button><button @click="addUserStep = 3; if(addUserForm.role === 'admin') applyAdminPermissions();" class="flex-1 primary-gradient text-white py-3 rounded-xl font-bold hover:shadow-lg transition flex items-center justify-center gap-2"><span>التالي</span><i class="fas fa-arrow-left"></i></button></div>
+            </div>
+            <div x-show="addUserStep === 3" class="p-6 space-y-4">
+                <div class="flex items-center justify-between mb-2"><p class="text-slate-300 font-bold text-sm">تخصيص الصلاحيات:</p><div class="flex gap-2"><button @click="selectAllPermissions(true)" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-lg hover:bg-emerald-500/20 transition">تحديد الكل</button><button @click="selectAllPermissions(false)" class="text-xs bg-red-500/10 text-red-400 px-3 py-1 rounded-lg hover:bg-red-500/20 transition">إلغاء الكل</button></div></div>
+                <div class="grid grid-cols-2 gap-3"><template x-for="tab in allTabs" :key="tab.id"><label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all" :class="addUserForm.permissions[tab.id] ? 'perm-toggle active bg-blue-500/10 border-blue-500/50' : 'perm-toggle bg-slate-800/50 border-slate-700 hover:border-slate-500'"><input type="checkbox" x-model="addUserForm.permissions[tab.id]" class="w-4 h-4 text-blue-600 rounded bg-slate-900 border-slate-600"><i :class="tab.icon" class="text-sm" :class="addUserForm.permissions[tab.id] ? 'text-blue-400' : 'text-slate-500'"></i><span class="text-sm font-medium" :class="addUserForm.permissions[tab.id] ? 'text-slate-200' : 'text-slate-400'" x-text="tab.name"></span></label></template></div>
+                <div class="bg-slate-800/80 border border-slate-600 rounded-xl p-4 mt-4"><h4 class="text-sm font-bold text-slate-300 mb-3"><i class="fas fa-clipboard-check ml-1 text-emerald-400"></i> ملخص المستخدم الجديد</h4><div class="space-y-2 text-sm"><div class="flex justify-between"><span class="text-slate-400">البريد:</span><span class="text-white font-bold" x-text="addUserForm.email"></span></div><div class="flex justify-between"><span class="text-slate-400">الدور:</span><span class="font-bold" :class="addUserForm.role === 'admin' ? 'text-indigo-400' : 'text-slate-300'" x-text="addUserForm.role === 'admin' ? 'مدير النظام' : 'مستخدم عادي'"></span></div><div class="flex justify-between"><span class="text-slate-400">الصلاحيات:</span><span class="text-emerald-400 font-bold" x-text="Object.values(addUserForm.permissions).filter(Boolean).length + ' من ' + allTabs.length"></span></div></div></div>
+                <p class="text-red-400 text-sm text-center" x-show="addUserError" x-text="addUserError"></p>
+                <div class="flex gap-3 pt-2"><button @click="addUserStep = 2" class="px-6 bg-slate-700 text-slate-300 py-3 rounded-xl hover:bg-slate-600 transition">السابق</button><button @click="addNewUser()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold shadow-lg transition flex items-center justify-center gap-2" :disabled="addUserLoading"><i x-show="!addUserLoading" class="fas fa-user-plus"></i><i x-show="addUserLoading" class="fas fa-spinner fa-spin"></i><span x-text="addUserLoading ? 'جارٍ الإنشاء...' : 'إنشاء المستخدم'"></span></button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ نافذة تعديل صلاحيات المستخدم ═══ -->
+    <div x-show="showUserModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showUserModal = false">
+        <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-lg space-y-4 border border-slate-700">
+            <h3 class="text-xl font-bold text-white flex items-center gap-2"><i class="fas fa-key text-amber-400"></i> تعديل صلاحيات المستخدم</h3>
+            <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white" :class="users.find(u=>u.id===userForm.id)?.role === 'admin' ? 'role-badge-admin' : 'role-badge-user'" x-text="userForm.email?.charAt(0).toUpperCase()"></div><div><p class="font-bold text-white text-sm" x-text="userForm.email"></p><p class="text-slate-500 text-xs" x-text="users.find(u=>u.id===userForm.id)?.role === 'admin' ? 'مدير' : 'مستخدم'"></p></div></div>
+            <div class="flex items-center justify-between mb-2"><p class="text-slate-300 font-bold text-sm">الصلاحيات:</p><div class="flex gap-2"><button @click="userForm.permissions = Object.fromEntries(allTabs.map(t=>[t.id,true]))" class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-lg hover:bg-emerald-500/20 transition">تحديد الكل</button><button @click="userForm.permissions = Object.fromEntries(allTabs.map(t=>[t.id,false]))" class="text-xs bg-red-500/10 text-red-400 px-3 py-1 rounded-lg hover:bg-red-500/20 transition">إلغاء الكل</button></div></div>
+            <div class="grid grid-cols-2 gap-3 mt-4"><template x-for="tab in allTabs" :key="tab.id"><label class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all" :class="userForm.permissions[tab.id] ? 'bg-blue-500/10 border-blue-500/40' : 'bg-slate-800 border-slate-700 hover:border-slate-500'"><input type="checkbox" x-model="userForm.permissions[tab.id]" class="w-4 h-4 text-blue-600 rounded bg-slate-900 border-slate-600"><i :class="tab.icon" class="text-xs" :class="userForm.permissions[tab.id] ? 'text-blue-400' : 'text-slate-500'"></i><span x-text="tab.name" class="text-sm" :class="userForm.permissions[tab.id] ? 'text-slate-200' : 'text-slate-400'"></span></label></template></div>
+            <div class="flex gap-4 mt-4"><button @click="savePermissions()" class="flex-1 primary-gradient text-white py-2 rounded-lg shadow-md font-bold">حفظ الصلاحيات</button><button @click="showUserModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg hover:bg-slate-600">إلغاء</button></div>
+        </div>
+    </div>
+
+    <!-- ═══ نافذة تدفق نقدي ═══ -->
+    <div x-show="showFlowModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showFlowModal = false">
+        <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-4 border border-slate-700">
+            <h3 class="text-xl font-bold text-white" x-text="flowForm.item === 'رصيد بداية المدة' ? 'رصيد بداية النقدية' : (flowForm.id ? 'تعديل' : (flowForm.type === 'inflow' ? 'إضافة تدفق داخل' : 'إضافة تدفق خارج'))"></h3>
+            <input type="date" x-model="flowForm.date" class="w-full p-2 rounded-lg input-dark">
+            <input type="text" x-model="flowForm.item" placeholder="البند الرئيسي" class="w-full p-2 rounded-lg input-dark" :readonly="flowForm.item === 'رصيد بداية المدة'">
+            <input type="text" x-model="flowForm.subItem" placeholder="التفصيل" class="w-full p-2 rounded-lg input-dark" x-show="flowForm.item !== 'رصيد بداية المدة'">
+            <select x-model="flowForm.category" class="w-full p-2 rounded-lg input-dark" x-show="flowForm.item !== 'رصيد بداية المدة'"><option value="تشغيلية">تشغيلية</option><option value="استثمارية">استثمارية</option><option value="تمويلية">تمويلية</option></select>
+            <input type="number" x-model="flowForm.amount" placeholder="المبلغ" class="w-full p-2 rounded-lg input-dark">
+            <div class="flex gap-4"><button @click="saveFlow()" class="flex-1 primary-gradient text-white py-2 rounded-lg">حفظ</button><button @click="showFlowModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg hover:bg-slate-600">إلغاء</button></div>
+        </div>
+    </div>
+
+    <!-- ═══ نافذة عهدة - مع قائمة الموظفين ═══ -->
+    <div x-show="showCustodyModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showCustodyModal = false">
+        <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-4 border border-slate-700">
+            <h3 class="text-xl font-bold text-white" x-text="custodyForm.isEnhance ? 'تعزيز عهدة' : (custodyForm.id ? 'تعديل' : 'إنشاء عهدة')"></h3>
+            <div x-show="!custodyForm.isEnhance">
+                <label class="block text-xs text-slate-400 mb-1">الموظف</label>
+                <select x-model="custodyForm.employee" class="w-full p-2 rounded-lg input-dark" :disabled="custodyForm.isEnhance || custodyForm.id">
+                    <option value="">اختر الموظف</option>
+                    <template x-for="emp in employeesList" :key="emp.id"><option :value="emp.name" x-text="emp.name + (emp.position ? ' - '+emp.position : '')"></option></template>
                 </select>
-                <input type="number" x-model="flowForm.amount" placeholder="المبلغ المالي" class="w-full p-2 rounded-lg input-dark">
             </div>
-            <div class="flex justify-end gap-2">
-                <button @click="modals.flow = false" class="bg-slate-700 text-white px-4 py-2 rounded-lg">إلغاء</button>
-                <button @click="saveFlow()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold">حفظ</button>
+            <input type="text" x-model="custodyForm.employee" class="w-full p-2 rounded-lg input-dark" x-show="custodyForm.isEnhance" readonly>
+            <input type="date" x-model="custodyForm.date" class="w-full p-2 rounded-lg input-dark" x-show="!custodyForm.isEnhance">
+            <input type="number" x-model="custodyForm.amount" placeholder="قيمة العهدة" class="w-full p-2 rounded-lg input-dark" x-show="!custodyForm.isEnhance">
+            <label x-show="!custodyForm.isEnhance && !custodyForm.id" class="flex items-center gap-2 text-slate-300 text-sm cursor-pointer"><input type="checkbox" x-model="custodyForm.isOpeningBalance" class="w-4 h-4 text-purple-600 rounded bg-slate-900 border-slate-600"><span>رصيد بداية عهد</span></label>
+            <input type="number" x-model="custodyForm.additionalAmount" placeholder="مبلغ التعزيز" class="w-full p-2 rounded-lg input-dark" x-show="custodyForm.isEnhance">
+            <div class="flex gap-4"><button @click="saveCustody()" class="flex-1 primary-gradient text-white py-2 rounded-lg">حفظ</button><button @click="showCustodyModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg hover:bg-slate-600">إلغاء</button></div>
+        </div>
+    </div>
+
+    <!-- ═══ نافذة تقفيل العهدة ═══ -->
+    <div x-show="showCloseCustodyModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showCloseCustodyModal = false">
+        <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-lg space-y-5 border border-slate-700">
+            <h3 class="text-xl font-bold text-amber-400"><i class="fas fa-file-invoice"></i> تقفيل العهدة</h3>
+            <div class="bg-slate-800 p-4 rounded-lg border border-slate-600 space-y-2" x-show="closeCustodyData">
+                <p class="text-slate-300">الموظف: <span class="font-bold text-white" x-text="closeCustodyData?.employee"></span></p>
+                <p class="text-slate-300">المتبقي: <span class="font-bold text-emerald-400" x-text="formatCurrency(closeCustodyData ? closeCustodyData.amount - getCustodySpent(closeCustodyData) : 0)"></span></p>
+            </div>
+            <div class="space-y-3">
+                <p class="text-slate-400 font-bold">ماذا تريد عمله بالمتبقي؟</p>
+                <label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer hover:border-blue-500 transition"><input type="radio" x-model="closeAction" value="return" class="w-4 h-4 text-blue-600"><span class="text-slate-200">رد للصندوق</span></label>
+                <label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer hover:border-amber-500 transition"><input type="radio" x-model="closeAction" value="keep" class="w-4 h-4 text-amber-600"><span class="text-slate-200">ترحيل لعهدة جديدة</span></label>
+            </div>
+            <div class="flex gap-4 pt-2">
+                <button @click="closeAndGenerateCustodyReport()" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg shadow-md font-bold">تقفيل</button>
+                <button @click="showCloseCustodyModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg hover:bg-slate-600">إلغاء</button>
             </div>
         </div>
     </div>
+
+    <div id="custody-report-print" class="report-print-area" style="position: fixed; left: -9999px; top: 0; width: 800px; z-index: -1; opacity: 0;" x-html="custodyReportHTML"></div>
 </div>
 
 <script>
 function financialSystem() {
     return {
-        isLoggedIn: false,
-        authMode: 'login',
-        authLoading: false,
-        authError: '',
-        currentUser: null,
-        sidebarOpen: false,
-        activeTab: 'dashboard',
-        
-        authForm: { email: '', password: '' },
-        toast: { show: false, type: 'success', message: '' },
-        
-        tabNames: { dashboard: 'لوحة التحكم العامة', cashflow: 'حركة الصندوق والدرج', custody: 'العهد الشخصية', settlement: 'تسوية وبنود العهدة', inquiry: 'استعلام وتصدير العهد', employees: 'إدارة شؤون الموظفين', analysis: 'التحليل المالي', users: 'المستخدمين' },
-        
-        allowedTabs: [
-            { id: 'dashboard', name: 'الرئيسية', icon: 'fas fa-chart-pie' },
-            { id: 'cashflow', name: 'حركة الصندوق', icon: 'fas fa-wallet' },
-            { id: 'custody', name: 'العهد الشخصية', icon: 'fas fa-hand-holding-usd' },
-            { id: 'settlement', name: 'تقفيل وتسوية العهد', icon: 'fas fa-calculator' },
-            { id: 'inquiry', name: 'استعلام العهد والتقارير', icon: 'fas fa-search-dollar' },
-            { id: 'employees', name: 'إدارة الموظفين', icon: 'fas fa-users-cog' }
+        isLoggedIn: false, currentUser: null, authMode: 'login', authForm: { email: '', password: '' }, authError: '', authLoading: false,
+        activeTab: 'dashboard', sidebarOpen: false, flows: [], custodies: [], users: [], employeesList: [],
+        showFlowModal: false, flowForm: { id:null, type:'inflow', date:'', item:'', subItem:'', category:'تشغيلية', amount:'', notes:'' },
+        showCustodyModal: false, custodyForm: { id:null, employee:'', date:'', amount:'', notes:'', additionalAmount:'', isEnhance:false, isOpeningBalance:false, linkedFlowId:null },
+        showCloseCustodyModal: false, closeCustodyData: null, closeAction: 'return', custodyReportHTML: '',
+        showUserModal: false, userForm: { id:'', email:'', permissions:{} },
+        showEmployeeModal: false, employeeForm: { id:null, name:'', position:'', phone:'' },
+        showAddUserModal: false, addUserStep: 1, showAddPassword: false, addUserLoading: false, addUserError: '',
+        addUserForm: { email: '', password: '', confirmPassword: '', role: 'user', permissions: {} },
+        userSearchQuery: '', userFilterRole: 'all',
+
+        // ═══ متغيرات تقفيل العهد مع الضريبة لكل بند ═══
+        settlement: { selectedCustodyId:'', date:'', item:'', subItem:'', category:'تشغيلية', amount:'', accountingDirection:'', isTaxable:false, amountBeforeTax:'', taxRate:15 },
+
+        inquiry: { employee:'', from:'', to:'' }, inquiryResult: null,
+        analysis: { from:'', to:'', type:'all', category:'all', data:null },
+        report: { from:'', to:'', data:null }, flowChartInstance: null, balanceChartInstance: null,
+        toast: { show: false, message: '', type: 'success' },
+
+        allTabs: [
+            { id: 'dashboard', name: 'لوحة التحكم', icon: 'fas fa-chart-pie' },
+            { id: 'cashflow', name: 'التدفقات النقدية', icon: 'fas fa-money-bill-wave' },
+            { id: 'custody', name: 'العهد المالية', icon: 'fas fa-wallet' },
+            { id: 'settlement', name: 'تقفيل العهد', icon: 'fas fa-file-invoice-dollar' },
+            { id: 'inquiry', name: 'استعلام العهد', icon: 'fas fa-search-dollar' },
+            { id: 'analysis', name: 'تحليل التدفقات', icon: 'fas fa-chart-bar' },
+            { id: 'report', name: 'قائمة التدفقات', icon: 'fas fa-file-alt' },
+            { id: 'employees', name: 'الموظفون', icon: 'fas fa-user-tie' },
+            { id: 'users', name: 'إدارة المستخدمين', icon: 'fas fa-users-cog' }
         ],
+        tabNames: { 'dashboard':'لوحة التحكم', 'cashflow':'التدفقات النقدية', 'custody':'العهد المالية', 'settlement':'تقفيل العهد', 'inquiry':'استعلام العهد', 'analysis':'تحليل التدفقات النقدية', 'report':'قائمة التدفقات', 'employees':'الموظفون', 'users':'إدارة المستخدمين' },
 
-        flows: [],
-        custodies: [],
-        employees: [], // قائمة الموظفين الديناميكية الجديدة
-        
-        // النماذج والبيانات التشغيلية
-        flowForm: { id: null, type: 'inflow', date: '', item: '', subItem: '', category: 'تشغيلية', amount: '' },
-        custodyForm: { id: null, employee: '', amount: '', date: '', status: 'مفتوحة', settlements: [] },
-        employeeForm: { id: null, name: '', notes: '' }, // نموذج الموظفين الجديد
-        
-        settlement: {
-            selectedCustodyId: '',
-            date: new Date().toISOString().split('T')[0],
-            item: '',
-            subItem: '',
-            category: 'تشغيلية',
-            taxType: 'non_taxable', // نوع البند (ضريبي أو غير ضريبي)
-            amountBeforeTax: '',
-            taxAmount: 0,
-            amount: '',
-            accountingDirection: ''
+        get allowedTabs() { if(!this.currentUser) return []; if(this.currentUser.role==='admin') return this.allTabs; return this.allTabs.filter(t=>this.currentUser.permissions?.[t.id]); },
+        get isAdmin() { return this.currentUser?.role === 'admin'; },
+
+        // ═══ حساب ضريبة البند أثناء التقفيل ═══
+        get settlementTaxAmount() {
+            if (!this.settlement.isTaxable) return 0;
+            return (Number(this.settlement.amountBeforeTax) || 0) * ((Number(this.settlement.taxRate) || 15) / 100);
+        },
+        get settlementTotalAmount() {
+            if (!this.settlement.isTaxable) return Number(this.settlement.amount) || 0;
+            return (Number(this.settlement.amountBeforeTax) || 0) + this.settlementTaxAmount;
         },
 
-        inquiry: { employee: '', from: '', to: '' },
-        inquiryResult: null,
-        
-        modals: { custody: false, flow: false },
-        hasOpeningBalance: false,
-        totalInflow: 0, totalOutflow: 0, currentBalance: 0,
-        flowChartInstance: null, balanceChartInstance: null,
+        showToast(message, type) { this.toast = { show: true, message, type }; setTimeout(() => { this.toast.show = false; }, 3000); },
 
-        get openCustodies() {
-            return this.custodies.filter(c => c.status === 'مفتوحة');
+        async init() {
+            while(!window.firebaseAuth||!window.firebaseDb){await new Promise(r=>setTimeout(r,100));}
+            try { window.firebaseOnAuth(window.firebaseAuth, async(user)=>{ if(user){ const ud=await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb,"users",user.uid)); if(ud.exists()){this.currentUser={id:user.uid,email:user.email,...ud.data()};this.isLoggedIn=true;this.initFirestoreListeners();this.updateCharts();}else{this.authError="خطأ";await this.logout();}} else{this.isLoggedIn=false;this.currentUser=null;} }); } catch(e){}
         },
 
-        init() {
-            window.addEventListener('firebase-ready', () => {
-                window.firebaseOnAuth(window.firebaseAuth, (user) => {
-                    if (user) {
-                        this.isLoggedIn = true;
-                        this.currentUser = { email: user.email, role: 'admin' };
-                        this.showToast('success', 'مرحباً بك في النظام المالي');
-                        this.loadDataSnapshots();
-                    } else {
-                        this.isLoggedIn = false;
-                        this.currentUser = null;
+        async login(){this.authLoading=true;this.authError='';try{await window.firebaseSignIn(window.firebaseAuth,this.authForm.email,this.authForm.password);}catch(e){this.authError="خطأ في الدخول";}this.authLoading=false;},
+        async register(){this.authLoading=true;this.authError='';try{const uc=await window.firebaseSignUp(window.firebaseAuth,this.authForm.email,this.authForm.password);const us=await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb,"users"));const r=us.empty?'admin':'user';const p=r==='admin'?Object.fromEntries(this.allTabs.map(t=>[t.id,true])):{dashboard:true,cashflow:true,custody:true,settlement:true,inquiry:true,analysis:true,report:true,employees:true,users:false};await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"users",uc.user.uid),{email:this.authForm.email,role:r,permissions:p,createdAt:new Date().toISOString()});}catch(e){this.authError=e.message;}this.authLoading=false;},
+        async logout(){try{await window.firebaseSignOut(window.firebaseAuth);}catch(e){}this.authMode='login';},
+
+        initFirestoreListeners(){
+            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"cashFlows"),(s)=>{this.flows=s.docs.map(d=>({id:d.id,...d.data()}));this.updateCharts();});
+            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"custodies"),(s)=>{this.custodies=s.docs.map(d=>({id:d.id,...d.data()}));});
+            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"employees"),(s)=>{this.employeesList=s.docs.map(d=>({id:d.id,...d.data()}));});
+            if(this.currentUser.role==='admin'){window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"users"),(s)=>{this.users=s.docs.map(d=>({id:d.id,...d.data()}));});}
+        },
+
+        formatCurrency(a){return new Intl.NumberFormat('ar-SA',{style:'currency',currency:'SAR'}).format(a||0);},
+        get hasOpeningBalance(){return this.flows.some(f=>f.item==='رصيد بداية المدة');},
+        get totalInflow(){return this.flows.filter(f=>f.type==='inflow').reduce((s,f)=>s+Number(f.amount),0);},
+        get totalOutflow(){return this.flows.filter(f=>f.type==='outflow').reduce((s,f)=>s+Number(f.amount),0);},
+        get currentBalance(){return this.totalInflow-this.totalOutflow;},
+        get openCustodies(){return this.custodies.filter(c=>c.status==='مفتوحة');},
+        getSortedFlows(){let b=0;const o=this.flows.filter(f=>f.item==='رصيد بداية المدة');const t=this.flows.filter(f=>f.item!=='رصيد بداية المدة').sort((a,c)=>new Date(a.date||'1970-01-01')-new Date(c.date||'1970-01-01'));return[...o,...t].map(f=>{b+=f.type==='inflow'?Number(f.amount):-Number(f.amount);return{...f,runningBalance:b};});},
+
+        // ═══════════════════════════════════════════════════
+        // ═══ إدارة الموظفين ═══
+        // ═══════════════════════════════════════════════════
+        openEmployeeModal(emp = null) {
+            if (emp) { this.employeeForm = { id: emp.id, name: emp.name, position: emp.position || '', phone: emp.phone || '' }; }
+            else { this.employeeForm = { id: null, name: '', position: '', phone: '' }; }
+            this.showEmployeeModal = true;
+        },
+        editEmployee(emp) { this.openEmployeeModal(emp); },
+        async deleteEmployee(emp) {
+            if (!confirm('هل أنت متأكد من حذف الموظف: ' + emp.name + '؟')) return;
+            const hasCustodies = this.custodies.some(c => c.employee === emp.name);
+            if (hasCustodies) { if (!confirm('هذا الموظف لديه عهد مسجلة. حذفه قد يؤثر على التقارير. هل تريد المتابعة؟')) return; }
+            try { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "employees", emp.id)); this.showToast('تم حذف الموظف بنجاح', 'success'); } catch (e) { this.showToast('خطأ في الحذف: ' + e.message, 'error'); }
+        },
+        async saveEmployee() {
+            if (!this.employeeForm.name.trim()) { this.showToast('أدخل اسم الموظف', 'error'); return; }
+            try {
+                const data = { name: this.employeeForm.name.trim(), position: this.employeeForm.position.trim(), phone: this.employeeForm.phone.trim(), updatedAt: new Date().toISOString() };
+                if (this.employeeForm.id) {
+                    const oldEmp = this.employeesList.find(e => e.id === this.employeeForm.id);
+                    const oldName = oldEmp ? oldEmp.name : '';
+                    await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "employees", this.employeeForm.id), data);
+                    if (oldName !== data.name) {
+                        const custodySnap = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, "custodies"));
+                        for (const doc of custodySnap.docs) {
+                            const cd = doc.data();
+                            if (cd.employee === oldName) { await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "custodies", doc.id), { employee: data.name }); }
+                        }
                     }
-                });
-            });
-            if (window.firebaseReady) {
-                window.dispatchEvent(new Event('firebase-ready'));
-            }
-        },
-
-        showToast(type, msg) {
-            this.toast.show = true; this.toast.type = type; this.toast.message = msg;
-            setTimeout(() => { this.toast.show = false; }, 3000);
-        },
-
-        formatCurrency(val) {
-            return new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(val || 0);
-        },
-
-        // Firebase Realtime Snapshots
-        loadDataSnapshots() {
-            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb, "flows"), (snap) => {
-                this.flows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                this.calculateDashboardTotals();
-            });
-
-            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb, "custodies"), (snap) => {
-                this.custodies = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                this.calculateDashboardTotals();
-                if (this.settlement.selectedCustodyId) {
-                    this.calculateTaxValues();
+                    this.showToast('تم تعديل الموظف بنجاح', 'success');
+                } else {
+                    data.createdAt = new Date().toISOString();
+                    await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "employees"), data);
+                    this.showToast('تم إضافة الموظف بنجاح', 'success');
                 }
-            });
-
-            // مراقبة الموظفين
-            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb, "employees"), (snap) => {
-                this.employees = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            });
+                this.showEmployeeModal = false;
+            } catch (e) { this.showToast('خطأ: ' + e.message, 'error'); }
         },
 
-        // احتساب وإدارة الضرائب للبند تلقائياً
-        calculateTaxValues() {
-            if (this.settlement.taxType === 'taxable') {
-                let beforeTax = parseFloat(this.settlement.amountBeforeTax) || 0;
-                let tax = beforeTax * 0.15;
-                this.settlement.taxAmount = parseFloat(tax.toFixed(2));
-                this.settlement.amount = parseFloat((beforeTax + tax).toFixed(2));
-            } else {
-                this.settlement.taxAmount = 0;
-                this.settlement.amountBeforeTax = '';
-            }
+        // ═══════════════════════════════════════════════════
+        // ═══ إدارة المستخدمين ═══
+        // ═══════════════════════════════════════════════════
+        getFilteredUsers() { let r = this.users; if (this.userSearchQuery) { const q = this.userSearchQuery.toLowerCase(); r = r.filter(u => u.email?.toLowerCase().includes(q)); } if (this.userFilterRole !== 'all') { r = r.filter(u => u.role === this.userFilterRole); } return r; },
+        openAddUserModal() { this.addUserStep = 1; this.addUserError = ''; this.showAddPassword = false; this.addUserLoading = false; this.addUserForm = { email: '', password: '', confirmPassword: '', role: 'user', permissions: Object.fromEntries(this.allTabs.map(t => [t.id, t.id !== 'users'])) }; this.showAddUserModal = true; },
+        validateAddUserStep1() { this.addUserError = ''; if (!this.addUserForm.email || !this.addUserForm.email.includes('@')) { this.addUserError = 'أدخل بريد إلكتروني صحيح'; return; } if (this.users.some(u => u.email === this.addUserForm.email)) { this.addUserError = 'هذا البريد مسجل بالفعل'; return; } if (!this.addUserForm.password || this.addUserForm.password.length < 6) { this.addUserError = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'; return; } if (this.addUserForm.password !== this.addUserForm.confirmPassword) { this.addUserError = 'كلمتا المرور غير متطابقتين'; return; } this.addUserStep = 2; },
+        applyAdminPermissions() { this.addUserForm.permissions = Object.fromEntries(this.allTabs.map(t => [t.id, true])); },
+        selectAllPermissions(value) { this.addUserForm.permissions = Object.fromEntries(this.allTabs.map(t => [t.id, value])); },
+        async addNewUser() { this.addUserLoading = true; this.addUserError = ''; try { const uc = await window.firebaseCreateUserSecondary(this.addUserForm.email, this.addUserForm.password); await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, "users", uc.user.uid), { email: this.addUserForm.email, role: this.addUserForm.role, permissions: this.addUserForm.permissions, createdAt: new Date().toISOString() }); await window.firebaseSignOutSecondary(); this.showAddUserModal = false; this.showToast('تم إنشاء المستخدم بنجاح', 'success'); } catch (e) { let m = 'حدث خطأ'; if (e.code === 'auth/email-already-in-use') m = 'هذا البريد مسجل بالفعل'; else if (e.code === 'auth/weak-password') m = 'كلمة المرور ضعيفة'; this.addUserError = m; } this.addUserLoading = false; },
+        async changeUserRole(u) { if (u.id === this.currentUser?.id) { this.showToast('لا يمكنك تغيير دورك', 'error'); return; } const nr = u.role === 'admin' ? 'user' : 'admin'; if (!confirm('تغيير دور ' + u.email + '؟')) return; try { const np = nr === 'admin' ? Object.fromEntries(this.allTabs.map(t => [t.id, true])) : Object.fromEntries(this.allTabs.map(t => [t.id, t.id !== 'users'])); await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "users", u.id), { role: nr, permissions: np }); this.showToast('تم تغيير الدور', 'success'); } catch (e) { this.showToast('خطأ', 'error'); } },
+        async resetUserPassword(u) { if (!confirm('إرسال رابط إعادة تعيين كلمة المرور إلى ' + u.email + '؟')) return; try { await window.firebaseSendPasswordReset(u.email); this.showToast('تم إرسال الرابط', 'info'); } catch (e) { this.showToast('خطأ في الإرسال', 'error'); } },
+        async deleteUser(u) { if (u.id === this.currentUser?.id) { this.showToast('لا يمكنك حذف حسابك', 'error'); return; } if (this.users.filter(usr => usr.role === 'admin').length <= 1 && u.role === 'admin') { this.showToast('لا يمكن حذف آخر مدير', 'error'); return; } if (!confirm('حذف المستخدم ' + u.email + '؟')) return; try { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "users", u.id)); this.showToast('تم حذف المستخدم', 'success'); } catch (e) { this.showToast('خطأ', 'error'); } },
+        editPermissions(u) { this.userForm = { id: u.id, email: u.email, permissions: { ...u.permissions } || {} }; this.showUserModal = true; },
+        async savePermissions() { try { await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "users", this.userForm.id), { permissions: this.userForm.permissions }); this.showUserModal = false; this.showToast('تم حفظ الصلاحيات', 'success'); } catch (e) { this.showToast('خطأ', 'error'); } },
+
+        // ═══ التدفقات النقدية ═══
+        openFlowModal(t){this.flowForm={id:null,type:t,date:new Date().toISOString().split('T')[0],item:'',subItem:'',category:'تشغيلية',amount:'',notes:''};this.showFlowModal=true;},
+        openOpeningBalanceModal(){if(this.hasOpeningBalance){alert("مسجل مسبقاً");return;}this.flowForm={id:null,type:'inflow',date:new Date().toISOString().split('T')[0],item:'رصيد بداية المدة',subItem:'',category:'رصيد بداية',amount:'',notes:''};this.showFlowModal=true;},
+        editFlow(f){this.flowForm={...f,subItem:f.subItem||'',category:f.category||'تشغيلية'};this.showFlowModal=true;},
+        async saveFlow(){if(!this.flowForm.date||!this.flowForm.item||!this.flowForm.amount)return alert("أكمل البيانات");try{const isOp=this.flowForm.item==='رصيد بداية المدة';const d={date:this.flowForm.date,item:this.flowForm.item,subItem:isOp?'':(this.flowForm.subItem||''),category:isOp?'رصيد بداية':this.flowForm.category,amount:Number(this.flowForm.amount),type:this.flowForm.type,notes:this.flowForm.notes||''};if(this.flowForm.id)await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",this.flowForm.id),d);else await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),d);this.showFlowModal=false;}catch(e){alert("خطأ");}},
+        async deleteFlow(id){if(!confirm("حذف؟"))return;try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",id));}catch(e){alert(e.message);}},
+        downloadFlowTemplate(){const ws=XLSX.utils.aoa_to_sheet([["التاريخ","النوع","البند الرئيسي","التفصيل","التصنيف","المبلغ"],["2024-01-15","outflow","مدفوعات","شركة","تشغيلية",5000]]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"قالب");XLSX.writeFile(wb,"Template.xlsx");},
+        async importFlowsFromExcel(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=async(e)=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);let c=0;for(let ro of rows){const dt=ro['التاريخ']||'',it=ro['البند الرئيسي']||'',am=Number(ro['المبلغ'])||0;let ty=ro['النوع']||'outflow',ct=ro['التصنيف']||'تشغيلية';if(it==='رصيد بداية المدة'&&this.hasOpeningBalance)continue;if(it==='رصيد بداية المدة'){ty='inflow';ct='رصيد بداية';}if(dt&&it&&am>0){await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{date:dt,type:(ty==='inflow'||ty==='outflow')?ty:'outflow',item:it,subItem:ro['التفصيل']||'',category:['تشغيلية','استثمارية','تمويلية','رصيد بداية'].includes(ct)?ct:'تشغيلية',amount:am,notes:'Excel'});c++;}}alert("تم استيراد "+c);}catch(err){alert(err.message);}};r.readAsArrayBuffer(f);ev.target.value='';},
+
+        // ═══ العهد المالية ═══
+        openCustodyModal(){this.custodyForm={id:null,employee:'',date:new Date().toISOString().split('T')[0],amount:'',notes:'',additionalAmount:'',isEnhance:false,isOpeningBalance:false,linkedFlowId:null};this.showCustodyModal=true;},
+        editCustody(c){this.custodyForm={...c,isEnhance:false,additionalAmount:'',isOpeningBalance:false};this.showCustodyModal=true;},
+        enhanceCustody(c){this.custodyForm={...c,isEnhance:true,additionalAmount:'',isOpeningBalance:false};this.showCustodyModal=true;},
+        async deleteCustody(cu){if(!cu||!cu.id)return;if(!confirm("حذف العهدة؟"))return;if(cu.linkedFlowId&&typeof cu.linkedFlowId==='string'){try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",cu.linkedFlowId));}catch(e){}}try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"custodies",String(cu.id)));}catch(e){alert(e.message);}},
+        async saveCustody(){
+            try{
+                if(this.custodyForm.isEnhance){
+                    if(!this.custodyForm.additionalAmount) return alert("أدخل المبلغ");
+                    await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",this.custodyForm.id),{amount:Number(this.custodyForm.amount)+Number(this.custodyForm.additionalAmount)});
+                    await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{type:'outflow',date:new Date().toISOString().split('T')[0],item:'تعزيز عهدة',subItem:this.custodyForm.employee,category:'تشغيلية',amount:Number(this.custodyForm.additionalAmount)});
+                } else if(this.custodyForm.id){
+                    if(!this.custodyForm.employee||!this.custodyForm.amount) return alert("أكمل");
+                    await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",this.custodyForm.id),{employee:this.custodyForm.employee,date:this.custodyForm.date,amount:Number(this.custodyForm.amount)});
+                    if(this.custodyForm.linkedFlowId){try{await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",this.custodyForm.linkedFlowId),{date:this.custodyForm.date,amount:Number(this.custodyForm.amount)});}catch(e){}}
+                } else {
+                    if(!this.custodyForm.employee||!this.custodyForm.amount) return alert("أكمل");
+                    if(!this.custodyForm.isOpeningBalance){
+                        const fr=await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{type:'outflow',date:this.custodyForm.date,item:'عهد موظفين',subItem:this.custodyForm.employee,category:'تشغيلية',amount:Number(this.custodyForm.amount)});
+                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"),{employee:this.custodyForm.employee,date:this.custodyForm.date,amount:Number(this.custodyForm.amount),notes:this.custodyForm.notes,status:'مفتوحة',settlements:[],linkedFlowId:fr.id,isOpeningBalance:false,isCarriedForward:false});
+                    } else {
+                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"),{employee:this.custodyForm.employee,date:this.custodyForm.date,amount:Number(this.custodyForm.amount),notes:this.custodyForm.notes+' (رصيد بداية)',status:'مفتوحة',settlements:[],linkedFlowId:null,isOpeningBalance:true,isCarriedForward:false});
+                    }
+                }
+                this.showCustodyModal=false;
+            } catch(e){ alert("خطأ: "+e.message); }
         },
 
-        // إدارة شؤون الموظفين (إضافة، تعديل، حذف)
-        saveEmployee() {
-            if (!this.employeeForm.name.trim()) {
-                this.showToast('error', 'الرجاء إدخال اسم الموظف'); return;
-            }
-            let data = { name: this.employeeForm.name.trim(), notes: this.employeeForm.notes.trim() };
-            
-            if (this.employeeForm.id) {
-                window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "employees", this.employeeForm.id), data)
-                    .then(() => { this.showToast('success', 'تم تحديث الموظف بنجاح'); this.resetEmployeeForm(); });
-            } else {
-                window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "employees"), data)
-                    .then(() => { this.showToast('success', 'تم إضافة الموظف الجديد بنجاح'); this.resetEmployeeForm(); });
-            }
-        },
-        editEmployee(emp) {
-            this.employeeForm.id = emp.id;
-            this.employeeForm.name = emp.name;
-            this.employeeForm.notes = emp.notes || '';
-        },
-        deleteEmployee(id) {
-            if (confirm('هل أنت متأكد من حذف هذا الموظف من النظام؟')) {
-                window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "employees", id))
-                    .then(() => this.showToast('success', 'تم حذف الموظف'));
-            }
-        },
-        resetEmployeeForm() {
-            this.employeeForm = { id: null, name: '', notes: '' };
+        // ═══════════════════════════════════════════════════
+        // ═══ تقفيل العهد - مع ضريبة لكل بند ═══
+        // ═══════════════════════════════════════════════════
+        getSelectedCustody(){ return this.custodies.find(c=>c.id===this.settlement.selectedCustodyId); },
+        getCustodySpent(c){ return c ? (c.settlements||[]).reduce((s,st)=>s+Number(st.amount),0) : 0; },
+        
+        calcSettlementTax() {
+            // محسوب تلقائياً عبر الـ getters
         },
 
-        // لوحة التحكم والرسوم البيانية
-        calculateDashboardTotals() {
-            this.totalInflow = this.flows.filter(f => f.type === 'inflow').reduce((a, c) => a + (parseFloat(c.amount) || 0), 0);
-            this.totalOutflow = this.flows.filter(f => f.type === 'outflow').reduce((a, c) => a + (parseFloat(c.amount) || 0), 0);
-            this.currentBalance = this.totalInflow - this.totalOutflow;
-            this.hasOpeningBalance = this.flows.some(f => f.item === 'رصيد بداية المدة');
-            this.$nextTick(() => { this.renderCharts(); });
-        },
+        async settleCustody(){
+            if(!this.settlement.item) return alert("أدخل البند");
+            try {
+                let amountToSave = 0;
+                let settlementData = {
+                    id: Date.now().toString(),
+                    date: this.settlement.date,
+                    item: this.settlement.item,
+                    subItem: this.settlement.subItem || '',
+                    category: this.settlement.category,
+                    accountingDirection: this.settlement.accountingDirection || '',
+                    isTaxable: this.settlement.isTaxable || false,
+                    amountBeforeTax: 0,
+                    taxRate: 0,
+                    taxAmount: 0,
+                    amount: 0
+                };
 
-        getSortedFlows() {
-            return [...this.flows].sort((a,b) => new Date(b.date) - new Date(a.date));
-        },
+                if (this.settlement.isTaxable) {
+                    const amtBeforeTax = Number(this.settlement.amountBeforeTax) || 0;
+                    const rate = Number(this.settlement.taxRate) || 15;
+                    const taxAmt = amtBeforeTax * (rate / 100);
+                    settlementData.amountBeforeTax = amtBeforeTax;
+                    settlementData.taxRate = rate;
+                    settlementData.taxAmount = taxAmt;
+                    settlementData.amount = amtBeforeTax + taxAmt;
+                } else {
+                    if(!this.settlement.amount) return alert("أدخل المبلغ المصروف");
+                    settlementData.amount = Number(this.settlement.amount);
+                }
 
-        // الصندوق الرئيسي والتدفقات النقدية
-        openFlowModal(type) {
-            this.flowForm = { id: null, type: type, date: new Date().toISOString().split('T')[0], item: '', subItem: '', category: 'تشغيلية', amount: '' };
-            this.modals.flow = true;
-        },
-        saveFlow() {
-            if(!this.flowForm.item || !this.flowForm.amount) { this.showToast('error', 'أكمل الحقول المطلوبة'); return; }
-            let d = { type: this.flowForm.type, date: this.flowForm.date, item: this.flowForm.item, subItem: this.flowForm.subItem, category: this.flowForm.category, amount: parseFloat(this.flowForm.amount) };
-            window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "flows"), d).then(() => {
-                this.modals.flow = false; this.showToast('success', 'تم الحفظ في حركة الصندوق');
-            });
-        },
-        deleteFlow(id) {
-            if(confirm('هل تود حذف هذا التدفق النقدي؟')) {
-                window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "flows", id)).then(() => this.showToast('success', 'تم الحذف'));
-            }
-        },
-
-        // العمليات على العهد الشخصية
-        openCustodyModal() {
-            this.custodyForm = { id: null, employee: '', amount: '', date: new Date().toISOString().split('T')[0], status: 'مفتوحة', settlements: [] };
-            this.modals.custody = true;
-        },
-        saveCustody() {
-            if(!this.custodyForm.employee || !this.custodyForm.amount) { this.showToast('error', 'الرجاء ملء حقول العهدة'); return; }
-            let d = { employee: this.custodyForm.employee, amount: parseFloat(this.custodyForm.amount), date: this.custodyForm.date, status: this.custodyForm.status, settlements: this.custodyForm.settlements || [] };
-            
-            if(this.custodyForm.id) {
-                window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "custodies", this.custodyForm.id), d).then(() => {
-                    this.modals.custody = false; this.showToast('success', 'تم تحديث العهدة');
+                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",this.settlement.selectedCustodyId),{
+                    settlements: window.arrayUnion(settlementData)
                 });
-            } else {
-                window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "custodies"), d).then(() => {
-                    this.modals.custody = false; this.showToast('success', 'تم إنشاء العهدة للموظف بنجاح');
-                });
-            }
-        },
-        editCustody(c) {
-            this.custodyForm = { id: c.id, employee: c.employee, amount: c.amount, date: c.date, status: c.status, settlements: c.settlements || [] };
-            this.modals.custody = true;
-        },
-        deleteCustody(c) {
-            if(confirm('هل أنت متأكد من حذف العهدة نهائياً؟')) {
-                window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "custodies", c.id)).then(() => this.showToast('success', 'تم حذف العهدة'));
-            }
-        },
-        getCustodySpent(c) {
-            return (c.settlements || []).reduce((a,c) => a + (parseFloat(c.amount) || 0), 0);
-        },
-        getSelectedCustody() {
-            return this.custodies.find(c => c.id === this.settlement.selectedCustodyId);
+
+                this.settlement = { selectedCustodyId: this.settlement.selectedCustodyId, date:'', item:'', subItem:'', category:'تشغيلية', amount:'', accountingDirection:'', isTaxable:false, amountBeforeTax:'', taxRate:15 };
+            } catch(e){ alert(e.message); }
         },
 
-        // تسوية بند في العهدة وحسابه ضريبياً
-        settleCustody() {
-            let cust = this.getSelectedCustody();
-            if(!cust) return;
-            if(!this.settlement.item || !this.settlement.amount) { this.showToast('error', 'يرجى إدخال اسم البند والمبلغ المطلوب'); return; }
-            
-            let amt = parseFloat(this.settlement.amount);
-            let remaining = cust.amount - this.getCustodySpent(cust);
-            if(amt > remaining) { this.showToast('error', 'المبلغ المدخل يتجاوز المتبقي من العهدة المالية للموظف'); return; }
-
-            let newItem = {
-                id: 'st_' + Date.now(),
-                date: this.settlement.date,
-                item: this.settlement.item,
-                subItem: this.settlement.subItem,
-                category: this.settlement.category,
-                taxType: this.settlement.taxType,
-                amountBeforeTax: this.settlement.taxType === 'taxable' ? parseFloat(this.settlement.amountBeforeTax) : 0,
-                taxAmount: this.settlement.taxType === 'taxable' ? parseFloat(this.settlement.taxAmount) : 0,
-                amount: amt,
-                accountingDirection: this.settlement.accountingDirection
-            };
-
-            let updatedSettlements = [...(cust.settlements || []), newItem];
-            window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "custodies", cust.id), { settlements: updatedSettlements })
-                .then(() => {
-                    this.showToast('success', 'تم إدراج وتسوية بند العهدة بنجاح');
-                    this.settlement.item = ''; this.settlement.subItem = ''; this.settlement.amountBeforeTax = ''; this.settlement.taxAmount = 0; this.settlement.amount = ''; this.settlement.accountingDirection = '';
-                });
-        },
-
-        deleteSettlementItem(stId) {
-            let cust = this.getSelectedCustody();
-            if(!cust) return;
-            if(confirm('هل تود حذف بند الصرف والتسوية الحالي؟')) {
-                let updated = cust.settlements.filter(s => s.id !== stId);
-                window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "custodies", cust.id), { settlements: updated })
-                    .then(() => this.showToast('success', 'تمت إزالة البند'));
-            }
+        async deleteSettlementItem(sid){
+            if(!confirm("حذف البند؟"))return;
+            const c=this.getSelectedCustody();if(!c)return;
+            try{await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id),{settlements:c.settlements.filter(s=>s.id!==sid)});}catch(e){}
         },
 
         openCloseCustodyModal(c) {
-            if(confirm(`هل تود إغلاق وتقفيل عهدة الموظف ${c.employee} بشكل نهائي؟`)) {
-                window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "custodies", c.id), { status: 'مقفلة' }).then(() => {
-                    // ترحيل المبلغ المتبقي إن وجد كتدفق خارج من حركة الصندوق
-                    let spent = this.getCustodySpent(c);
-                    let diff = c.amount - spent;
-                    if(spent > 0) {
-                        window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "flows"), {
-                            type: 'outflow', date: new Date().toISOString().split('T')[0], item: `تقفيل عهدة الموظف: ${c.employee}`, subItem: 'مصاريف تسوية معتمدة', category: 'تشغيلية', amount: spent
-                        });
+            this.closeCustodyData = c;
+            this.closeAction = 'return';
+            this.showCloseCustodyModal = true;
+        },
+
+        async closeAndGenerateCustodyReport() {
+            const c = this.closeCustodyData; 
+            if(!c) return;
+            const sp = this.getCustodySpent(c); 
+            const rem = c.amount - sp; 
+            const td = new Date().toISOString().split('T')[0];
+            const closeResult = rem <= 0 ? 'fully_settled' : (this.closeAction === 'return' ? 'returned' : 'carried_forward');
+
+            try {
+                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id), { status:'مقفلة', closedAt:td, closeResult: closeResult });
+
+                if(c.linkedFlowId) { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows", c.linkedFlowId)); }
+
+                if(c.settlements && c.settlements.length > 0) {
+                    for(let s of c.settlements) {
+                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), { type:'outflow', date: s.date || td, item: s.item, subItem: s.subItem || c.employee, category: s.category || 'تشغيلية', amount: Number(s.amount), notes: 'تقفيل عهدة - ' + c.employee });
                     }
-                    this.showToast('success', 'تم تقفيل وإقفال العهدة بنجاح');
+                }
+
+                if(rem > 0) {
+                    if(this.closeAction === 'return') {
+                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), { type:'inflow', date:td, item:'رد عهدة مقفلة', subItem:c.employee, category:'تشغيلية', amount:rem });
+                    } else {
+                        const newFlowRef = await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), { type:'outflow', date:td, item:'عهدة مرحلة', subItem:c.employee, category:'تشغيلية', amount:rem });
+                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"), { employee:c.employee, date:td, amount:rem, notes:'متبقي عهدة مرحّل', status:'مفتوحة', settlements:[], linkedFlowId:newFlowRef.id, isOpeningBalance:true, isCarriedForward:true });
+                    }
+                }
+
+                this.showCloseCustodyModal = false;
+                c.closeResult = closeResult;
+                this.generateCustodyReportHTML(c, sp, rem, td);
+            } catch(e) { alert("خطأ: "+e.message); }
+        },
+
+        rePrintCustodyReport(c) {
+            const sp = this.getCustodySpent(c); const rem = c.amount - sp;
+            const closeDate = c.closedAt || new Date().toISOString().split('T')[0];
+            this.generateCustodyReportHTML(c, sp, rem, closeDate);
+        },
+
+        generateCustodyReportHTML(c, spent, remaining, closeDate) {
+            const act = c.closeResult === 'returned' ? 'تم رد المبلغ للصندوق' : (c.closeResult === 'carried_forward' ? 'تم ترحيل المتبقي لعهدة جديدة' : 'مقفلة بالكامل');
+            let rows = '';
+            (c.settlements||[]).forEach((s,i) => { 
+                let taxInfo = s.isTaxable ? `<br><small style="color:#3b82f6">ضريبي: قبل الضريبة ${Number(s.amountBeforeTax).toLocaleString('ar-SA')} | ضريبة ${s.taxRate}%: ${Number(s.taxAmount).toLocaleString('ar-SA')}</small>` : '';
+                rows += `<tr><td style="text-align:center">${i+1}</td><td>${s.date||''}</td><td>${s.item||''}<br><small style="color:#64748b">${s.subItem||''}</small>${taxInfo}</td><td>${s.category||''}</td><td>${s.accountingDirection||'-'}</td><td style="text-align:left">${Number(s.amount).toLocaleString('ar-SA')}</td></tr>`; 
+            });
+
+            this.custodyReportHTML = 
+                `<div style="text-align:center;margin-bottom:30px"><h2 style="margin:0;font-size:24px">تقرير تقفيل عهدة</h2><p style="color:#64748b;margin:5px 0 0 0">تاريخ التقفيل: ${closeDate}</p></div>` +
+                `<div class="summary-box"><div class="summary-row"><span style="font-weight:bold">الموظف:</span><span>${c.employee}</span></div><div class="summary-row"><span style="font-weight:bold">تاريخ العهدة:</span><span>${c.date}</span></div></div>` +
+                `<table><thead><tr><th style="text-align:center">#</th><th>التاريخ</th><th>البند والتفصيل</th><th>التصنيف</th><th>التوجيه</th><th style="text-align:left">الإجمالي</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="total-row"><td colspan="5" style="text-align:left;font-weight:bold">إجمالي المصروفات</td><td style="text-align:left;font-weight:bold">${spent.toLocaleString('ar-SA')}</td></tr></tfoot></table>` +
+                `<div class="summary-box" style="margin-top:20px;border-color:#16a34a"><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">رصيد بداية العهدة:</span><span>${Number(c.amount).toLocaleString('ar-SA')} ر.س</span></div><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">(-) المصروفات:</span><span style="color:#dc2626">${spent.toLocaleString('ar-SA')} ر.س</span></div><div class="summary-row" style="font-size:18px;border-bottom:none"><span style="font-weight:bold">رصيد نهاية التقفيل:</span><span style="color:#16a34a">${remaining.toLocaleString('ar-SA')} ر.س</span></div><div style="text-align:center;margin-top:15px;padding:10px;background:#f0fdf4;border-radius:6px;color:#166534;font-weight:bold">الإجراء: ${act}</div></div>` +
+                `<div style="margin-top:60px;display:flex;justify-content:space-between"><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع الموظف</p><br><br><p style="border-top:1px solid #94a3b8">.............................</p></div><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع المدير المالي</p><br><br><p style="border-top:1px solid #94a3b8">.............................</p></div></div>`;
+
+            setTimeout(() => { const ch=confirm("موافق = PDF\nإلغاء = Excel"); if(ch) this.exportPDF('custody-report-print'); else this.exportCustodyReportExcel(c,spent,remaining,act,closeDate); }, 300);
+        },
+
+        exportCustodyReportExcel(c,sp,rem,act,cd){
+            const rows=(c.settlements||[]).map(s=>[s.date, s.item, s.subItem||'', s.category, s.accountingDirection||'', s.isTaxable?'نعم':'لا', s.isTaxable?Number(s.amountBeforeTax):'-', s.isTaxable?Number(s.taxAmount):'-', Number(s.amount)]);
+            rows.push(["","","","","","","","إجمالي المصروفات",sp]);
+            rows.push(["","","","","","","","المتبقي",rem]);
+            const ws=XLSX.utils.aoa_to_sheet([['تقرير تقفيل عهدة: '+c.employee],[],["التاريخ","البند","التفصيل","التصنيف","التوجيه","ضريبي","قبل الضريبة","الضريبة","الإجمالي"],...rows]);
+            const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"تقفيل");
+            XLSX.writeFile(wb,'Report_'+c.employee+'_'+cd+'.xlsx');
+        },
+
+        // ═══════════════════════════════════════════════════
+        // ═══ استعلام العهد - تصدير Excel احترافي ═══
+        // ═══════════════════════════════════════════════════
+        applyInquiry(){
+            const emp=this.inquiry.employee;
+            if(!emp)return alert("اختر الموظف");
+            let f=this.custodies.filter(c=>c.employee===emp);
+            if(this.inquiry.from)f=f.filter(c=>c.date>=this.inquiry.from);
+            if(this.inquiry.to)f=f.filter(c=>c.date<=this.inquiry.to);
+            let res={employee:emp,totalAmount:0,totalSpent:0,remaining:0,settlements:[],custodyDetails:[]};
+            f.forEach(c=>{
+                const sp=this.getCustodySpent(c);
+                if(!c.isCarriedForward)res.totalAmount+=Number(c.amount);
+                (c.settlements||[]).forEach(s=>{ res.totalSpent+=Number(s.amount); res.settlements.push(s); });
+                res.custodyDetails.push({id:c.id,date:c.date,amount:Number(c.amount),spent:sp,status:c.status,isCarriedForward:c.isCarriedForward||false,settlements:c.settlements||[]});
+            });
+            res.remaining=res.totalAmount-res.totalSpent;
+            this.inquiryResult=res;
+        },
+
+        async exportInquiryExcelPro() {
+            if(!this.inquiryResult) return;
+            try {
+                const workbook = new ExcelJS.Workbook();
+                workbook.creator = 'نظام التدفقات النقدية';
+                workbook.views[0] = { rightToLeft: true };
+
+                const ws = workbook.addWorksheet('تقرير استعلام العهد', {
+                    properties: { tabColor: { argb: '1F4E79' } },
+                    pageSetup: { paperSize: 9, orientation: 'landscape' }
                 });
+
+                // العنوان الرئيسي
+                ws.mergeCells('A1:K1');
+                const titleCell = ws.getCell('A1');
+                titleCell.value = 'تقرير استعلام العهد: ' + this.inquiryResult.employee;
+                titleCell.font = { name: 'Arial', size: 16, bold: true, color: { argb: '1F4E79' } };
+                titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D6E4F0' } };
+                ws.getRow(1).height = 35;
+
+                // ملخص
+                ws.mergeCells('A2:K2');
+                const sumCell = ws.getCell('A2');
+                sumCell.value = `إجمالي العهد: ${this.inquiryResult.totalAmount} ر.س  |  إجمالي المصروف: ${this.inquiryResult.totalSpent} ر.س  |  المتبقي: ${this.inquiryResult.remaining} ر.س`;
+                sumCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: '333333' } };
+                sumCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                sumCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F2F2F2' } };
+                ws.getRow(2).height = 25;
+
+                // رؤوس الأعمدة
+                const headers = ['#', 'تاريخ العهدة', 'تاريخ الصرف', 'البند', 'التفصيل', 'التصنيف', 'التوجيه المحاسبي', 'ضريبي', 'المبلغ قبل الضريبة', 'قيمة الضريبة', 'الإجمالي شامل الضريبة'];
+                const headerRow = ws.addRow(headers);
+                headerRow.height = 30;
+                headerRow.eachCell((cell) => {
+                    cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFF' } };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1F4E79' } };
+                    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+                    cell.border = { top: {style:'thin', color:{argb:'000000'}}, left: {style:'thin', color:{argb:'000000'}}, bottom: {style:'thin', color:{argb:'000000'}}, right: {style:'thin', color:{argb:'000000'}} };
+                });
+
+                // البيانات
+                let rowCount = 3;
+                this.inquiryResult.custodyDetails.forEach((cd, idx) => {
+                    if (cd.settlements && cd.settlements.length > 0) {
+                        cd.settlements.forEach(s => {
+                            const row = ws.addRow([
+                                idx + 1,
+                                cd.date,
+                                s.date || '-',
+                                s.item || '-',
+                                s.subItem || '-',
+                                s.category || '-',
+                                s.accountingDirection || '-',
+                                s.isTaxable ? 'نعم' : 'لا',
+                                s.isTaxable ? Number(s.amountBeforeTax || 0) : '-',
+                                s.isTaxable ? Number(s.taxAmount || 0) : '-',
+                                Number(s.amount)
+                            ]);
+                            row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                                cell.font = { name: 'Arial', size: 10 };
+                                cell.border = { top: {style:'thin', color:{argb:'CCCCCC'}}, left: {style:'thin', color:{argb:'CCCCCC'}}, bottom: {style:'thin', color:{argb:'CCCCCC'}}, right: {style:'thin', color:{argb:'CCCCCC'}} };
+                                if (rowCount % 2 === 0) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F9F9F9' } };
+                                if (colNumber === 8 && s.isTaxable) cell.font = { name: 'Arial', size: 10, color: { argb: '0070C0' }, bold: true };
+                                if (colNumber === 11) { cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'C00000' } }; }
+                            });
+                            rowCount++;
+                        });
+                    } else {
+                        const row = ws.addRow([idx + 1, cd.date, '-', '-', '-', '-', '-', '-', '-', '-', Number(cd.amount)]);
+                        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                            cell.font = { name: 'Arial', size: 10, color: {argb: '888888'} };
+                            cell.border = { top: {style:'thin', color:{argb:'CCCCCC'}}, left: {style:'thin', color:{argb:'CCCCCC'}}, bottom: {style:'thin', color:{argb:'CCCCCC'}}, right: {style:'thin', color:{argb:'CCCCCC'}} };
+                        });
+                        rowCount++;
+                    }
+                });
+
+                // صف الإجمالي
+                const totalRow = ws.addRow(['', '', '', '', '', '', '', 'الإجمالي', '', '', Number(this.inquiryResult.totalSpent)]);
+                totalRow.eachCell((cell, colNumber) => {
+                    cell.font = { name: 'Arial', size: 11, bold: true, color: { argb: '1F4E79' } };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D6E4F0' } };
+                    cell.border = { top: {style:'medium', color:{argb:'1F4E79'}}, left: {style:'thin', color:{argb:'1F4E79'}}, bottom: {style:'medium', color:{argb:'1F4E79'}}, right: {style:'thin', color:{argb:'1F4E79'}} };
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    if(colNumber === 11) cell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'C00000' } };
+                });
+
+                // عرض الأعمدة
+                ws.columns = [
+                    { width: 5 }, { width: 14 }, { width: 14 }, { width: 22 }, { width: 18 },
+                    { width: 12 }, { width: 20 }, { width: 10 }, { width: 18 }, { width: 16 }, { width: 22 }
+                ];
+
+                const buffer = await workbook.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Inquiry_${this.inquiryResult.employee}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                this.showToast('تم تصدير الملف بنجاح', 'success');
+            } catch(e) {
+                console.error(e);
+                this.showToast('خطأ في التصدير: ' + e.message, 'error');
             }
         },
 
-        // البحث والاستعلام
-        applyInquiry() {
-            let res = [];
-            this.custodies.forEach(c => {
-                if(this.inquiry.employee && c.employee !== this.inquiry.employee) return;
-                
-                let filteredSettlements = (c.settlements || []).filter(s => {
-                    if(this.inquiry.from && s.date < this.inquiry.from) return false;
-                    if(this.inquiry.to && s.date > this.inquiry.to) return false;
-                    return true;
-                });
-
-                if(filteredSettlements.length > 0 || !this.inquiry.from) {
-                    res.push({
-                        id: c.id, employee: c.employee, date: c.date, amount: c.amount, status: c.status, isCarriedForward: c.isCarriedForward,
-                        spent: filteredSettlements.reduce((a,x) => a + x.amount, 0), settlements: filteredSettlements
-                    });
-                }
-            });
-
-            let totalAmt = res.reduce((a,x) => a + x.amount, 0);
-            let totalSpent = res.reduce((a,x) => a + x.spent, 0);
-
-            this.inquiryResult = {
-                employee: this.inquiry.employee || 'كل الموظفين',
-                totalAmount: totalAmt, totalSpent: totalSpent, remaining: totalAmt - totalSpent, custodyDetails: res
+        // ═══ التحليل والتقارير ═══
+        generateAnalysis() {
+            if(!this.analysis.from||!this.analysis.to) return alert("حدد الفترة");
+            const from=this.analysis.from, to=this.analysis.to;
+            let pf = this.flows.filter(f => f.date>=from && f.date<=to && f.item!=='رصيد بداية المدة');
+            if(this.analysis.type !== 'all') pf = pf.filter(f => f.type === this.analysis.type);
+            if(this.analysis.category !== 'all') pf = pf.filter(f => f.category === this.analysis.category);
+            const totalIn = pf.filter(f=>f.type==='inflow').reduce((s,f)=>s+Number(f.amount),0);
+            const totalOut = pf.filter(f=>f.type==='outflow').reduce((s,f)=>s+Number(f.amount),0);
+            const net = totalIn - totalOut;
+            const daysDiff = Math.max(1, (new Date(to) - new Date(from)) / (1000 * 60 * 60 * 24));
+            const dailyNet = net / daysDiff;
+            const currentBal = this.currentBalance;
+            this.analysis.data = {
+                totalIn, totalOut, net, 
+                forecast30: currentBal + (dailyNet * 30), forecast60: currentBal + (dailyNet * 60), forecast90: currentBal + (dailyNet * 90),
+                flows: pf.sort((a,b) => new Date(a.date)-new Date(b.date))
             };
         },
+        exportAnalysisExcel() {
+            if(!this.analysis.data) return;
+            const rows = this.analysis.data.flows.map(f => ({'التاريخ':f.date, 'النوع':f.type==='inflow'?'داخل':'خارج', 'البند':f.item, 'التفصيل':f.subItem||'', 'التصنيف':f.category, 'المبلغ':f.amount}));
+            const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "تحليل"); XLSX.writeFile(wb, "Analysis.xlsx");
+        },
 
-        // تصدير فخم ومنسق بألوان جذابة ومتناسقة إلى Excel
-        exportInquiryExcel() {
-            if (!this.inquiryResult || this.inquiryResult.custodyDetails.length === 0) {
-                this.showToast('error', 'لا توجد بيانات مستعلم عنها لتصديرها، يرجى الاستعلام أولاً'); return;
-            }
+        generateReport(){
+            if(!this.report.from||!this.report.to)return alert("حدد الفترة");
+            const from=this.report.from,to=this.report.to;
+            const oF=this.flows.find(f=>f.item==='رصيد بداية المدة');
+            const oA=oF?Number(oF.amount):0;
+            const bN=this.flows.filter(f=>f.date<from&&f.item!=='رصيد بداية المدة').reduce((a,c)=>a+(c.type==='inflow'?Number(c.amount):-Number(c.amount)),0);
+            const oB=oA+bN;
+            const pf=this.flows.filter(f=>f.date>=from&&f.date<=to&&f.item!=='رصيد بداية المدة');
+            const calc=(t,cat)=>pf.filter(f=>f.type===t&&f.category===cat).reduce((s,f)=>s+Number(f.amount),0);
+            const oI=calc('inflow','تشغيلية'),oO=calc('outflow','تشغيلية'),iI=calc('inflow','استثمارية'),iO=calc('outflow','استثمارية'),fI=calc('inflow','تمويلية'),fO=calc('outflow','تمويلية');
+            const nO=oI-oO,nI=iI-iO,nF=fI-fO,nCF=nO+nI+nF;
+            this.report.data={openingBalance:oB,operatingIn:oI,operatingOut:oO,netOperating:nO,investingIn:iI,investingOut:iO,netInvesting:nI,financingIn:fI,financingOut:fO,netFinancing:nF,netCashFlow:nCF,closingBalance:oB+nCF};
+        },
+        exportReportExcel(){
+            if(!this.report.data)return;
+            const ws=XLSX.utils.json_to_sheet([this.report.data]);const wb=XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb,ws,"تقرير");XLSX.writeFile(wb,"Cash_Flow_Statement.xlsx");
+        },
 
-            // تجميع وتجهيز أعمدة البيانات الفرعية المتقدمة
-            let rows = [];
-            this.inquiryResult.custodyDetails.forEach(c => {
-                if (c.settlements && c.settlements.length > 0) {
-                    c.settlements.forEach(s => {
-                        rows.push({
-                            'الموظف المسؤول': c.employee,
-                            'تاريخ العهدة': c.date,
-                            'تاريخ الصرف': s.date,
-                            'اسم البند': s.item,
-                            'التفصيل / البيان': s.subItem || '-',
-                            'التصنيف المالي': s.category,
-                            'التوجيه المحاسبي': s.accountingDirection || '-',
-                            'خاضع للضريبة': s.taxType === 'taxable' ? 'نعم (15%)' : 'لا',
-                            'المبلغ قبل الضريبة': s.taxType === 'taxable' ? s.amountBeforeTax : s.amount,
-                            'قيمة الضريبة 15%': s.taxType === 'taxable' ? s.taxAmount : 0,
-                            'المبلغ الإجمالي شامل الضريبة': s.amount,
-                            'حالة العهدة الحالية': c.status
-                        });
-                    });
-                } else {
-                    rows.push({
-                        'الموظف المسؤول': c.employee,
-                        'تاريخ العهدة': c.date,
-                        'تاريخ الصرف': '-',
-                        'اسم البند': 'رصيد عهدة متاح (لم يصرف شيء)',
-                        'التفصيل / البيان': '-',
-                        'التصنيف المالي': '-',
-                        'التوجيه المحاسبي': '-',
-                        'خاضع للضريبة': '-',
-                        'المبلغ قبل الضريبة': 0,
-                        'قيمة الضريبة 15%': 0,
-                        'المبلغ الإجمالي شامل الضريبة': 0,
-                        'حالة العهدة الحالية': c.status
+        exportPDF(divId){
+            const input=document.getElementById(divId);
+            const orig={position:input.style.position,left:input.style.left,top:input.style.top,zIndex:input.style.zIndex,opacity:input.style.opacity};
+            input.style.position='fixed';input.style.left='0';input.style.top='0';input.style.zIndex='-1';input.style.opacity='1';
+            setTimeout(()=>{
+                html2canvas(input,{scale:2,backgroundColor:divId==='custody-report-print'?"#ffffff":"#0f172a",useCORS:true, windowWidth: 1200}).then(canvas=>{
+                    const{jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');const w=pdf.internal.pageSize.getWidth();
+                    pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,w,(canvas.height*w)/canvas.width);
+                    pdf.save("Report.pdf");Object.assign(input.style,orig);
+                }).catch(err=>{alert("خطأ في PDF");Object.assign(input.style,orig);});
+            },200);
+        },
+
+        // ═══ الرسوم البيانية ═══
+        updateCharts(){
+            if(this.activeTab!=='dashboard') return;
+            setTimeout(()=>{
+                const sf=this.getSortedFlows().filter(f=>f.item!=='رصيد بداية المدة');
+                const labels=sf.map(f=>f.date), inD=sf.map(f=>f.type==='inflow'?Number(f.amount):0), outD=sf.map(f=>f.type==='outflow'?Number(f.amount):0);
+                const allSF=this.getSortedFlows(), balD=allSF.map(f=>f.runningBalance), balL=allSF.map(f=>f.date);
+
+                const ctx1=document.getElementById('flowChart')?.getContext('2d');
+                if(ctx1){
+                    if(this.flowChartInstance) this.flowChartInstance.destroy();
+                    this.flowChartInstance=new Chart(ctx1,{
+                        type:'bar',data:{labels,datasets:[{label:'داخلة',data:inD,backgroundColor:'#34d399',borderRadius:4},{label:'خارجة',data:outD,backgroundColor:'#f87171',borderRadius:4}]},
+                        options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}},plugins:{legend:{labels:{color:'#e2e8f0'}}}}
                     });
                 }
-            });
-
-            // إنشاء ورقة العمل وكتابة البيانات
-            let wb = XLSX.utils.book_new();
-            let ws = XLSX.utils.json_to_sheet(rows, { header: [
-                'الموظف المسؤول', 'تاريخ العهدة', 'تاريخ الصرف', 'اسم البند', 'التفصيل / البيان', 
-                'التصنيف المالي', 'التوجيه المحاسبي', 'خاضع للضريبة', 'المبلغ قبل الضريبة', 
-                'قيمة الضريبة 15%', 'المبلغ الإجمالي شامل الضريبة', 'حالة العهدة الحالية'
-            ]});
-
-            // إضافة خصائص التنسيق الاحترافي والألوان لورقة العمل (توجيه RTL وعرض الأعمدة)
-            ws['!dir'] = "rtl";
-            ws['!cols'] = [
-                { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 25 }, { wch: 30 }, 
-                { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, 
-                { wch: 25 }, { wch: 16 }
-            ];
-
-            // دمج ورقة العمل بالملف وتحميله مباشرة للمستخدم
-            XLSX.utils.book_append_sheet(wb, ws, "تقرير العهد والضرائب المفصل");
-            XLSX.writeFile(wb, `تقرير_العهد_المنسق_${new Date().toISOString().split('T')[0]}.xlsx`);
-            this.showToast('success', 'تم تصدير ملف إكسيل ملوّن ومنسق بالكامل بنجاح');
-        },
-
-        // تصدير PDF للمستندات المطبوعة
-        exportPDF(elementId) {
-            const { jsPDF } = window.jspdf;
-            let element = document.getElementById(elementId);
-            if(!element) return;
-            this.showToast('info', 'جاري إعداد وتحميل تقرير PDF...');
-            html2canvas(element, { scale: 2, useCORS: true }).then(canvas => {
-                let imgData = canvas.toDataURL('image/png');
-                let pdf = new jsPDF('p', 'mm', 'a4');
-                let imgWidth = 210; let pageHeight = 295;
-                let imgHeight = canvas.height * imgWidth / canvas.width;
-                let heightLeft = imgHeight; let position = 0;
-                
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
+                const ctx2=document.getElementById('balanceChart')?.getContext('2d');
+                if(ctx2){
+                    if(this.balanceChartInstance) this.balanceChartInstance.destroy();
+                    this.balanceChartInstance=new Chart(ctx2,{
+                        type:'line',data:{labels:balL,datasets:[{label:'الرصيد',data:balD,borderColor:'#3b82f6',fill:true,tension:0.4,backgroundColor:'rgba(59,130,246,0.1)'}]},
+                        options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}},plugins:{legend:{labels:{color:'#e2e8f0'}}}}
+                    });
                 }
-                pdf.save(`تقرير_مالي_${Date.now()}.pdf`);
-            });
-        },
-
-        // دوال المصادقة والأمان بـ Firebase Auth
-        login() {
-            if(!this.authForm.email || !this.authForm.password) { this.authError = 'الرجاء إدخال الحقول'; return; }
-            this.authLoading = true; this.authError = '';
-            window.firebaseSignIn(window.firebaseAuth, this.authForm.email, this.authForm.password)
-                .catch(err => { this.authError = 'خطأ في بيانات الدخول، يرجى التحقق'; })
-                .finally(() => { this.authLoading = false; });
-        },
-        register() {
-            if(!this.authForm.email || !this.authForm.password) { this.authError = 'أكمل الحقول المتاحة'; return; }
-            this.authLoading = true; this.authError = '';
-            window.firebaseSignUp(window.firebaseAuth, this.authForm.email, this.authForm.password)
-                .catch(err => { this.authError = 'فشل التسجيل: ' + err.message; })
-                .finally(() => { this.authLoading = false; });
-        },
-        logout() {
-            window.firebaseSignOut(window.firebaseAuth).then(() => {
-                this.isLoggedIn = false; this.activeTab = 'dashboard';
-            });
-        },
-
-        // توليد وتحديث الرسوم البيانية المتطورة
-        renderCharts() {
-            let sorted = [...this.flows].sort((a,b) => new Date(a.date) - new Date(b.date));
-            let labels = [...new Set(sorted.map(f => f.date))].slice(-10);
-            
-            let inD = labels.map(l => sorted.filter(f => f.date === l && f.type === 'inflow').reduce((a,c)=>a+c.amount,0));
-            let outD = labels.map(l => sorted.filter(f => f.date === l && f.type === 'outflow').reduce((a,c)=>a+c.amount,0));
-            
-            let currentBal = 0;
-            let balD = labels.map(l => {
-                let dayIn = sorted.filter(f => f.date === l && f.type === 'inflow').reduce((a,c)=>a+c.amount,0);
-                let dayOut = sorted.filter(f => f.date === l && f.type === 'outflow').reduce((a,c)=>a+c.amount,0);
-                currentBal += (dayIn - dayOut);
-                return currentBal;
-            });
-
-            const ctx1 = document.getElementById('flowChart')?.getContext('2d');
-            if(ctx1){
-                if(this.flowChartInstance) this.flowChartInstance.destroy();
-                this.flowChartInstance = new Chart(ctx1, {
-                    type: 'bar',
-                    data: { labels, datasets: [{ label: 'داخلة', data: inD, backgroundColor: '#34d399', borderRadius: 4 }, { label: 'خارجة', data: outD, backgroundColor: '#f87171', borderRadius: 4 }] },
-                    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } } }, plugins: { legend: { labels: { color: '#e2e8f0' } } } }
-                });
-            }
-
-            const ctx2 = document.getElementById('balanceChart')?.getContext('2d');
-            if(ctx2){
-                if(this.balanceChartInstance) this.balanceChartInstance.destroy();
-                this.balanceChartInstance = new Chart(ctx2, {
-                    type: 'line',
-                    data: { labels, datasets: [{ label: 'الرصيد التراكمي', data: balD, borderColor: '#3b82f6', fill: true, tension: 0.4, backgroundColor: 'rgba(59,130,246,0.1)' }] },
-                    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } } }, plugins: { legend: { labels: { color: '#e2e8f0' } } } }
-                });
-            }
+            }, 200);
         }
     }
 }
 </script>
-</body>
 </html>
