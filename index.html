@@ -955,48 +955,61 @@ function financialSystem() {
             let openingBalance = 0;
 
             empCustodies.forEach(c => {
-                // ═══ حساب المبلغ الأصلي للعهدة (بدون التعزيزات) ═══
+                // حساب المبلغ الأصلي للعهدة (بدون التعزيزات)
                 const totalEnhancementsAmount = (c.enhancements || []).reduce((sum, e) => sum + Number(e.amount), 0);
                 const originalCustodyAmount = Number(c.amount) - totalEnhancementsAmount;
 
-                // ═══ تحديد وصف العهدة بشكل صحيح (الترحيل له الأولوية) ═══
+                // تحديد وصف العهدة بشكل صحيح
                 const getCustodyDescription = (custody) => {
                     if (custody.isCarriedForward) return 'عهدة مرحّلة من عهدة سابقة';
                     if (custody.isOpeningBalance) return 'رصيد بداية عهدة';
                     return 'صرف عهدة جديدة';
                 };
 
-                // 1. إذا تم إنشاء العهدة قبل فترة الاستعلام
+                // ═══ معالجة العهد السابقة للفترة ═══
                 if(c.date < from) {
-                    // حساب رصيد هذه العهدة في بداية الفترة
-                    let custodyBalanceBeforePeriod = originalCustodyAmount;
-                    
-                    // خصم تسويات ما قبل الفترة
-                    (c.settlements||[]).filter(s => s.date < from).forEach(s => {
-                        custodyBalanceBeforePeriod -= Number(s.amount);
-                    });
-                    
-                    // إضافة تعزيزات ما قبل الفترة
-                    (c.enhancements||[]).filter(e => e.date < from).forEach(e => {
-                        custodyBalanceBeforePeriod += Number(e.amount);
-                    });
-                    
-                    // إضافة الرصيد المتبقي لبداية الفترة
-                    openingBalance += custodyBalanceBeforePeriod;
+                    if (c.isCarriedForward) {
+                        // العهدة المرحلة: لا نضيف مبلغها الأصلي لأنه محسوب بالفعل في رصيد العهدة السابقة
+                        // نحسب فقط تأثير التسويات والتعزيزات السابقة للفترة
+                        let custodyBalanceBeforePeriod = 0;
+                        (c.settlements||[]).filter(s => s.date < from).forEach(s => {
+                            custodyBalanceBeforePeriod -= Number(s.amount);
+                        });
+                        (c.enhancements||[]).filter(e => e.date < from).forEach(e => {
+                            custodyBalanceBeforePeriod += Number(e.amount);
+                        });
+                        openingBalance += custodyBalanceBeforePeriod;
+                    } else {
+                        // عهدة عادية: نضيف المبلغ الأصلي ونطرح التسويات ونضيف التعزيزات
+                        let custodyBalanceBeforePeriod = originalCustodyAmount;
+                        (c.settlements||[]).filter(s => s.date < from).forEach(s => {
+                            custodyBalanceBeforePeriod -= Number(s.amount);
+                        });
+                        (c.enhancements||[]).filter(e => e.date < from).forEach(e => {
+                            custodyBalanceBeforePeriod += Number(e.amount);
+                        });
+                        openingBalance += custodyBalanceBeforePeriod;
+                    }
                 } 
-                // 2. إذا تم إنشاء العهدة خلال فترة الاستعلام
+                // ═══ معالجة العهد خلال الفترة ═══
                 else if(c.date >= from && c.date <= to) {
-                    transactions.push({
-                        date: c.date,
-                        description: getCustodyDescription(c),
-                        debit: originalCustodyAmount,
-                        credit: 0,
-                        type: 'creation',
-                        sortDate: new Date(c.date).getTime()
-                    });
+                    if (c.isCarriedForward) {
+                        // العهدة المرحلة: لا نضيف المبلغ الأصلي كمعاملة مضافة جديدة
+                        // لأنه محسوب بالفعل كرصيد متبقي من العهدة الأصلية
+                        // نكتفي بمعالجة تسوياتها وتعزيزاتها فقط كمعاملات عادية
+                    } else {
+                        transactions.push({
+                            date: c.date,
+                            description: getCustodyDescription(c),
+                            debit: originalCustodyAmount,
+                            credit: 0,
+                            type: 'creation',
+                            sortDate: new Date(c.date).getTime()
+                        });
+                    }
                 }
 
-                // 3. التعزيزات خلال الفترة
+                // التعزيزات خلال الفترة (لجميع أنواع العهد)
                 (c.enhancements||[]).forEach(e => {
                     if(e.date >= from && e.date <= to) {
                         transactions.push({
@@ -1010,7 +1023,7 @@ function financialSystem() {
                     }
                 });
 
-                // 4. التسويات (المنصرف) خلال الفترة
+                // التسويات خلال الفترة (لجميع أنواع العهد)
                 (c.settlements||[]).forEach(s => {
                     if(s.date >= from && s.date <= to) {
                         transactions.push({
@@ -1024,7 +1037,7 @@ function financialSystem() {
                     }
                 });
 
-                // 5. إجراءات التقفيل خلال الفترة (رد للصندوق)
+                // إجراءات التقفيل خلال الفترة (رد للصندوق)
                 if(c.status === 'مقفلة' && c.closedAt >= from && c.closedAt <= to) {
                     const spent = this.getCustodySpent(c);
                     const remaining = Number(c.amount) - spent;
@@ -1041,7 +1054,7 @@ function financialSystem() {
                 }
             });
 
-            // ترتيب المعاملات حسب التاريخ (الإضافة قبل الصرف في نفس اليوم)
+            // ترتيب المعاملات حسب التاريخ
             transactions.sort((a,b) => a.sortDate - b.sortDate);
 
             // حساب الرصيد الجاري والإجماليات
