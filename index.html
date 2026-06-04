@@ -954,9 +954,13 @@ function financialSystem() {
             let openingBalance = 0;
 
             empCustodies.forEach(c => {
+                // ═══ الإصلاح: حساب المبلغ الأصلي للعهدة بطرح مجموع التعزيزات ═══
+                const totalEnhancementsAmount = (c.enhancements || []).reduce((sum, e) => sum + Number(e.amount), 0);
+                const originalCustodyAmount = Number(c.amount) - totalEnhancementsAmount;
+
                 // 1. إذا تم إنشاء العهدة قبل فترة الاستعلام
                 if(c.date < from) {
-                    openingBalance += Number(c.amount);
+                    openingBalance += originalCustodyAmount; // استخدام المبلغ الأصلي فقط
                     // خصم تسويات ما قبل الفترة
                     (c.settlements||[]).filter(s => s.date < from).forEach(s => {
                         openingBalance -= Number(s.amount);
@@ -971,7 +975,7 @@ function financialSystem() {
                     transactions.push({
                         date: c.date,
                         description: c.isOpeningBalance ? 'رصيد بداية عهدة' : (c.isCarriedForward ? 'عهدة مرحّلة' : 'صرف عهدة جديدة'),
-                        debit: Number(c.amount),
+                        debit: originalCustodyAmount, // استخدام المبلغ الأصلي فقط
                         credit: 0,
                         type: 'creation',
                         sortDate: new Date(c.date).getTime()
@@ -1023,7 +1027,7 @@ function financialSystem() {
                 }
             });
 
-            // ترتيب المعاملات حسب التاريخ
+            // ترتيب المعاملات حسب التاريخ (مع مراعاة أن الإضافة تسبق الصرف في نفس اليوم)
             transactions.sort((a,b) => a.sortDate - b.sortDate);
 
             // حساب الرصيد الجاري والإجماليات
