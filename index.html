@@ -817,44 +817,65 @@ function financialSystem() {
 
         openCloseCustodyModal(c){this.closeCustodyData=c;this.closeAction='return';this.showCloseCustodyModal=true;},
 
-        // التعديل 4: إصلاح تكرار البنود عند التقفيل
-        async closeAndGenerateCustodyReport(){
-            const c=this.closeCustodyData;if(!c)return;
-            const sp=this.getCustodySpent(c);const rem=c.amount-sp;const td=new Date().toISOString().split('T')[0];
-            const closeResult=rem<=0?'fully_settled':(this.closeAction==='return'?'returned':'carried_forward');
-            try{
-                // تحديث حالة العهدة إلى مقفلة
-                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id),{status:'مقفلة',closedAt:td,closeResult:closeResult});
-                
-                // ═══ إصلاح التكرار ═══
-                // التدفقات الأصلية (عهد موظفين + تعزيز عهدة) تمثل حركة النقد الفعلية من الصندوق
-                // بنود التسوية هي تتبع داخلي لطريقة استخدام الموظف للعهدة ولا تمثل تدفقات نقدية
-                // لا نحذف التدفقات الأصلية ولا نضيف بنود التسوية كتدفقات جديدة لتجنب التكرار
-                // تفاصيل المصروفات متاحة في تقرير تقفيل العهدة واستعلام العهدة وكشف الحساب
-                
-                // معالجة المتبقي
-                if(rem>0){
-                    if(this.closeAction==='return'){
-                        // رد المتبقي للصندوق - تدفق داخل
-                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{
-                            type:'inflow',date:td,item:'رد عهدة مقفلة',subItem:c.employee,category:'تشغيلية',amount:rem
-                        });
-                    }else{
-                        // ترحيل المتبقي لعهدة جديدة - بدون تدفق إضافي
-                        // لأن المبلغ المرحل مغطى بالفعل في التدفقات الأصلية (عهد/تعزيز)
-                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"),{
-                            employee:c.employee,date:td,amount:rem,
-                            notes:'متبقي عهدة مرحّل',status:'مفتوحة',settlements:[],
-                            linkedFlowId:null,
-                            isOpeningBalance:false,isCarriedForward:true,enhancements:[]
-                        });
-                    }
-                }
-                this.showCloseCustodyModal=false;
-                c.closeResult=closeResult;
-                this.generateCustodyReportHTML(c,sp,rem,td);
-            }catch(e){alert("خطأ: "+e.message);}
-        },
+       // التعديل 4: إصلاح تكرار البنود عند التقفيل وإظهار العهد المرحل بوضوح
+async closeAndGenerateCustodyReport(){
+    const c=this.closeCustodyData;
+    if(!c) return;
+    
+    const sp = this.getCustodySpent(c);
+    const rem = c.amount - sp;
+    const td = new Date().toISOString().split('T')[0];
+    const closeResult = rem <= 0 ? 'fully_settled' : (this.closeAction === 'return' ? 'returned' : 'carried_forward');
+    
+    try {
+        // 1. تحديث حالة العهدة الحالية إلى مقفلة
+        await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id),{
+            status:'مقفلة', closedAt:td, closeResult:closeResult
+        });
+        
+        // ═══ إصلاح المشكلة الثانية (تكرار التدفقات) ═══
+        // بنود التسوية هي مجرد تفاصيل لاستخدام الموظف للعهدة، ولا تمثل خروج نقدي جديد.
+        // الخروج النقدي حدث فعلياً عند إنشاء العهدة أو تعزيزها. 
+        // لذلك نمنع تماماً نقل بنود التسوية لشاشة التدفقات النقدية لئلا تتكرر المبالغ.
+        
+        // 2. معالجة الرصيد المتبقي
+        if(rem > 0){
+            if(this.closeAction === 'return'){
+                // رد المتبقي للصندوق (هذا دخول نقدي حقيقي للصندوق الآن)
+                await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{
+                    type:'inflow', date:td, item:'رد عهدة مقفلة', subItem:c.employee, category:'تشغيلية', amount:rem
+                });
+                this.showToast('تم تقفيل العهدة ورد المتبقي للصندوق', 'success');
+            } else {
+                // ═══ إصلاح المشكلة الأولى (اختفاء العهد المرحل) ═══
+                // ترحيل المتبقي لعهدة جديدة (بدون أي تدفق نقدي لأن المبلغ غطي في العهدة السابقة)
+                await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"),{
+                    employee: c.employee, 
+                    date: td, 
+                    amount: rem,
+                    // إضافة ملاحظة واضحة جداً لتمييزها في شاشة العهد
+                    notes: 'ترحيل متبقي من عهدة بتاريخ ' + c.date, 
+                    status: 'مفتوحة', 
+                    settlements: [],
+                    linkedFlowId: null,
+                    isOpeningBalance: false, 
+                    isCarriedForward: true, 
+                    enhancements: []
+                });
+                this.showToast('تم ترحيل المتبقي لعهدة جديدة للموظف: ' + c.employee, 'success');
+            }
+        } else {
+            this.showToast('تم تقفيل العهدة بالكامل', 'success');
+        }
+        
+        this.showCloseCustodyModal = false;
+        c.closeResult = closeResult;
+        this.generateCustodyReportHTML(c, sp, rem, td);
+        
+    } catch(e) {
+        this.showToast('خطأ أثناء التقفيل: ' + e.message, 'error');
+    }
+},
         
         rePrintCustodyReport(c){const sp=this.getCustodySpent(c);const rem=c.amount-sp;this.generateCustodyReportHTML(c,sp,rem,c.closedAt||new Date().toISOString().split('T')[0]);},
         generateCustodyReportHTML(c,spent,remaining,closeDate){
