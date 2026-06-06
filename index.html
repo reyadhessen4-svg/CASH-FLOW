@@ -960,8 +960,77 @@ async closeAndGenerateCustodyReport(){
         exportAnalysisExcel(){if(!this.analysis.data)return;const rows=this.analysis.data.flows.map(f=>({'التاريخ':f.date,'النوع':f.type==='inflow'?'داخل':'خارج','البند':f.item,'التفصيل':f.subItem||'','التصنيف':f.category,'المبلغ':f.amount}));const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"تحليل");XLSX.writeFile(wb,"Analysis.xlsx");},
         generateReport(){if(!this.report.from||!this.report.to)return alert("حدد الفترة");const from=this.report.from,to=this.report.to;const oF=this.flows.find(f=>f.item==='رصيد بداية المدة');const oA=oF?Number(oF.amount):0;const bN=this.flows.filter(f=>f.date<from&&f.item!=='رصيد بداية المدة').reduce((a,c)=>a+(c.type==='inflow'?Number(c.amount):-Number(c.amount)),0);const oB=oA+bN;const pf=this.flows.filter(f=>f.date>=from&&f.date<=to&&f.item!=='رصيد بداية المدة');const calc=(t,cat)=>pf.filter(f=>f.type===t&&f.category===cat).reduce((s,f)=>s+Number(f.amount),0);const oI=calc('inflow','تشغيلية'),oO=calc('outflow','تشغيلية'),iI=calc('inflow','استثمارية'),iO=calc('outflow','استثمارية'),fI=calc('inflow','تمويلية'),fO=calc('outflow','تمويلية');const nO=oI-oO,nI=iI-iO,nF=fI-fO,nCF=nO+nI+nF;this.report.data={openingBalance:oB,operatingIn:oI,operatingOut:oO,netOperating:nO,investingIn:iI,investingOut:iO,netInvesting:nI,financingIn:fI,financingOut:fO,netFinancing:nF,netCashFlow:nCF,closingBalance:oB+nCF};},
         exportReportExcel(){if(!this.report.data)return;const ws=XLSX.utils.json_to_sheet([this.report.data]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"تقرير");XLSX.writeFile(wb,"Cash_Flow_Statement.xlsx");},
-        exportPDF(divId){const input=document.getElementById(divId);if(!input)return alert("عنصر غير موجود");const orig={position:input.style.position,left:input.style.left,top:input.style.top,zIndex:input.style.zIndex,opacity:input.style.opacity};input.style.position='fixed';input.style.left='0';input.style.top='0';input.style.zIndex='-1';input.style.opacity='1';setTimeout(()=>{html2canvas(input,{scale:2,backgroundColor:divId==='custody-report-print'?"#ffffff":"#0f172a",useCORS:true,windowWidth:1200}).then(canvas=>{const{jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');const w=pdf.internal.pageSize.getWidth();pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,w,(canvas.height*w)/canvas.width);pdf.save("Report.pdf");Object.assign(input.style,orig);}).catch(err=>{alert("خطأ في PDF");Object.assign(input.style,orig);});},300);},
-
+exportPDF(divId){
+    const input = document.getElementById(divId);
+    if(!input) return alert("عنصر غير موجود");
+    
+    // حفظ الإعدادات الأصلية للعنصر المخفي
+    const orig = {
+        position: input.style.position,
+        left: input.style.left,
+        top: input.style.top,
+        zIndex: input.style.zIndex,
+        opacity: input.style.opacity,
+        height: input.style.height,
+        overflow: input.style.overflow
+    };
+    
+    // إظهار العنصر وتوسيعه بالكامل لأخذ صورة كاملة
+    input.style.position = 'absolute';
+    input.style.left = '0';
+    input.style.top = '0';
+    input.style.zIndex = '-1';
+    input.style.opacity = '1';
+    input.style.height = 'auto';
+    input.style.overflow = 'visible';
+    
+    setTimeout(() => {
+        html2canvas(input, {
+            scale: 2,
+            backgroundColor: divId === 'custody-report-print' ? "#ffffff" : "#0f172a",
+            useCORS: true,
+            windowWidth: 1200,
+            scrollY: -window.scrollY,
+            scrollX: 0
+        }).then(canvas => {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            
+            // حساب نسبة العرض والارتفاع لتناسب صفحة A4
+            const imgWidth = pageWidth;
+            const imgHeight = (canvasHeight * imgWidth) / canvasWidth;
+            
+            let heightLeft = imgHeight;
+            let position = 0;
+            
+            // إضافة الصورة الأولى
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+            
+            // تقسيم باقي الصورة على صفحات جديدة إذا كان التقرير طويلاً
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+            
+            pdf.save("Report.pdf");
+            
+            // إعادة العنصر لحالته المخفية الأصلية
+            Object.assign(input.style, orig);
+        }).catch(err => {
+            alert("خطأ في إنشاء PDF: " + err.message);
+            Object.assign(input.style, orig);
+        });
+    }, 500); // زيادة وقت الانتظار قليلاً لضمان رسم كل البيانات
+},
         // ═══ الرسوم البيانية ═══
         updateCharts(){
             if(this.activeTab!=='dashboard')return;
