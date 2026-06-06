@@ -882,8 +882,55 @@ async closeAndGenerateCustodyReport(){
             const act=c.closeResult==='returned'?'تم رد المبلغ للصندوق':(c.closeResult==='carried_forward'?'تم ترحيل المتبقي لعهدة جديدة':'مقفلة بالكامل');
             let rows='';(c.settlements||[]).forEach((s,i)=>{rows+=`<tr><td style="text-align:center">${i+1}</td><td>${s.date||''}</td><td>${s.item||''}<br><small style="color:#64748b">${s.subItem||''}</small></td><td>${s.category||''}</td><td>${s.accountingDirection||'-'}</td><td style="text-align:left">${Number(s.amount).toLocaleString('ar-SA')}</td></tr>`;});
             this.custodyReportHTML=`<div style="text-align:center;margin-bottom:30px"><h2 style="margin:0;font-size:24px">تقرير تقفيل عهدة</h2><p style="color:#64748b;margin:5px 0 0 0">تاريخ التقفيل: ${closeDate}</p></div><div class="summary-box"><div class="summary-row"><span style="font-weight:bold">الموظف:</span><span>${c.employee}</span></div><div class="summary-row"><span style="font-weight:bold">تاريخ العهدة:</span><span>${c.date}</span></div></div><table><thead><tr><th style="text-align:center">#</th><th>التاريخ</th><th>البند</th><th>التصنيف</th><th>التوجيه</th><th style="text-align:left">الإجمالي</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="total-row"><td colspan="5" style="text-align:left;font-weight:bold">إجمالي المصروفات</td><td style="text-align:left;font-weight:bold">${spent.toLocaleString('ar-SA')}</td></tr></tfoot></table><div class="summary-box" style="margin-top:20px;border-color:#16a34a"><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">رصيد بداية العهدة:</span><span>${Number(c.amount).toLocaleString('ar-SA')} ر.س</span></div><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">(-) المصروفات:</span><span style="color:#dc2626">${spent.toLocaleString('ar-SA')} ر.س</span></div><div class="summary-row" style="font-size:18px;border-bottom:none"><span style="font-weight:bold">رصيد نهاية التقفيل:</span><span style="color:#16a34a">${remaining.toLocaleString('ar-SA')} ر.س</span></div><div style="text-align:center;margin-top:15px;padding:10px;background:#f0fdf4;border-radius:6px;color:#166534;font-weight:bold">الإجراء: ${act}</div></div><div style="margin-top:60px;display:flex;justify-content:space-between"><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع الموظف</p><br><br><p style="border-top:1px solid #94a3b8">.............................</p></div><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع المدير المالي</p><br><br><p style="border-top:1px solid #94a3b8">.............................</p></div></div>`;
-            setTimeout(()=>{const ch=confirm("موافق = PDF\nإلغاء = Excel");if(ch)this.exportPDF('custody-report-print');else this.exportCustodyReportExcel(c,spent,remaining,act,closeDate);},300);
+            setTimeout(()=>{const ch=confirm("موافق = طباعة / حفظ PDF\nإلغاء = تصدير Excel");if(ch)this.printCustodyReport();else this.exportCustodyReportExcel(c,spent,remaining,act,closeDate);},300);
         },
+        printCustodyReport() {
+    if (!this.custodyReportHTML) return;
+    
+    // فتح نافذة جديدة للطباعة
+    const printWindow = window.open('', '_blank');
+    
+    // كتابة كود HTML كامل داخل النافذة الجديدة مع تنسيقات الطباعة
+    printWindow.document.write(`
+        <html dir="rtl" lang="ar">
+        <head>
+            <title>تقرير تقفيل عهدة</title>
+            <style>
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    margin: 20px;
+                    color: #1e293b;
+                    background: #fff;
+                }
+                .report-print-area { 
+                    background: #ffffff; 
+                    padding: 20px; 
+                }
+                table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                th { background: #1e3a8a; color: #fff; padding: 10px; text-align: right; font-size: 13px; }
+                td { padding: 8px 10px; border: 1px solid #cbd5e1; text-align: right; font-size: 13px; }
+                tr:nth-child(even) { background: #f1f5f9; }
+                .summary-box { background: #f8fafc; border: 2px solid #1e3a8a; border-radius: 8px; padding: 15px; margin: 15px 0; }
+                .summary-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #cbd5e1; }
+                .total-row { background: #1e3a8a; color: #fff; }
+                .total-row td { color: #fff; font-weight: bold; border-color: #1e3a8a; }
+                
+                @media print {
+                    body { margin: 0; }
+                    .report-print-area { padding: 0; }
+                }
+            </style>
+        </head>
+        <body onload="setTimeout(function(){ window.print(); window.close(); }, 500);">
+            <div class="report-print-area">
+                ${this.custodyReportHTML}
+            </div>
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+},
         exportCustodyReportExcel(c,sp,rem,act,cd){const rows=(c.settlements||[]).map(s=>[s.date,s.item,s.subItem||'',s.category,s.accountingDirection||'',s.isTaxable?'نعم':'لا',s.isTaxable?Number(s.amountBeforeTax):'-',s.isTaxable?Number(s.taxAmount):'-',Number(s.amount)]);rows.push(["","","","","","","","إجمالي المصروفات",sp]);rows.push(["","","","","","","","المتبقي",rem]);const ws=XLSX.utils.aoa_to_sheet([['تقرير تقفيل عهدة: '+c.employee],[],["التاريخ","البند","التفصيل","التصنيف","التوجيه","ضريبي","قبل الضريبة","الضريبة","الإجمالي"],...rows]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"تقفيل");XLSX.writeFile(wb,'Report_'+c.employee+'_'+cd+'.xlsx');},
 
         // ═══ استعلام العهد ═══
