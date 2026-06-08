@@ -228,6 +228,26 @@
                         </div>
                         
                         <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700">
+                                                        <!-- سجل التعزيزات -->
+                            <div x-show="settlement.selectedCustodyId && getSelectedCustody()?.enhancements?.length > 0" class="mb-6">
+                                <h3 class="font-bold text-lg border-b border-slate-700 pb-2 mb-4 text-emerald-400">
+                                    <i class="fas fa-arrow-up ml-2"></i> سجل التعزيزات
+                                </h3>
+                                <ul class="space-y-2">
+                                    <template x-for="(enh, idx) in getSelectedCustody()?.enhancements || []" :key="idx">
+                                        <li class="bg-slate-800 p-3 rounded border border-emerald-500/20 text-sm flex justify-between items-center">
+                                            <div>
+                                                <span class="text-emerald-400 font-bold" x-text="formatCurrency(enh.amount)"></span>
+                                                <span class="text-slate-400 text-xs mr-2">بتاريخ: <span x-text="enh.date"></span></span>
+                                            </div>
+                                            <div class="flex gap-3">
+                                                <button @click="openEditEnhancementModal(getSelectedCustody(), idx)" class="text-blue-400 hover:text-blue-300 transition" title="تعديل التعزيز"><i class="fas fa-pen text-xs"></i></button>
+                                                <button @click="deleteEnhancement(getSelectedCustody().id, idx)" class="text-red-400 hover:text-red-300 transition" title="حذف التعزيز"><i class="fas fa-trash text-xs"></i></button>
+                                            </div>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
                             <h3 class="font-bold text-lg border-b border-slate-700 pb-2 mb-4 text-white">بنود الصرف</h3>
                             <div x-show="settlement.selectedCustodyId"><ul class="space-y-2 max-h-[500px] overflow-y-auto"><template x-for="st in getSelectedCustody()?.settlements || []" :key="st.id"><li class="bg-slate-800 p-3 rounded border border-slate-700 text-sm">
                                 <div class="flex justify-between items-start">
@@ -511,6 +531,28 @@
             <div class="flex gap-4 pt-2"><button @click="saveEditedSettlement()" class="flex-1 primary-gradient text-white py-2.5 rounded-lg font-bold hover:shadow-lg transition"><i class="fas fa-save ml-1"></i> حفظ التعديل</button><button @click="showEditSettlementModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2.5 rounded-lg hover:bg-slate-600 transition">إلغاء</button></div>
         </div>
     </div>
+    <!-- نافذة تعديل التعزيز -->
+    <div x-show="showEditEnhancementModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showEditEnhancementModal = false">
+        <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-4 border border-slate-700">
+            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                <i class="fas fa-arrow-up text-emerald-400"></i> تعديل التعزيز
+            </h3>
+            <div>
+                <label class="block text-sm font-bold text-slate-300 mb-1">تاريخ التعزيز</label>
+                <input type="date" x-model="editEnhancementForm.date" class="w-full p-2.5 rounded-lg input-dark">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-300 mb-1">مبلغ التعزيز</label>
+                <input type="number" x-model="editEnhancementForm.amount" class="w-full p-2.5 rounded-lg input-dark">
+            </div>
+            <div class="flex gap-4 pt-2">
+                <button @click="saveEditedEnhancement()" class="flex-1 primary-gradient text-white py-2.5 rounded-lg font-bold hover:shadow-lg transition">
+                    <i class="fas fa-save ml-1"></i> حفظ التعديل
+                </button>
+                <button @click="showEditEnhancementModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2.5 rounded-lg hover:bg-slate-600 transition">إلغاء</button>
+            </div>
+        </div>
+    </div>
 
     <div id="custody-report-print" class="report-print-area" style="position: fixed; left: -9999px; top: 0; width: 800px; z-index: -1; opacity: 0;" x-html="custodyReportHTML"></div>
 </div>
@@ -527,7 +569,8 @@ function financialSystem() {
         showAddUserModal: false, addUserStep: 1, showAddPassword: false, addUserLoading: false, addUserError: '',
         addUserForm: { email: '', password: '', confirmPassword: '', role: 'user', permissions: {} },
         userSearchQuery: '', userFilterRole: 'all',
-        
+        showEditEnhancementModal: false,
+        editEnhancementForm: { custodyId: '', index: -1, date: '', amount: '', oldAmount: 0 },
         showEditSettlementModal: false,
         showReviewModal: false,
         reviewForm: { custodyId: '', status: 'reviewed', notes: '' },
@@ -765,7 +808,93 @@ function financialSystem() {
             this.editSettlementForm = { custodyId:c.id, settlementId:st.id, date:st.date||'', item:st.item||'', subItem:st.subItem||'', category:st.category||'تشغيلية', accountingDirection:st.accountingDirection||'', isTaxable:st.isTaxable||false, amountBeforeTax:st.amountBeforeTax||'', taxRate:st.taxRate||15, amount:st.amount||'' };
             this.showEditSettlementModal = true;
         },
-        
+                // ═══ إدارة التعزيزات ═══
+        openEditEnhancementModal(custody, index) {
+            const enh = custody.enhancements[index];
+            this.editEnhancementForm = {
+                custodyId: custody.id,
+                index: index,
+                date: enh.date,
+                amount: enh.amount,
+                oldAmount: enh.amount
+            };
+            this.showEditEnhancementModal = true;
+        },
+
+        async deleteEnhforcement(custodyId, index) {
+            if(!confirm("حذف هذا التعزيز سيقلل مبلغ العهدة والتدفق النقدي المرتبط بها. متأكد؟")) return;
+            try {
+                const c = this.custodies.find(c => c.id === custodyId);
+                if(!c) return;
+                const enh = c.enhancements[index];
+                const newCustodyAmount = Number(c.amount) - Number(enh.amount);
+                
+                let newEnhancements = [...c.enhancements];
+                newEnhancements.splice(index, 1); // حذف العنصر من المصفوفة
+
+                // تعديل التدفق النقدي المرتبط
+                if(c.linkedFlowId) {
+                    const flow = this.flows.find(f => f.id === c.linkedFlowId);
+                    if(flow) {
+                        const newFlowAmount = Number(flow.amount) - Number(enh.amount);
+                        if(newFlowAmount > 0){
+                            await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId), { amount: newFlowAmount });
+                        } else {
+                            await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId));
+                        }
+                    }
+                }
+
+                // تحديث العهدة
+                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "custodies", custodyId), {
+                    amount: newCustodyAmount,
+                    enhancements: newEnhancements
+                });
+                this.showToast('تم حذف التعزيز وتعديل التدفقات بنجاح', 'success');
+            } catch(e) {
+                this.showToast('خطأ: ' + e.message, 'error');
+            }
+        },
+
+        async saveEditedEnhancement() {
+            try {
+                const c = this.custodies.find(c => c.id === this.editEnhancementForm.custodyId);
+                if(!c) return;
+
+                const diff = Number(this.editEnhancementForm.amount) - Number(this.editEnhancementForm.oldAmount);
+                const newCustodyAmount = Number(c.amount) + diff;
+                
+                let newEnhancements = [...c.enhancements];
+                newEnhancements[this.editEnhancementForm.index] = {
+                    date: this.editEnhancementForm.date,
+                    amount: Number(this.editEnhancementForm.amount)
+                };
+
+                // تعديل التدفق النقدي المرتبط بالفرق
+                if(c.linkedFlowId && diff !== 0) {
+                    const flow = this.flows.find(f => f.id === c.linkedFlowId);
+                    if(flow) {
+                        const newFlowAmount = Number(flow.amount) + diff;
+                        if(newFlowAmount > 0){
+                            await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId), { amount: newFlowAmount });
+                        } else {
+                            await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId));
+                        }
+                    }
+                }
+
+                // تحديث العهدة
+                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "custodies", c.id), {
+                    amount: newCustodyAmount,
+                    enhancements: newEnhancements
+                });
+
+                this.showEditEnhancementModal = false;
+                this.showToast('تم تعديل التعزيز وتحديث التدفقات', 'success');
+            } catch(e) {
+                this.showToast('خطأ: ' + e.message, 'error');
+            }
+        },
         async saveEditedSettlement() {
             if (!this.editSettlementForm.item) return this.showToast("أدخل البند", "error");
             try {
