@@ -821,7 +821,7 @@ function financialSystem() {
             this.showEditEnhancementModal = true;
         },
 
-        async deleteEnhforcement(custodyId, index) {
+            async deleteEnhancement(custodyId, index) {
             if(!confirm("حذف هذا التعزيز سيقلل مبلغ العهدة والتدفق النقدي المرتبط بها. متأكد؟")) return;
             try {
                 const c = this.custodies.find(c => c.id === custodyId);
@@ -830,7 +830,7 @@ function financialSystem() {
                 const newCustodyAmount = Number(c.amount) - Number(enh.amount);
                 
                 let newEnhancements = [...c.enhancements];
-                newEnhancements.splice(index, 1); // حذف العنصر من المصفوفة
+                newEnhancements.splice(index, 1);
 
                 // تعديل التدفق النقدي المرتبط
                 if(c.linkedFlowId) {
@@ -851,46 +851,6 @@ function financialSystem() {
                     enhancements: newEnhancements
                 });
                 this.showToast('تم حذف التعزيز وتعديل التدفقات بنجاح', 'success');
-            } catch(e) {
-                this.showToast('خطأ: ' + e.message, 'error');
-            }
-        },
-
-        async saveEditedEnhancement() {
-            try {
-                const c = this.custodies.find(c => c.id === this.editEnhancementForm.custodyId);
-                if(!c) return;
-
-                const diff = Number(this.editEnhancementForm.amount) - Number(this.editEnhancementForm.oldAmount);
-                const newCustodyAmount = Number(c.amount) + diff;
-                
-                let newEnhancements = [...c.enhancements];
-                newEnhancements[this.editEnhancementForm.index] = {
-                    date: this.editEnhancementForm.date,
-                    amount: Number(this.editEnhancementForm.amount)
-                };
-
-                // تعديل التدفق النقدي المرتبط بالفرق
-                if(c.linkedFlowId && diff !== 0) {
-                    const flow = this.flows.find(f => f.id === c.linkedFlowId);
-                    if(flow) {
-                        const newFlowAmount = Number(flow.amount) + diff;
-                        if(newFlowAmount > 0){
-                            await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId), { amount: newFlowAmount });
-                        } else {
-                            await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId));
-                        }
-                    }
-                }
-
-                // تحديث العهدة
-                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "custodies", c.id), {
-                    amount: newCustodyAmount,
-                    enhancements: newEnhancements
-                });
-
-                this.showEditEnhancementModal = false;
-                this.showToast('تم تعديل التعزيز وتحديث التدفقات', 'success');
             } catch(e) {
                 this.showToast('خطأ: ' + e.message, 'error');
             }
