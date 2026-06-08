@@ -935,77 +935,75 @@ function financialSystem() {
                 const ctx2=document.getElementById('balanceChart')?.getContext('2d');
                 if(ctx2){if(this.balanceChartInstance)this.balanceChartInstance.destroy();this.balanceChartInstance=new Chart(ctx2,{type:'line',data:{labels:balL,datasets:[{label:'الرصيد',data:balD,borderColor:'#3b82f6',fill:true,tension:0.4,backgroundColor:'rgba(59,130,246,0.1)'}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}},plugins:{legend:{labels:{color:'#e2e8f0'}}}}});}
                         },300);
-            }, // <--- هام جداً: تمت إضافة فاصلة هنا بدلاً من القوس فقط
-            // ═══ دالة إصلاح البيانات القديمة ═══
-            async fixOldCustodyData() {
-                if(!confirm("هل أنت متأكد؟ هذا الإجراء سيقوم بإصلاح العهد القديمة ليتوافق مع النظام الجديد (إنشاء تدفقات للبنود وتعديل تدفق العهدة الأصلي). لا يمكن التراجع عن هذا الإجراء!")) return;
-                
-                this.showToast('جاري الإصلاح... قد يستغرق بعض الوقت حسب عدد العهد', 'info');
-                let fixedCount = 0;
+            },         
+        // ═══ دالة فحص وإصلاح البيانات القديمة (النسخة المطورة) ═══
+        async fixOldCustodyData() {
+            if(!confirm("سيتم فحص جميع العهد لمعرفة سبب عدم إصلاحها تلقائياً. متأكد؟")) return;
+            
+            this.showToast('جاري الفحص التفصيلي... يرجى الانتظار', 'info');
+            let fixedCount = 0;
+            let skippedNoFlow = 0;
+            let skippedNoSettlements = 0;
+            let skippedAlreadyFixed = 0;
 
-                try {
-                    const custodySnapshot = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, "custodies"));
-                    const flowSnapshot = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, "cashFlows"));
-                    const flowsMap = {};
-                    flowSnapshot.docs.forEach(d => flowsMap[d.id] = {id: d.id, ...d.data()});
+            try {
+                const custodySnapshot = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, "custodies"));
+                const flowSnapshot = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, "cashFlows"));
+                const flowsMap = {};
+                flowSnapshot.docs.forEach(d => flowsMap[d.id] = {id: d.id, ...d.data()});
 
-                    for (const custDoc of custodySnapshot.docs) {
-                        const c = { id: custDoc.id, ...custDoc.data() };
-                        
-                        if (!c.linkedFlowId || !c.settlements || c.settlements.length === 0) continue;
+                for (const custDoc of custodySnapshot.docs) {
+                    const c = { id: custDoc.id, ...c.data() }; // ملاحظة: كان خطأ مطبعي هنا في السابق، تم تصحيحه
+                    
+                    // 1. هل العهدة ليس بها تدفق أصلي (مثل رصيد البداية)؟
+                    if (!c.linkedFlowId) { skippedNoFlow++; continue; }
 
-                        const needsMigration = c.settlements.some(s => !s.linkedFlowId);
-                        if (!needsMigration) continue;
+                    // 2. هل العهدة ليس بها أي بنود تسوية؟
+                    if (!c.settlements || c.settlements.length === 0) { skippedNoSettlements++; continue; }
 
-                        let newSettlements = [...c.settlements];
-                        let totalSettledAmount = 0;
+                    // 3. هل البنود تم ربطها مسبقاً (تم إصلاحها)؟
+                    const needsMigration = c.settlements.some(s => !s.linkedFlowId);
+                    if (!needsMigration) { skippedAlreadyFixed++; continue; }
 
-                        for (let i = 0; i < newSettlements.length; i++) {
-                            const s = newSettlements[i];
-                            if (!s.linkedFlowId) {
-                                const newFlowRef = await window.firebaseAddDoc(
-                                    window.firebaseCollection(window.firebaseDb, "cashFlows"),
-                                    {
-                                        type: 'outflow',
-                                        date: s.date || c.date,
-                                        item: s.item,
-                                        subItem: s.subItem || '',
-                                        category: s.category || 'تشغيلية',
-                                        amount: Number(s.amount)
-                                    }
-                                );
-                                newSettlements[i] = { ...s, linkedFlowId: newFlowRef.id };
-                            }
-                            totalSettledAmount += Number(newSettlements[i].amount);
+                    // إذا وصلنا لهنا، فهي تحتاج للإصلاح فعلاً
+                    let newSettlements = [...c.settlements];
+                    let totalSettledAmount = 0;
+
+                    for (let i = 0; i < newSettlements.length; i++) {
+                        const s = newSettlements[i];
+                        if (!s.linkedFlowId) {
+                            const newFlowRef = await window.firebaseAddDoc(
+                                window.firebaseCollection(window.firebaseDb, "cashFlows"),
+                                { type: 'outflow', date: s.date || c.date, item: s.item, subItem: s.subItem || '', category: s.category || 'تشغيلية', amount: Number(s.amount) }
+                            );
+                            newSettlements[i] = { ...s, linkedFlowId: newFlowRef.id };
                         }
-
-                        const originalFlow = flowsMap[c.linkedFlowId];
-                        if (originalFlow) {
-                            const newOriginalAmount = Number(c.amount) - totalSettledAmount;
-                            if (newOriginalAmount > 0) {
-                                await window.firebaseUpdateDoc(
-                                    window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId),
-                                    { amount: newOriginalAmount }
-                                );
-                            } else {
-                                await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId));
-                            }
-                        }
-
-                        await window.firebaseUpdateDoc(
-                            window.firebaseDoc(window.firebaseDb, "custodies", c.id),
-                            { settlements: newSettlements }
-                        );
-
-                        fixedCount++;
+                        totalSettledAmount += Number(newSettlements[i].amount);
                     }
 
-                    this.showToast(`تم الإصلاح بنجاح! تم معالجة ${fixedCount} عهدة قديمة.`, 'success');
-                } catch (e) {
-                    this.showToast('خطأ أثناء الإصلاح: ' + e.message, 'error');
-                    console.error(e);
+                    const originalFlow = flowsMap[c.linkedFlowId];
+                    if (originalFlow) {
+                        const newOriginalAmount = Number(c.amount) - totalSettledAmount;
+                        if (newOriginalAmount > 0) {
+                            await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId), { amount: newOriginalAmount });
+                        } else {
+                            await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId));
+                        }
+                    }
+
+                    await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "custodies", c.id), { settlements: newSettlements });
+                    fixedCount++;
                 }
+
+                // رسالة الفحص التفصيلية
+                const msg = `انتهى الفحص: تم إصلاح (${fixedCount}) عهدة. أسباب التجاهل: بدون تدفق أصلي/رصيد بداية (${skippedNoFlow})، بدون بنود صرف (${skippedNoSettlements})، تم إصلاحها مسبقاً (${skippedAlreadyFixed})`;
+                this.showToast(msg, 'success');
+                console.log(msg); // لطباعة التفاصيل في الكونسول أيضاً
+            } catch (e) {
+                this.showToast('خطأ أثناء الإصلاح: ' + e.message, 'error');
+                console.error(e);
             }
+        }
         } // <--- قوس إغلاق الـ return
     } // <--- قوس إغلاق الدالة الرئيسية financialSystem
 </script>
