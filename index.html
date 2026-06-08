@@ -100,6 +100,7 @@
         .stmt-row-even { background: rgba(30, 41, 59, 0.4); }
         .stmt-row-odd { background: transparent; }
     </style>
+<base target="_blank">
 </head>
 <body>
 <div x-data="financialSystem()" class="min-h-screen">
@@ -367,6 +368,99 @@
                     <div id="report-print" class="glass-dark p-8 rounded-xl shadow-lg border border-slate-700"><div class="text-center border-b border-slate-700 pb-4 mb-6"><h3 class="text-xl font-bold text-white">قائمة التدفقات النقدية</h3><p class="text-slate-400">من <span x-text="report.from"></span> إلى <span x-text="report.to"></span></p></div><template x-if="report.data"><div class="space-y-4"><div class="flex justify-between items-center bg-purple-900/20 border border-purple-800/30 p-3 rounded-lg"><span class="font-bold text-purple-400"><i class="fas fa-flag"></i> رصيد بداية الفترة</span><span class="font-bold text-purple-300 text-lg" x-text="formatCurrency(report.data.openingBalance)"></span></div><div class="border-b border-slate-700 pb-4 space-y-2"><h4 class="font-bold text-blue-400 bg-blue-900/20 p-2 rounded">التدفقات التشغيلية</h4><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الداخلة</span><span class="text-emerald-400" x-text="formatCurrency(report.data.operatingIn)"></span></div><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الخارجة</span><span class="text-red-400" x-text="'(' + formatCurrency(report.data.operatingOut) + ')'"></span></div><div class="flex justify-between font-bold mr-4 text-blue-400"><span>صافي التشغيلية</span><span x-text="formatCurrency(report.data.netOperating)"></span></div></div><div class="border-b border-slate-700 pb-4 space-y-2"><h4 class="font-bold text-purple-400 bg-purple-900/20 p-2 rounded">الاستثمارية</h4><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الداخلة</span><span class="text-emerald-400" x-text="formatCurrency(report.data.investingIn)"></span></div><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الخارجة</span><span class="text-red-400" x-text="'(' + formatCurrency(report.data.investingOut) + ')'"></span></div><div class="flex justify-between font-bold mr-4 text-purple-400"><span>الصافي</span><span x-text="formatCurrency(report.data.netInvesting)"></span></div></div><div class="border-b border-slate-700 pb-4 space-y-2"><h4 class="font-bold text-emerald-400 bg-emerald-900/20 p-2 rounded">التمويلية</h4><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الداخلة</span><span class="text-emerald-400" x-text="formatCurrency(report.data.financingIn)"></span></div><div class="flex justify-between text-sm text-slate-400 mr-4"><span>الخارجة</span><span class="text-red-400" x-text="'(' + formatCurrency(report.data.financingOut) + ')'"></span></div><div class="flex justify-between font-bold mr-4 text-emerald-400"><span>الصافي</span><span x-text="formatCurrency(report.data.netFinancing)"></span></div></div><div class="space-y-3 pt-2"><div class="flex justify-between items-center bg-yellow-900/20 border border-yellow-800/30 p-3 rounded-lg"><span class="font-bold text-yellow-400">صافي التدفق النقدي</span><span class="font-bold text-yellow-300 text-lg" x-text="formatCurrency(report.data.netCashFlow)"></span></div><div class="flex justify-between items-center primary-gradient p-4 rounded-lg shadow-lg"><span class="font-bold text-lg text-white">رصيد نهاية الفترة</span><span class="font-bold text-xl text-white" x-text="formatCurrency(report.data.closingBalance)"></span></div></div></div></template><div x-show="!report.data" class="text-center py-10 text-slate-500">حدد الفترة</div></div>
                 </div>
 
+
+                <!-- ═══ مراجعة العهد (للمدير فقط) ═══ -->
+                <div x-show="activeTab === 'custodyReview'" x-cloak>
+                    <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 mb-6">
+                        <div class="flex flex-wrap gap-4 items-end">
+                            <div class="flex flex-col">
+                                <label class="text-sm mb-1 text-slate-400">حالة المراجعة</label>
+                                <select x-model="reviewFilter.status" class="p-2 rounded-lg input-dark min-w-[180px]">
+                                    <option value="all">الكل</option>
+                                    <option value="pending">لم تُراجع</option>
+                                    <option value="reviewed">تمت المراجعة</option>
+                                    <option value="rejected">مرفوضة</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-sm mb-1 text-slate-400">حالة العهدة</label>
+                                <select x-model="reviewFilter.custodyStatus" class="p-2 rounded-lg input-dark min-w-[150px]">
+                                    <option value="all">الكل</option>
+                                    <option value="مفتوحة">مفتوحة</option>
+                                    <option value="مقفلة">مقفلة</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-sm mb-1 text-slate-400">الموظف</label>
+                                <select x-model="reviewFilter.employee" class="p-2 rounded-lg input-dark min-w-[200px]">
+                                    <option value="">الكل</option>
+                                    <template x-for="emp in employeesList" :key="emp.id">
+                                        <option :value="emp.name" x-text="emp.name"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <button @click="applyReviewFilter()" class="primary-gradient text-white px-5 py-2 rounded-lg shadow-md font-bold"><i class="fas fa-filter ml-1"></i> تصفية</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="glass-dark p-5 rounded-xl border border-slate-700 flex items-center gap-4">
+                            <div class="p-3 bg-red-500/10 rounded-xl text-red-400"><i class="fas fa-hourglass-half fa-xl"></i></div>
+                            <div><p class="text-sm text-slate-400">لم تُراجع</p><p class="text-xl font-bold text-red-400" x-text="custodies.filter(c => (c.reviewStatus || 'pending') === 'pending').length"></p></div>
+                        </div>
+                        <div class="glass-dark p-5 rounded-xl border border-slate-700 flex items-center gap-4">
+                            <div class="p-3 bg-emerald-500/10 rounded-xl text-emerald-400"><i class="fas fa-check-circle fa-xl"></i></div>
+                            <div><p class="text-sm text-slate-400">تمت المراجعة</p><p class="text-xl font-bold text-emerald-400" x-text="custodies.filter(c => c.reviewStatus === 'reviewed').length"></p></div>
+                        </div>
+                        <div class="glass-dark p-5 rounded-xl border border-slate-700 flex items-center gap-4">
+                            <div class="p-3 bg-yellow-500/10 rounded-xl text-yellow-400"><i class="fas fa-times-circle fa-xl"></i></div>
+                            <div><p class="text-sm text-slate-400">مرفوضة</p><p class="text-xl font-bold text-yellow-400" x-text="custodies.filter(c => c.reviewStatus === 'rejected').length"></p></div>
+                        </div>
+                    </div>
+
+                    <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="table-dark-header border-b border-slate-700">
+                                    <tr>
+                                        <th class="p-3 text-right text-slate-300">الموظف</th>
+                                        <th class="p-3 text-right text-slate-300">تاريخ العهدة</th>
+                                        <th class="p-3 text-right text-slate-300">المبلغ</th>
+                                        <th class="p-3 text-right text-slate-300">المصروف</th>
+                                        <th class="p-3 text-right text-slate-300">المتبقي</th>
+                                        <th class="p-3 text-right text-slate-300">حالة العهدة</th>
+                                        <th class="p-3 text-right text-slate-300">المراجعة</th>
+                                        <th class="p-3 text-right text-slate-300">ملاحظات المراجعة</th>
+                                        <th class="p-3 text-right text-slate-300">إجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="c in getFilteredCustodiesForReview()" :key="c.id">
+                                        <tr class="table-dark-row" :class="getReviewRowClass(c)">
+                                            <td class="p-3 font-medium text-slate-200" x-text="c.employee"></td>
+                                            <td class="p-3 text-slate-300" x-text="c.date"></td>
+                                            <td class="p-3 font-bold text-blue-400" x-text="formatCurrency(c.amount)"></td>
+                                            <td class="p-3 text-red-400" x-text="formatCurrency(getCustodySpent(c))"></td>
+                                            <td class="p-3 text-emerald-400 font-bold" x-text="formatCurrency(c.amount - getCustodySpent(c))"></td>
+                                            <td class="p-3"><span :class="c.status === 'مفتوحة' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-1 rounded text-xs font-bold" x-text="c.status"></span></td>
+                                            <td class="p-3"><span :class="getReviewBadgeClass(c)" class="px-2 py-1 rounded text-xs font-bold flex items-center gap-1"><i :class="getReviewIcon(c)"></i> <span x-text="getReviewText(c)"></span></span></td>
+                                            <td class="p-3 text-slate-400 text-xs max-w-[200px] truncate" x-text="c.reviewNotes || '-'"></td>
+                                            <td class="p-3">
+                                                <button @click="openReviewModal(c)" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-bold transition">
+                                                    <i class="fas fa-clipboard-check ml-1"></i> مراجعة
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="getFilteredCustodiesForReview().length === 0">
+                                        <td colspan="9" class="p-10 text-center text-slate-500">لا توجد عهد مطابقة للفلتر</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- ═══ إدارة الموظفين ═══ -->
                 <div x-show="activeTab === 'employees'" x-cloak>
                     <div class="flex justify-end mb-4 gap-2"><button @click="openEmployeeModal()" class="primary-gradient text-white px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-lg font-bold"><i class="fas fa-user-plus"></i> إضافة موظف</button></div>
@@ -395,6 +489,43 @@
 
     <!-- ═══ نوافذ التعديل والإضافة ═══ -->
     
+
+    <!-- نافذة مراجعة العهدة -->
+    <div x-show="showReviewModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showReviewModal = false">
+        <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-5 border border-slate-700">
+            <h3 class="text-xl font-bold text-white"><i class="fas fa-clipboard-check text-blue-400 ml-2"></i> مراجعة العهدة</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-300 mb-2">نتيجة المراجعة</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer hover:border-emerald-500 transition">
+                            <input type="radio" x-model="reviewForm.status" value="reviewed" class="w-4 h-4 text-emerald-600">
+                            <span class="text-emerald-400 font-bold"><i class="fas fa-check-circle ml-1"></i> موافقة - تمت المراجعة</span>
+                        </label>
+                        <label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer hover:border-yellow-500 transition">
+                            <input type="radio" x-model="reviewForm.status" value="rejected" class="w-4 h-4 text-yellow-600">
+                            <span class="text-yellow-400 font-bold"><i class="fas fa-times-circle ml-1"></i> رفض - مرفوضة</span>
+                        </label>
+                        <label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer hover:border-red-500 transition">
+                            <input type="radio" x-model="reviewForm.status" value="pending" class="w-4 h-4 text-red-600">
+                            <span class="text-red-400 font-bold"><i class="fas fa-hourglass-half ml-1"></i> لم تُراجع</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-300 mb-2">ملاحظات المراجعة</label>
+                    <textarea x-model="reviewForm.notes" placeholder="أدخل ملاحظات المراجعة..." rows="3" class="w-full p-3 rounded-xl input-dark resize-none"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-4 pt-2">
+                <button @click="saveReview()" class="flex-1 primary-gradient text-white py-2.5 rounded-lg font-bold hover:shadow-lg transition">
+                    <i class="fas fa-save ml-1"></i> حفظ المراجعة
+                </button>
+                <button @click="showReviewModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2.5 rounded-lg hover:bg-slate-600 transition">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
     <!-- نافذة إدارة الموظفين -->
     <div x-show="showEmployeeModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showEmployeeModal = false">
         <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-4 border border-slate-700">
@@ -582,6 +713,9 @@ function financialSystem() {
         
         // متغيرات تعديل التسوية (التعديل 2)
         showEditSettlementModal: false,
+        showReviewModal: false,
+        reviewForm: { custodyId: '', status: 'reviewed', notes: '' },
+        reviewFilter: { status: 'all', custodyStatus: 'all', employee: '' },
         editSettlementForm: { custodyId: '', settlementId: '', date: '', item: '', subItem: '', category: 'تشغيلية', accountingDirection: '', isTaxable: false, amountBeforeTax: '', taxRate: 15, amount: '' },
         
         settlement: { selectedCustodyId:'', date:'', item:'', subItem:'', category:'تشغيلية', amount:'', accountingDirection:'', isTaxable:false, amountBeforeTax:'', taxRate:15 },
@@ -601,9 +735,10 @@ function financialSystem() {
             { id: 'analysis', name: 'تحليل التدفقات', icon: 'fas fa-chart-bar' },
             { id: 'report', name: 'قائمة التدفقات', icon: 'fas fa-file-alt' },
             { id: 'employees', name: 'الموظفون', icon: 'fas fa-user-tie' },
-            { id: 'users', name: 'إدارة المستخدمين', icon: 'fas fa-users-cog' }
+            { id: 'users', name: 'إدارة المستخدمين', icon: 'fas fa-users-cog' },
+            { id: 'custodyReview', name: 'مراجعة العهد', icon: 'fas fa-clipboard-check' }
         ],
-        tabNames: { 'dashboard':'لوحة التحكم', 'cashflow':'التدفقات النقدية', 'custody':'العهد المالية', 'settlement':'تقفيل العهد', 'inquiry':'استعلام العهد', 'custodyStatement':'كشف حساب عهدة', 'analysis':'تحليل التدفقات النقدية', 'report':'قائمة التدفقات', 'employees':'الموظفون', 'users':'إدارة المستخدمين' },
+        tabNames: { 'dashboard':'لوحة التحكم', 'cashflow':'التدفقات النقدية', 'custody':'العهد المالية', 'settlement':'تقفيل العهد', 'inquiry':'استعلام العهد', 'custodyStatement':'كشف حساب عهدة', 'analysis':'تحليل التدفقات النقدية', 'report':'قائمة التدفقات', 'employees':'الموظفون', 'users':'إدارة المستخدمين', 'custodyReview':'مراجعة العهد' },
 
         get allowedTabs() { if(!this.currentUser) return []; if(this.currentUser.role==='admin') return this.allTabs; return this.allTabs.filter(t=>this.currentUser.permissions?.[t.id]); },
         get isAdmin() { return this.currentUser?.role === 'admin'; },
@@ -639,7 +774,7 @@ function financialSystem() {
         },
 
         async login(){this.authLoading=true;this.authError='';try{await window.firebaseSignIn(window.firebaseAuth,this.authForm.email,this.authForm.password);}catch(e){this.authError=e.code==='auth/invalid-credential'?'بريد أو كلمة مرور غير صحيحة':'خطأ في تسجيل الدخول';}this.authLoading=false;},
-        async register(){this.authLoading=true;this.authError='';try{const uc=await window.firebaseSignUp(window.firebaseAuth,this.authForm.email,this.authForm.password);const us=await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb,"users"));const r=us.empty?'admin':'user';const p=r==='admin'?Object.fromEntries(this.allTabs.map(t=>[t.id,true])):{dashboard:true,cashflow:true,custody:true,settlement:true,inquiry:true,custodyStatement:true,analysis:true,report:true,employees:true,users:false};await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"users",uc.user.uid),{email:this.authForm.email,role:r,permissions:p,createdAt:new Date().toISOString()});}catch(e){this.authError=e.message;}this.authLoading=false;},
+        async register(){this.authLoading=true;this.authError='';try{const uc=await window.firebaseSignUp(window.firebaseAuth,this.authForm.email,this.authForm.password);const us=await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb,"users"));const r=us.empty?'admin':'user';const p=r==='admin'?Object.fromEntries(this.allTabs.map(t=>[t.id,true])):{dashboard:true,cashflow:true,custody:true,settlement:true,inquiry:true,custodyStatement:true,analysis:true,report:true,employees:true,users:false,custodyReview:false};await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"users",uc.user.uid),{email:this.authForm.email,role:r,permissions:p,createdAt:new Date().toISOString()});}catch(e){this.authError=e.message;}this.authLoading=false;},
         async logout(){try{await window.firebaseSignOut(window.firebaseAuth);}catch(e){}this.isLoggedIn=false;this.currentUser=null;this.flows=[];this.custodies=[];this.employeesList=[];this.users=[];this.dataLoaded=false;this.authMode='login';},
 
         initFirestoreListeners(){
@@ -651,7 +786,7 @@ function financialSystem() {
             this.dataLoaded=true;
         },
 
-        formatCurrency(a){return new Intl.NumberFormat('ar-SA',{style:'currency',currency:'SAR'}).format(a||0);},
+        formatCurrency(a){return new Intl.NumberFormat('en-US',{style:'currency',currency:'SAR'}).format(a||0);},
         get hasOpeningBalance(){return this.flows.some(f=>f.item==='رصيد بداية المدة');},
         get totalInflow(){return this.flows.filter(f=>f.type==='inflow').reduce((s,f)=>s+Number(f.amount),0);},
         get totalOutflow(){return this.flows.filter(f=>f.type==='outflow').reduce((s,f)=>s+Number(f.amount),0);},
@@ -659,6 +794,77 @@ function financialSystem() {
         get openCustodies(){return this.custodies.filter(c=>c.status==='مفتوحة');},
         getSortedFlows(){let b=0;const o=this.flows.filter(f=>f.item==='رصيد بداية المدة');const t=this.flows.filter(f=>f.item!=='رصيد بداية المدة').sort((a,c)=>new Date(a.date||'1970-01-01')-new Date(c.date||'1970-01-01'));return[...o,...t].map(f=>{b+=f.type==='inflow'?Number(f.amount):-Number(f.amount);return{...f,runningBalance:b};});},
 
+
+        // ═══ نظام مراجعة العهد ═══
+        getReviewBadgeClass(c) {
+            const status = c?.reviewStatus || 'pending';
+            if (status === 'reviewed') return 'review-badge-reviewed';
+            if (status === 'rejected') return 'review-badge-rejected';
+            return 'review-badge-pending';
+        },
+        getReviewIcon(c) {
+            const status = c?.reviewStatus || 'pending';
+            if (status === 'reviewed') return 'fas fa-check-circle';
+            if (status === 'rejected') return 'fas fa-times-circle';
+            return 'fas fa-hourglass-half';
+        },
+        getReviewText(c) {
+            const status = c?.reviewStatus || 'pending';
+            if (status === 'reviewed') return 'تمت المراجعة';
+            if (status === 'rejected') return 'مرفوضة';
+            return 'لم تُراجع';
+        },
+        getReviewRowClass(c) {
+            const status = c?.reviewStatus || 'pending';
+            if (status === 'reviewed') return 'review-row-reviewed';
+            if (status === 'rejected') return 'review-row-rejected';
+            return 'review-row-pending';
+        },
+        getPendingReviewCount() {
+            return this.custodies.filter(c => (c.reviewStatus || 'pending') === 'pending').length;
+        },
+        getFilteredCustodiesForReview() {
+            let result = this.custodies;
+            if (this.reviewFilter.status !== 'all') {
+                result = result.filter(c => (c.reviewStatus || 'pending') === this.reviewFilter.status);
+            }
+            if (this.reviewFilter.custodyStatus !== 'all') {
+                result = result.filter(c => c.status === this.reviewFilter.custodyStatus);
+            }
+            if (this.reviewFilter.employee) {
+                result = result.filter(c => c.employee === this.reviewFilter.employee);
+            }
+            return result;
+        },
+        openReviewModal(c) {
+            this.reviewForm = { 
+                custodyId: c.id, 
+                status: c.reviewStatus || 'reviewed', 
+                notes: c.reviewNotes || '' 
+            };
+            this.showReviewModal = true;
+        },
+        async saveReview() {
+            try {
+                await window.firebaseUpdateDoc(
+                    window.firebaseDoc(window.firebaseDb, "custodies", this.reviewForm.custodyId),
+                    { 
+                        reviewStatus: this.reviewForm.status,
+                        reviewNotes: this.reviewForm.notes,
+                        reviewedBy: this.currentUser?.email,
+                        reviewedAt: new Date().toISOString()
+                    }
+                );
+                this.showReviewModal = false;
+                this.showToast('تم حفظ المراجعة', 'success');
+            } catch(e) {
+                this.showToast('خطأ: ' + e.message, 'error');
+            }
+        },
+        applyReviewFilter() {
+            // Filter is reactive, no need to do anything
+            this.showToast('تم تطبيق الفلتر', 'info');
+        },
         // ═══ إدارة الموظفين ═══
         openEmployeeModal(emp=null){if(emp){this.employeeForm={id:emp.id,name:emp.name,position:emp.position||'',phone:emp.phone||''};}else{this.employeeForm={id:null,name:'',position:'',phone:''};}this.showEmployeeModal=true;},
         editEmployee(emp){this.openEmployeeModal(emp);},
@@ -881,8 +1087,8 @@ async closeAndGenerateCustodyReport(){
         rePrintCustodyReport(c){const sp=this.getCustodySpent(c);const rem=c.amount-sp;this.generateCustodyReportHTML(c,sp,rem,c.closedAt||new Date().toISOString().split('T')[0]);},
         generateCustodyReportHTML(c,spent,remaining,closeDate){
             const act=c.closeResult==='returned'?'تم رد المبلغ للصندوق':(c.closeResult==='carried_forward'?'تم ترحيل المتبقي لعهدة جديدة':'مقفلة بالكامل');
-            let rows='';(c.settlements||[]).forEach((s,i)=>{rows+=`<tr><td style="text-align:center">${i+1}</td><td>${s.date||''}</td><td>${s.item||''}<br><small style="color:#64748b">${s.subItem||''}</small></td><td>${s.category||''}</td><td>${s.accountingDirection||'-'}</td><td style="text-align:left">${Number(s.amount).toLocaleString('ar-SA')}</td></tr>`;});
-            this.custodyReportHTML=`<div style="text-align:center;margin-bottom:30px"><h2 style="margin:0;font-size:24px">تقرير تقفيل عهدة</h2><p style="color:#64748b;margin:5px 0 0 0">تاريخ التقفيل: ${closeDate}</p></div><div class="summary-box"><div class="summary-row"><span style="font-weight:bold">الموظف:</span><span>${c.employee}</span></div><div class="summary-row"><span style="font-weight:bold">تاريخ العهدة:</span><span>${c.date}</span></div></div><table><thead><tr><th style="text-align:center">#</th><th>التاريخ</th><th>البند</th><th>التصنيف</th><th>التوجيه</th><th style="text-align:left">الإجمالي</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="total-row"><td colspan="5" style="text-align:left;font-weight:bold">إجمالي المصروفات</td><td style="text-align:left;font-weight:bold">${spent.toLocaleString('ar-SA')}</td></tr></tfoot></table><div class="summary-box" style="margin-top:20px;border-color:#16a34a"><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">رصيد بداية العهدة:</span><span>${Number(c.amount).toLocaleString('ar-SA')} ر.س</span></div><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">(-) المصروفات:</span><span style="color:#dc2626">${spent.toLocaleString('ar-SA')} ر.س</span></div><div class="summary-row" style="font-size:18px;border-bottom:none"><span style="font-weight:bold">رصيد نهاية التقفيل:</span><span style="color:#16a34a">${remaining.toLocaleString('ar-SA')} ر.س</span></div><div style="text-align:center;margin-top:15px;padding:10px;background:#f0fdf4;border-radius:6px;color:#166534;font-weight:bold">الإجراء: ${act}</div></div><div style="margin-top:60px;display:flex;justify-content:space-between"><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع الموظف</p><br><br><p style="border-top:1px solid #94a3b8">.............................</p></div><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع المدير المالي</p><br><br><p style="border-top:1px solid #94a3b8">.............................</p></div></div>`;
+            let rows='';(c.settlements||[]).forEach((s,i)=>{rows+=`<tr><td style="text-align:center">${i+1}</td><td>${s.date||''}</td><td>${s.item||''}<br><small style="color:#64748b">${s.subItem||''}</small></td><td>${s.category||''}</td><td>${s.accountingDirection||'-'}</td><td style="text-align:left">${Number(s.amount).toLocaleString('en-US')}</td></tr>`;});
+            this.custodyReportHTML=`<div style="text-align:center;margin-bottom:30px"><h2 style="margin:0;font-size:24px">تقرير تقفيل عهدة</h2><p style="color:#64748b;margin:5px 0 0 0">تاريخ التقفيل: ${closeDate}</p></div><div class="summary-box"><div class="summary-row"><span style="font-weight:bold">الموظف:</span><span>${c.employee}</span></div><div class="summary-row"><span style="font-weight:bold">تاريخ العهدة:</span><span>${c.date}</span></div></div><table><thead><tr><th style="text-align:center">#</th><th>التاريخ</th><th>البند</th><th>التصنيف</th><th>التوجيه</th><th style="text-align:left">الإجمالي</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="total-row"><td colspan="5" style="text-align:left;font-weight:bold">إجمالي المصروفات</td><td style="text-align:left;font-weight:bold">${spent.toLocaleString('en-US')}</td></tr></tfoot></table><div class="summary-box" style="margin-top:20px;border-color:#16a34a"><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">رصيد بداية العهدة:</span><span>${Number(c.amount).toLocaleString('en-US')} ر.س</span></div><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">(-) المصروفات:</span><span style="color:#dc2626">${spent.toLocaleString('en-US')} ر.س</span></div><div class="summary-row" style="font-size:18px;border-bottom:none"><span style="font-weight:bold">رصيد نهاية التقفيل:</span><span style="color:#16a34a">${remaining.toLocaleString('en-US')} ر.س</span></div><div style="text-align:center;margin-top:15px;padding:10px;background:#f0fdf4;border-radius:6px;color:#166534;font-weight:bold">الإجراء: ${act}</div></div><div style="margin-top:60px;display:flex;justify-content:space-between"><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع الموظف</p><br><br><p style="border-top:1px solid #94a3b8">.............................</p></div><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع المدير المالي</p><br><br><p style="border-top:1px solid #94a3b8">.............................</p></div></div>`;
             setTimeout(()=>{const ch=confirm("موافق = طباعة / حفظ PDF\nإلغاء = تصدير Excel");if(ch)this.printCustodyReport();else this.exportCustodyReportExcel(c,spent,remaining,act,closeDate);},300);
         },
         printCustodyReport() {
