@@ -172,18 +172,80 @@
 
                 <!-- ═══ العهد المالية ═══ -->
                 <div x-show="activeTab === 'custody'" x-cloak>
-                    <div class="flex justify-end mb-4 gap-2"><button @click="openCustodyModal()" class="primary-gradient text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md"><i class="fas fa-plus"></i> إنشاء عهدة</button></div>
-                    <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700"><div class="overflow-x-auto">
-                        <table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-3 text-right text-slate-300">الموظف</th><th class="p-3 text-right text-slate-300">الإجمالي</th><th class="p-3 text-right text-slate-300">المصروف</th><th class="p-3 text-right text-slate-300">المتبقي</th><th class="p-3 text-right text-slate-300">ملاحظة</th><th class="p-3 text-right text-slate-300">الحالة</th><th class="p-3 text-right text-slate-300">إجراء</th></tr></thead>
-                        <tbody><template x-for="c in custodies" :key="c.id"><tr class="table-dark-row" :class="c.isCarriedForward ? 'bg-amber-900/5' : ''"><td class="p-3 font-medium text-slate-200" x-text="c.employee"></td><td class="p-3 font-bold text-blue-400" x-text="formatCurrency(c.amount)"></td><td class="p-3 text-red-400" x-text="formatCurrency(getCustodySpent(c))"></td><td class="p-3 text-emerald-400 font-bold" x-text="formatCurrency(c.amount - getCustodySpent(c))"></td><td class="p-3 text-xs"><span x-show="c.isCarriedForward" class="text-amber-400"><i class="fas fa-exchange-alt"></i> مرحّل</span><span x-show="c.isOpeningBalance && !c.isCarriedForward" class="text-purple-400"><i class="fas fa-flag"></i> رصيد بداية</span></td><td class="p-3"><span :class="c.status === 'مفتوحة' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-1 rounded text-xs font-bold" x-text="c.status"></span></td><td class="p-3 flex gap-2 flex-wrap">
-                            <button @click="editCustody(c)" class="text-blue-400 hover:text-blue-300" title="تعديل"><i class="fas fa-edit"></i></button>
-                            <button @click="deleteCustody(c)" class="text-red-400 hover:text-red-300" title="حذف"><i class="fas fa-trash"></i></button>
-                            <button @click="manageCustodySettlements(c)" class="text-cyan-400 hover:text-cyan-300" title="إدارة بنود الصرف"><i class="fas fa-list-check"></i></button>
-                            <button x-show="c.status === 'مفتوحة'" @click="enhanceCustody(c)" class="text-emerald-400 hover:text-emerald-300" title="تعزيز"><i class="fas fa-plus-circle"></i></button>
-                            <button x-show="c.status === 'مفتوحة'" @click="openCloseCustodyModal(c)" class="text-amber-400 hover:text-amber-300" title="تقفيل"><i class="fas fa-file-invoice"></i></button>
-                            <button x-show="c.status === 'مقفلة'" @click="rePrintCustodyReport(c)" class="text-indigo-400 hover:text-indigo-300" title="إصدار تقرير التقفيل"><i class="fas fa-print"></i></button>
-                        </td></tr></template></tbody></table>
-                    </div></div>
+                    <!-- شريط الأدوات العلوي -->
+                    <div class="flex flex-wrap justify-between items-center mb-6 gap-3">
+                        <div class="flex gap-2 bg-slate-800 p-1 rounded-lg border border-slate-700">
+                            <button @click="custodyFilter = 'all'" :class="custodyFilter === 'all' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'" class="px-4 py-2 rounded-md text-sm font-bold transition">الكل</button>
+                            <button @click="custodyFilter = 'مفتوحة'" :class="custodyFilter === 'مفتوحة' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'" class="px-4 py-2 rounded-md text-sm font-bold transition">مفتوحة</button>
+                            <button @click="custodyFilter = 'مقفلة'" :class="custodyFilter === 'مقفلة' ? 'bg-slate-500 text-white shadow-md' : 'text-slate-400 hover:text-white'" class="px-4 py-2 rounded-md text-sm font-bold transition">مقفلة</button>
+                        </div>
+                        <button @click="openCustodyModal()" class="primary-gradient text-white px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-lg font-bold"><i class="fas fa-plus"></i> إنشاء عهدة</button>
+                    </div>
+
+                    <!-- شبكة البطاقات -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <template x-for="c in custodies.filter(c => custodyFilter === 'all' || c.status === custodyFilter)" :key="c.id">
+                            <div class="glass-dark rounded-xl border transition-all duration-200" :class="c.status === 'مفتوحة' ? 'border-emerald-500/30 hover:border-emerald-500/60' : 'border-slate-700 hover:border-slate-600'">
+                                
+                                <!-- رأس البطاقة -->
+                                <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm" :class="c.status === 'مفتوحة' ? 'bg-emerald-600' : 'bg-slate-600'" x-text="c.employee?.charAt(0)"></div>
+                                        <div>
+                                            <h3 class="font-bold text-white" x-text="c.employee"></h3>
+                                            <p class="text-xs text-slate-500" x-text="c.date"></p>
+                                        </div>
+                                    </div>
+                                    <span :class="c.status === 'مفتوحة' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-600/50 text-slate-400 border-slate-600'" class="px-2.5 py-1 rounded-full text-xs font-bold border" x-text="c.status"></span>
+                                </div>
+
+                                <!-- جسم البطاقة (الأرقام) -->
+                                <div class="p-4 grid grid-cols-3 gap-3 text-center">
+                                    <div>
+                                        <p class="text-xs text-slate-500 mb-1">الإجمالي</p>
+                                        <p class="font-bold text-blue-400 text-sm" x-text="formatCurrency(c.amount)"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-500 mb-1">المصروف</p>
+                                        <p class="font-bold text-red-400 text-sm" x-text="formatCurrency(getCustodySpent(c))"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-500 mb-1">المتبقي</p>
+                                        <p class="font-bold text-emerald-400 text-lg" x-text="formatCurrency(c.amount - getCustodySpent(c))"></p>
+                                    </div>
+                                </div>
+
+                                <!-- ملاحظات سريعة -->
+                                <div class="px-4 pb-2 flex gap-2">
+                                    <span x-show="c.isCarriedForward" class="text-amber-400 text-xs bg-amber-900/20 px-2 py-0.5 rounded"><i class="fas fa-exchange-alt ml-1"></i>مرحّل</span>
+                                    <span x-show="c.isOpeningBalance && !c.isCarriedForward" class="text-purple-400 text-xs bg-purple-900/20 px-2 py-0.5 rounded"><i class="fas fa-flag ml-1"></i>رصيد بداية</span>
+                                </div>
+
+                                <!-- ذيل البطاقة (الإجراءات) -->
+                                <div class="p-3 bg-slate-800/30 border-t border-slate-700 flex flex-wrap gap-2 justify-end">
+                                    <button @click="manageCustodySettlements(c)" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1.5 rounded-lg transition flex items-center gap-1"><i class="fas fa-list-check"></i> البنود</button>
+                                    <button x-show="c.status === 'مفتوحة'" @click="enhanceCustody(c)" class="text-xs bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 px-3 py-1.5 rounded-lg transition flex items-center gap-1"><i class="fas fa-plus-circle"></i> تعزيز</button>
+                                    <button x-show="c.status === 'مفتوحة'" @click="openCloseCustodyModal(c)" class="text-xs bg-amber-600/10 hover:bg-amber-600/20 text-amber-400 px-3 py-1.5 rounded-lg transition flex items-center gap-1"><i class="fas fa-file-invoice"></i> تقفيل</button>
+                                    <button x-show="c.status === 'مقفلة'" @click="rePrintCustodyReport(c)" class="text-xs bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 px-3 py-1.5 rounded-lg transition flex items-center gap-1"><i class="fas fa-print"></i> تقرير</button>
+                                    
+                                    <!-- قائمة منسدلة للإجراءات الثانوية -->
+                                    <div class="relative" x-data="{ open: false }" @click.away="open = false">
+                                        <button @click="open = !open" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-400 px-2 py-1.5 rounded-lg transition"><i class="fas fa-ellipsis-v"></i></button>
+                                        <div x-show="open" x-transition class="absolute left-0 bottom-full mb-1 w-32 bg-slate-800 border border-slate-600 rounded-lg shadow-xl z-10 overflow-hidden">
+                                            <button @click="editCustody(c); open = false" class="w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-blue-600/20 hover:text-blue-400 transition"><i class="fas fa-edit ml-1"></i> تعديل</button>
+                                            <button @click="deleteCustody(c); open = false" class="w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-red-600/20 hover:text-red-400 transition"><i class="fas fa-trash ml-1"></i> حذف</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        
+                        <!-- رسالة إذا كانت البطاقات فارغة -->
+                        <div x-show="custodies.filter(c => custodyFilter === 'all' || c.status === custodyFilter).length === 0" class="col-span-full text-center py-16 text-slate-500 glass-dark rounded-xl border border-slate-700">
+                            <i class="fas fa-wallet text-5xl mb-4 block text-slate-600"></i>
+                            <p class="text-lg font-bold">لا توجد عهد مطابقة للفلتر الحالي</p>
+                        </div>
+                    </div>
                 </div>
                                 <!-- ═══ تقفيل العهد ═══ -->
                 <div x-show="activeTab === 'settlement'" x-cloak>
@@ -191,11 +253,21 @@
                         <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 space-y-4">
                             <h3 class="font-bold text-lg border-b border-slate-700 pb-2 text-white">تسوية عهدة</h3>
                             <select x-model="settlement.selectedCustodyId" class="w-full p-2 rounded-lg input-dark">
-                                <option value="">اختر عهدة</option>
-                                <template x-for="c in custodies" :key="c.id">
-                                    <option :value="c.id" x-text="c.employee + (c.status === 'مقفلة' ? ' 🔒' : '') + ' - ' + formatCurrency(c.amount - getCustodySpent(c)) + ' (' + c.date + ')'"></option>
-                                </template>
-                            </select>
+    <option value="">اختر عهدة مفتوحة لتسويتها</option>
+    
+    <!-- العهد المفتوحة -->
+    <template x-for="c in custodies.filter(c => c.status === 'مفتوحة')" :key="c.id">
+        <option :value="c.id" x-text="c.employee + ' - ' + formatCurrency(c.amount - getCustodySpent(c)) + ' (' + c.date + ')'"></option>
+    </template>
+    
+    <!-- فاصل -->
+    <option disabled class="text-slate-500 font-bold bg-slate-800">──────── عهد مقفلة (للعرض/التعديل فقط) ────────</option>
+    
+    <!-- العهد المقفلة -->
+    <template x-for="c in custodies.filter(c => c.status === 'مقفلة')" :key="c.id">
+        <option :value="c.id" x-text="'🔒 ' + c.employee + ' - ' + formatCurrency(c.amount - getCustodySpent(c)) + ' (' + c.date + ')'"></option>
+    </template>
+</select>
                             
                             <div x-show="settlement.selectedCustodyId && getSelectedCustody()?.status === 'مفتوحة'" class="space-y-3 pt-4 border-t border-slate-700">
                                 <input type="date" x-model="settlement.date" class="w-full p-2 rounded-lg input-dark">
@@ -576,7 +648,7 @@ function financialSystem() {
         reviewForm: { custodyId: '', status: 'reviewed', notes: '' },
         reviewFilter: { status: 'all', custodyStatus: 'all', employee: '' },
         editSettlementForm: { custodyId: '', settlementId: '', date: '', item: '', subItem: '', category: 'تشغيلية', accountingDirection: '', isTaxable: false, amountBeforeTax: '', taxRate: 15, amount: '' },
-        
+        custodyFilter: 'all',
         settlement: { selectedCustodyId:'', date:'', item:'', subItem:'', category:'تشغيلية', amount:'', accountingDirection:'', isTaxable:false, amountBeforeTax:'', taxRate:15 },
         inquiry: { employee:'', from:'', to:'' }, inquiryResult: null,
         custodyStatement: { employee:'', from:'', to:'', data: null },
