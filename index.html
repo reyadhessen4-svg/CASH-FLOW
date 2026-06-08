@@ -936,7 +936,7 @@ function financialSystem() {
                 if(ctx2){if(this.balanceChartInstance)this.balanceChartInstance.destroy();this.balanceChartInstance=new Chart(ctx2,{type:'line',data:{labels:balL,datasets:[{label:'الرصيد',data:balD,borderColor:'#3b82f6',fill:true,tension:0.4,backgroundColor:'rgba(59,130,246,0.1)'}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}},plugins:{legend:{labels:{color:'#e2e8f0'}}}}});}
                         },300);
             },         
-        // ═══ دالة فحص وإصلاح البيانات القديمة (النسخة المطورة) ═══
+                // ═══ دالة فحص وإصلاح البيانات القديمة (مصححة) ═══
         async fixOldCustodyData() {
             if(!confirm("سيتم فحص جميع العهد لمعرفة سبب عدم إصلاحها تلقائياً. متأكد؟")) return;
             
@@ -953,7 +953,8 @@ function financialSystem() {
                 flowSnapshot.docs.forEach(d => flowsMap[d.id] = {id: d.id, ...d.data()});
 
                 for (const custDoc of custodySnapshot.docs) {
-                    const c = { id: custDoc.id, ...c.data() }; // ملاحظة: كان خطأ مطبعي هنا في السابق، تم تصحيحه
+                    // تم تصحيح الخطأ هنا: custDoc.data() بدلاً من c.data()
+                    const c = { id: custDoc.id, ...custDoc.data() }; 
                     
                     // 1. هل العهدة ليس بها تدفق أصلي (مثل رصيد البداية)؟
                     if (!c.linkedFlowId) { skippedNoFlow++; continue; }
@@ -998,7 +999,7 @@ function financialSystem() {
                 // رسالة الفحص التفصيلية
                 const msg = `انتهى الفحص: تم إصلاح (${fixedCount}) عهدة. أسباب التجاهل: بدون تدفق أصلي/رصيد بداية (${skippedNoFlow})، بدون بنود صرف (${skippedNoSettlements})، تم إصلاحها مسبقاً (${skippedAlreadyFixed})`;
                 this.showToast(msg, 'success');
-                console.log(msg); // لطباعة التفاصيل في الكونسول أيضاً
+                console.log(msg); 
             } catch (e) {
                 this.showToast('خطأ أثناء الإصلاح: ' + e.message, 'error');
                 console.error(e);
