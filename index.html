@@ -393,7 +393,10 @@
 
                 <!-- ═══ إدارة المستخدمين ═══ -->
                 <div x-show="activeTab === 'users'" x-cloak>
-                    <div class="flex flex-wrap justify-between items-center mb-4 gap-3"><div class="flex items-center gap-2"><div class="relative"><i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i><input type="text" x-model="userSearchQuery" placeholder="بحث..." class="pr-9 pl-4 py-2 rounded-lg input-dark text-sm w-64"></div><select x-model="userFilterRole" class="p-2 rounded-lg input-dark text-sm"><option value="all">الكل</option><option value="admin">مدير</option><option value="user">مستخدم</option></select></div><button @click="openAddUserModal()" class="primary-gradient text-white px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-lg font-bold"><i class="fas fa-user-plus"></i> إضافة مستخدم</button></div>
+                    <div class="flex flex-wrap justify-between items-center mb-4 gap-3"><div class="flex items-center gap-2"><div class="relative"><i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i><input type="text" x-model="userSearchQuery" placeholder="بحث..." class="pr-9 pl-4 py-2 rounded-lg input-dark text-sm w-64"></div><select x-model="userFilterRole" class="p-2 rounded-lg input-dark text-sm"><option value="all">الكل</option><option value="admin">مدير</option><option value="user">مستخدم</option></select></div><div class="flex gap-2">
+    <button @click="openAddUserModal()" class="primary-gradient text-white px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-lg font-bold"><i class="fas fa-user-plus"></i> إضافة مستخدم</button>
+    <button x-show="isAdmin" @click="fixOldCustodyData()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 shadow-lg font-bold transition"><i class="fas fa-wrench"></i> إصلاح البيانات القديمة</button>
+</div>
                     <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700"><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-4 text-right text-slate-300">#</th><th class="p-4 text-right text-slate-300">المستخدم</th><th class="p-4 text-right text-slate-300">الدور</th><th class="p-4 text-right text-slate-300">الصلاحيات</th><th class="p-4 text-center text-slate-300">إجراءات</th></tr></thead><tbody><template x-for="(u, idx) in getFilteredUsers()" :key="u.id"><tr class="table-dark-row"><td class="p-4 text-slate-500" x-text="idx+1"></td><td class="p-4"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm" :class="u.role==='admin'?'role-badge-admin':'role-badge-user'" x-text="u.email?.charAt(0).toUpperCase()"></div><div><p class="font-bold text-slate-200 text-sm" x-text="u.email"></p></div></div></td><td class="p-4"><span :class="u.role==='admin'?'role-badge-admin':'role-badge-user'" class="px-3 py-1 rounded-full text-xs font-bold text-white" x-text="u.role==='admin'?'مدير':'مستخدم'"></span></td><td class="p-4"><span class="text-slate-500 text-xs" x-text="Object.values(u.permissions||{}).filter(Boolean).length+'/'+allTabs.length"></span></td><td class="p-4"><div class="flex items-center justify-center gap-2"><button @click="editPermissions(u)" class="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20" title="صلاحيات"><i class="fas fa-key text-sm"></i></button><button @click="changeUserRole(u)" class="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20" title="تغيير الدور"><i class="fas fa-user-tag text-sm"></i></button><button @click="resetUserPassword(u)" class="p-2 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20" title="إعادة كلمة المرور"><i class="fas fa-key text-sm"></i></button><button x-show="u.id!==currentUser?.id" @click="deleteUser(u)" class="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20" title="حذف"><i class="fas fa-trash-alt text-sm"></i></button></div></td></tr></template></tbody></table></div></div>
                 </div>
 
@@ -931,10 +934,80 @@ function financialSystem() {
                 if(ctx1){if(this.flowChartInstance)this.flowChartInstance.destroy();this.flowChartInstance=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{label:'داخلة',data:inD,backgroundColor:'#34d399',borderRadius:4},{label:'خارجة',data:outD,backgroundColor:'#f87171',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}},plugins:{legend:{labels:{color:'#e2e8f0'}}}}});}
                 const ctx2=document.getElementById('balanceChart')?.getContext('2d');
                 if(ctx2){if(this.balanceChartInstance)this.balanceChartInstance.destroy();this.balanceChartInstance=new Chart(ctx2,{type:'line',data:{labels:balL,datasets:[{label:'الرصيد',data:balD,borderColor:'#3b82f6',fill:true,tension:0.4,backgroundColor:'rgba(59,130,246,0.1)'}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}},plugins:{legend:{labels:{color:'#e2e8f0'}}}}});}
-            },300);
-        }
-    }
-}
+                        },300);
+            }, // <--- هام جداً: تمت إضافة فاصلة هنا بدلاً من القوس فقط
+            // ═══ دالة إصلاح البيانات القديمة ═══
+            async fixOldCustodyData() {
+                if(!confirm("هل أنت متأكد؟ هذا الإجراء سيقوم بإصلاح العهد القديمة ليتوافق مع النظام الجديد (إنشاء تدفقات للبنود وتعديل تدفق العهدة الأصلي). لا يمكن التراجع عن هذا الإجراء!")) return;
+                
+                this.showToast('جاري الإصلاح... قد يستغرق بعض الوقت حسب عدد العهد', 'info');
+                let fixedCount = 0;
+
+                try {
+                    const custodySnapshot = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, "custodies"));
+                    const flowSnapshot = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, "cashFlows"));
+                    const flowsMap = {};
+                    flowSnapshot.docs.forEach(d => flowsMap[d.id] = {id: d.id, ...d.data()});
+
+                    for (const custDoc of custodySnapshot.docs) {
+                        const c = { id: custDoc.id, ...custDoc.data() };
+                        
+                        if (!c.linkedFlowId || !c.settlements || c.settlements.length === 0) continue;
+
+                        const needsMigration = c.settlements.some(s => !s.linkedFlowId);
+                        if (!needsMigration) continue;
+
+                        let newSettlements = [...c.settlements];
+                        let totalSettledAmount = 0;
+
+                        for (let i = 0; i < newSettlements.length; i++) {
+                            const s = newSettlements[i];
+                            if (!s.linkedFlowId) {
+                                const newFlowRef = await window.firebaseAddDoc(
+                                    window.firebaseCollection(window.firebaseDb, "cashFlows"),
+                                    {
+                                        type: 'outflow',
+                                        date: s.date || c.date,
+                                        item: s.item,
+                                        subItem: s.subItem || '',
+                                        category: s.category || 'تشغيلية',
+                                        amount: Number(s.amount)
+                                    }
+                                );
+                                newSettlements[i] = { ...s, linkedFlowId: newFlowRef.id };
+                            }
+                            totalSettledAmount += Number(newSettlements[i].amount);
+                        }
+
+                        const originalFlow = flowsMap[c.linkedFlowId];
+                        if (originalFlow) {
+                            const newOriginalAmount = Number(c.amount) - totalSettledAmount;
+                            if (newOriginalAmount > 0) {
+                                await window.firebaseUpdateDoc(
+                                    window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId),
+                                    { amount: newOriginalAmount }
+                                );
+                            } else {
+                                await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId));
+                            }
+                        }
+
+                        await window.firebaseUpdateDoc(
+                            window.firebaseDoc(window.firebaseDb, "custodies", c.id),
+                            { settlements: newSettlements }
+                        );
+
+                        fixedCount++;
+                    }
+
+                    this.showToast(`تم الإصلاح بنجاح! تم معالجة ${fixedCount} عهدة قديمة.`, 'success');
+                } catch (e) {
+                    this.showToast('خطأ أثناء الإصلاح: ' + e.message, 'error');
+                    console.error(e);
+                }
+            }
+        } // <--- قوس إغلاق الـ return
+    } // <--- قوس إغلاق الدالة الرئيسية financialSystem
 </script>
 </div>
 </html>
