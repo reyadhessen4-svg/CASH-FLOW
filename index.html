@@ -827,7 +827,7 @@ function financialSystem() {
         getSelectedCustody(){return this.custodies.find(c=>c.id===this.settlement.selectedCustodyId);},
         getCustodySpent(c){return c?(c.settlements||[]).reduce((s,st)=>s+Number(st.amount),0):0;},
         
-        async settleCustody(){
+            async settleCustody(){
             if(!this.settlement.date){ this.showToast('يرجى إدخال التاريخ أولاً', 'error'); return; }
             if(!this.settlement.item) return alert("أدخل البند");
             try{
@@ -837,14 +837,18 @@ function financialSystem() {
                 let sd={id:Date.now().toString(),date:this.settlement.date,item:this.settlement.item,subItem:this.settlement.subItem||'',category:this.settlement.category,accountingDirection:this.settlement.accountingDirection||'',isTaxable:this.settlement.isTaxable||false,amountBeforeTax:0,taxRate:0,taxAmount:0,amount:0,linkedFlowId:null};
                 if(this.settlement.isTaxable){const abt=Number(this.settlement.amountBeforeTax)||0;const r=Number(this.settlement.taxRate)||15;const ta=abt*(r/100);sd.amountBeforeTax=abt;sd.taxRate=r;sd.taxAmount=ta;sd.amount=abt+ta;}else{if(!this.settlement.amount)return alert("أدخل المبلغ");sd.amount=Number(this.settlement.amount);}
                 
-                // الميزة الجديدة: إنشاء تدفق خارج للبند وتعديل التدفق الأصلي
+                // الميزة الجديدة: إنشاء تدفق خارج للبند مع ربط متبادل
                 if(custody.linkedFlowId){
-                    const flowRef = await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "cashFlows"),{ type:'outflow', date:sd.date, item:sd.item, subItem:sd.subItem, category:sd.category, amount:sd.amount });
+                    const flowRef = await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb, "cashFlows"),{
+                        type: 'outflow', date: sd.date, item: sd.item, subItem: sd.subItem, category: sd.category, amount: sd.amount,
+                        linkedSettlementId: sd.id // <--- الربط المتبادل الجديد
+                    });
                     sd.linkedFlowId = flowRef.id;
                     
-                    const linkedFlow = this.flows.find(f => f.id === custody.linkedFlowId);
-                    if(linkedFlow){
-                        const newAmount = Number(linkedFlow.amount) - sd.amount;
+                    // تعديل التدفق الأصلي مباشرة من الفايربيس لمنع التضارب
+                    const flowDoc = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", custody.linkedFlowId));
+                    if(flowDoc.exists()){
+                        const newAmount = Number(flowDoc.data().amount) - sd.amount;
                         if(newAmount > 0){ await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",custody.linkedFlowId),{amount:newAmount}); }
                         else { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",custody.linkedFlowId)); }
                     }
@@ -856,19 +860,28 @@ function financialSystem() {
             }catch(e){alert(e.message);}
         },
         
-               async deleteSettlementItem(sid){
+            async deleteSettlementItem(sid){
             if(!confirm("حذف البند سيؤدي لحذف التدفق النقدي المرتبط به وزيادة تدفق العهدة الأصلية. متأكد؟"))return;
             const c=this.getSelectedCustody();
             if(!c)return;
             const settlement = c.settlements.find(s => s.id === sid);
             try{
                 if(settlement){
-                    // 1) حذف التدفق الخارج المرتبط ببند التسوية
-                    if(settlement.linkedFlowId){
-                        try{ await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",settlement.linkedFlowId)); }catch(e){}
+                    // طريقة 1: البحث بالرقم المحفوظ في بند التسوية
+                    let flowToDeleteId = settlement.linkedFlowId;
+                    
+                    // طريقة 2 (الاحتياطية): إذا لم يجد الرابط، يبحث في التدفقات بالربط المتبادل
+                    if(!flowToDeleteId){
+                        const foundFlow = this.flows.find(f => f.linkedSettlementId === sid);
+                        if(foundFlow) flowToDeleteId = foundFlow.id;
                     }
                     
-                    // 2) تعديل التدفق الأصلي (عهد موظفين) - نجلب المبلغ المباشر من الفايربيس
+                    // حذف التدفق الخارج بأي طريقة تم إيجاده
+                    if(flowToDeleteId){
+                        try{ await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",flowToDeleteId)); }catch(e){}
+                    }
+
+                    // تعديل التدفق الأصلي (عهد موظفين) مباشرة من الفايربيس
                     if(c.linkedFlowId){
                         const flowDoc = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId));
                         if(flowDoc.exists()){
@@ -880,13 +893,11 @@ function financialSystem() {
                                 await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",c.linkedFlowId));
                             }
                         } else {
-                            // التدفق الأصلي محذوف (بلغ صفراً سابقاً)، نعيده
                             await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",c.linkedFlowId),{type:'outflow',date:c.date,item:'عهد موظفين',subItem:c.employee,category:'تشغيلية',amount:Number(settlement.amount)});
                         }
                     }
                 }
                 
-                // حذف البند من العهدة
                 await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id),{settlements:c.settlements.filter(s=>s.id!==sid)});
                 this.showToast('تم حذف البند وإعادة المبلغ للتدفق الأصلي','success');
             }catch(e){
@@ -946,7 +957,7 @@ function financialSystem() {
                 this.showToast('خطأ: ' + e.message, 'error');
             }
         },
-                async saveEditedSettlement() {
+            async saveEditedSettlement() {
             if (!this.editSettlementForm.item) return this.showToast("أدخل البند", "error");
             try {
                 const c = this.custodies.find(c => c.id === this.editSettlementForm.custodyId);
@@ -956,21 +967,11 @@ function financialSystem() {
                 const oldAmount = oldSettlement ? Number(oldSettlement.amount) : 0;
                 
                 let updatedSettlement = {
-                    id: this.editSettlementForm.settlementId,
-                    date: this.editSettlementForm.date,
-                    item: this.editSettlementForm.item,
-                    subItem: this.editSettlementForm.subItem || '',
-                    category: this.editSettlementForm.category,
-                    accountingDirection: this.editSettlementForm.accountingDirection || '',
-                    isTaxable: this.editSettlementForm.isTaxable || false,
-                    amountBeforeTax: 0, taxRate: 0, taxAmount: 0, amount: 0,
-                    linkedFlowId: oldSettlement?.linkedFlowId || null
+                    id: this.editSettlementForm.settlementId, date: this.editSettlementForm.date, item: this.editSettlementForm.item, subItem: this.editSettlementForm.subItem || '', category: this.editSettlementForm.category, accountingDirection: this.editSettlementForm.accountingDirection || '', isTaxable: this.editSettlementForm.isTaxable || false, amountBeforeTax: 0, taxRate: 0, taxAmount: 0, amount: 0, linkedFlowId: oldSettlement?.linkedFlowId || null
                 };
 
                 if (this.editSettlementForm.isTaxable) {
-                    const abt = Number(this.editSettlementForm.amountBeforeTax) || 0;
-                    const r = Number(this.editSettlementForm.taxRate) || 15;
-                    const ta = abt * (r / 100);
+                    const abt = Number(this.editSettlementForm.amountBeforeTax) || 0; const r = Number(this.editSettlementForm.taxRate) || 15; const ta = abt * (r / 100);
                     updatedSettlement.amountBeforeTax = abt; updatedSettlement.taxRate = r; updatedSettlement.taxAmount = ta; updatedSettlement.amount = abt + ta;
                 } else {
                     if (!this.editSettlementForm.amount) return this.showToast("أدخل المبلغ", "error");
@@ -979,15 +980,19 @@ function financialSystem() {
                 
                 const amountDifference = updatedSettlement.amount - oldAmount;
                 
-                // 1) تحديث التدفق الخارج المرتبط ببند التسوية
-                if(oldSettlement && oldSettlement.linkedFlowId){
-                    const flowExists = this.flows.find(f => f.id === oldSettlement.linkedFlowId);
-                    if(flowExists){
-                        await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",oldSettlement.linkedFlowId),{date:updatedSettlement.date,item:updatedSettlement.item,subItem:updatedSettlement.subItem,category:updatedSettlement.category,amount:updatedSettlement.amount});
+                // البحث عن تدفق البند لتعديله
+                if(oldSettlement){
+                    let flowToUpdateId = oldSettlement.linkedFlowId;
+                    if(!flowToUpdateId){
+                        const foundFlow = this.flows.find(f => f.linkedSettlementId === oldSettlement.id);
+                        if(foundFlow) flowToUpdateId = foundFlow.id;
+                    }
+                    if(flowToUpdateId){
+                        await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",flowToUpdateId),{date:updatedSettlement.date,item:updatedSettlement.item,subItem:updatedSettlement.subItem,category:updatedSettlement.category,amount:updatedSettlement.amount});
                     }
                 }
                 
-                // 2) تعديل التدفق الأصلي (عهد موظفين) بالفرق - نجلب المبلغ المباشر من الفايربيس لمنع التضارب
+                // تعديل التدفق الأصلي مباشرة من الفايربيس
                 if(c.linkedFlowId && amountDifference !== 0){
                     const flowDoc = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId));
                     if(flowDoc.exists()){
