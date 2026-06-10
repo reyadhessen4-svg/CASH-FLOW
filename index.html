@@ -474,7 +474,7 @@
                         <div class="glass-dark p-5 rounded-xl border border-slate-700 flex items-center gap-4"><div class="p-3 bg-yellow-500/10 rounded-xl text-yellow-400"><i class="fas fa-times-circle fa-xl"></i></div><div><p class="text-sm text-slate-400">مرفوضة</p><p class="text-xl font-bold text-yellow-400" x-text="custodies.filter(c => c.reviewStatus === 'rejected').length"></p></div></div>
                     </div>
                     <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700"><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-3 text-right text-slate-300">الموظف</th><th class="p-3 text-right text-slate-300">تاريخ العهدة</th><th class="p-3 text-right text-slate-300">المبلغ</th><th class="p-3 text-right text-slate-300">المصروف</th><th class="p-3 text-right text-slate-300">المتبقي</th><th class="p-3 text-right text-slate-300">حالة العهدة</th><th class="p-3 text-right text-slate-300">المراجعة</th><th class="p-3 text-right text-slate-300">ملاحظات المراجعة</th><th class="p-3 text-right text-slate-300">إجراء</th></tr></thead>
-                    <tbody><template x-for="c in getFilteredCustodiesForReview()" :key="c.id"><tr class="table-dark-row" :class="getReviewRowClass(c)"><td class="p-3 font-medium text-slate-200" x-text="c.employee"></td><td class="p-3 text-slate-300" x-text="c.date"></td><td class="p-3 font-bold text-blue-400" x-text="formatCurrency(c.amount)"></td><td class="p-3 text-red-400" x-text="formatCurrency(getCustodySpent(c))"></td><td class="p-3 text-emerald-400 font-bold" x-text="formatCurrency(c.amount - getCustodySpent(c))"></td><td class="p-3"><span :class="c.status === 'مفتوحة' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-1 rounded text-xs font-bold" x-text="c.status"></span></td><td class="p-3"><span :class="getReviewBadgeClass(c)" class="px-2 py-1 rounded text-xs font-bold flex items-center gap-1"><i :class="getReviewIcon(c)"></i> <span x-text="getReviewText(c)"></span></span></td><td class="p-3 text-slate-400 text-xs max-w-[200px] truncate" x-text="c.reviewNotes || '-'"></td><td class="p-3"><button @click="openReviewModal(c)" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-bold transition"><i class="fas fa-clipboard-check ml-1"></i> مراجعة</button></td></tr></template><tr x-show="getFilteredCustodiesForReview().length === 0"><td colspan="9" class="p-10 text-center text-slate-500">لا توجد عهد مطابقة للفلتر</td></tr></tbody></table></div></div>
+                    <tbody><template x-for="c in getFilteredCustodiesForReview()" :key="c.id"><tr class="table-dark-row" :class="getReviewRowClass(c)"><td class="p-3 font-medium text-slate-200" x-text="c.employee"></td><td class="p-3 text-slate-300" x-text="c.date"></td><td class="p-3 font-bold text-blue-400" x-text="formatCurrency(c.amount)"></td><td class="p-3 text-red-400" x-text="formatCurrency(getCustodySpent(c))"></td><td class="p-3 text-emerald-400 font-bold" x-text="formatCurrency(c.amount - getCustodySpent(c))"></td><td class="p-3"><span :class="c.status === 'مفتوحة' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-slate-600 text-slate-400'" class="px-2 py-1 rounded text-xs font-bold" x-text="c.status"></span></td><td class="p-3"><span :class="getReviewBadgeClass(c)" class="px-2 py-1 rounded text-xs font-bold flex items-center gap-1"><i :class="getReviewIcon(c)"></i> <span x-text="getReviewText(c)"></span></span></td><td class="p-3 text-slate-400 text-xs max-w-[200px] truncate" x-text="c.reviewNotes || '-'"></td><td class="p-3"><button @click="openReviewDetail(c)" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1"><i class="fas fa-eye ml-1"></i> مراجعة التفاصيل</button></td></tr></template><tr x-show="getFilteredCustodiesForReview().length === 0"><td colspan="9" class="p-10 text-center text-slate-500">لا توجد عهد مطابقة للفلتر</td></tr></tbody></table></div></div>
                 </div>
 
                 <!-- ═══ إدارة الموظفين ═══ -->
@@ -494,15 +494,87 @@
 
     <!-- ═══ نوافذ التعديل والإضافة ═══ -->
     
-    <!-- نافذة مراجعة العهدة -->
-    <div x-show="showReviewModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showReviewModal = false">
-        <div class="glass-dark p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-5 border border-slate-700">
-            <h3 class="text-xl font-bold text-white"><i class="fas fa-clipboard-check text-blue-400 ml-2"></i> مراجعة العهدة</h3>
-            <div class="space-y-4">
-                <div><label class="block text-sm font-bold text-slate-300 mb-2">نتيجة المراجعة</label><div class="space-y-2"><label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer hover:border-emerald-500 transition"><input type="radio" x-model="reviewForm.status" value="reviewed" class="w-4 h-4 text-emerald-600"><span class="text-emerald-400 font-bold"><i class="fas fa-check-circle ml-1"></i> موافقة</span></label><label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer hover:border-yellow-500 transition"><input type="radio" x-model="reviewForm.status" value="rejected" class="w-4 h-4 text-yellow-600"><span class="text-yellow-400 font-bold"><i class="fas fa-times-circle ml-1"></i> رفض</span></label><label class="flex items-center gap-3 bg-slate-800 p-3 rounded-lg border border-slate-600 cursor-pointer hover:border-red-500 transition"><input type="radio" x-model="reviewForm.status" value="pending" class="w-4 h-4 text-red-600"><span class="text-red-400 font-bold"><i class="fas fa-hourglass-half ml-1"></i> لم تُراجع</span></label></div></div>
-                <div><label class="block text-sm font-bold text-slate-300 mb-2">ملاحظات المراجعة</label><textarea x-model="reviewForm.notes" placeholder="أدخل ملاحظات المراجعة..." rows="3" class="w-full p-3 rounded-xl input-dark resize-none"></textarea></div>
+    <!-- نافذة مراجعة العهدة (الشاملة) -->
+    <div x-show="showReviewDetailModal" x-cloak class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="showReviewDetailModal = false">
+        <div class="glass-dark rounded-2xl shadow-2xl w-full max-w-3xl border border-slate-700 overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <!-- رأس النافذة -->
+            <div class="p-5 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2"><i class="fas fa-clipboard-check text-blue-400"></i> مراجعة تفاصيل العهدة</h3>
+                <button @click="showReviewDetailModal = false" class="text-slate-400 hover:text-white text-xl">&times;</button>
             </div>
-            <div class="flex gap-4 pt-2"><button @click="saveReview()" class="flex-1 primary-gradient text-white py-2.5 rounded-lg font-bold hover:shadow-lg transition"><i class="fas fa-save ml-1"></i> حفظ</button><button @click="showReviewModal = false" class="flex-1 bg-slate-700 text-slate-300 py-2.5 rounded-lg hover:bg-slate-600 transition">إلغاء</button></div>
+
+            <!-- محتوى النافذة (قابل للتمرير) -->
+            <div class="p-6 overflow-y-auto space-y-6" x-show="reviewDetailCustody">
+                
+                <!-- ملخص العهدة -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700"><p class="text-xs text-slate-500">الموظف</p><p class="font-bold text-white text-sm mt-1" x-text="reviewDetailCustody?.employee"></p></div>
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700"><p class="text-xs text-slate-500">تاريخ العهدة</p><p class="font-bold text-white text-sm mt-1" x-text="reviewDetailCustody?.date"></p></div>
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700"><p class="text-xs text-slate-500">إجمالي العهدة</p><p class="font-bold text-blue-400 text-sm mt-1" x-text="formatCurrency(reviewDetailCustody?.amount)"></p></div>
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700"><p class="text-xs text-slate-500">المتبقي</p><p class="font-bold text-emerald-400 text-sm mt-1" x-text="formatCurrency(reviewDetailCustody?.amount - getCustodySpent(reviewDetailCustody))"></p></div>
+                </div>
+
+                <!-- سجل التعزيزات -->
+                <div x-show="reviewDetailCustody?.enhancements?.length > 0" class="bg-emerald-900/10 border border-emerald-800/30 rounded-lg p-4">
+                    <h4 class="font-bold text-emerald-400 mb-3 text-sm"><i class="fas fa-arrow-up ml-1"></i> التعزيزات</h4>
+                    <div class="space-y-2">
+                        <template x-for="(enh, idx) in reviewDetailCustody?.enhancements || []" :key="idx">
+                            <div class="flex justify-between text-sm bg-slate-900/50 p-2 rounded">
+                                <span class="text-slate-400" x-text="enh.date"></span>
+                                <span class="text-emerald-400 font-bold" x-text="formatCurrency(enh.amount)"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- بنود الصرف (التفصيل) -->
+                <div>
+                    <h4 class="font-bold text-white mb-3 text-sm"><i class="fas fa-list-check ml-1 text-blue-400"></i> بنود الصرف التفصيلية</h4>
+                    <div x-show="reviewDetailCustody?.settlements?.length > 0" class="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-900/80"><tr><th class="p-2 text-right text-slate-400 text-xs">التاريخ</th><th class="p-2 text-right text-slate-400 text-xs">البند</th><th class="p-2 text-right text-slate-400 text-xs">التصنيف</th><th class="p-2 text-right text-slate-400 text-xs">التوجيه</th><th class="p-2 text-right text-slate-400 text-xs">ضريبي</th><th class="p-2 text-right text-slate-400 text-xs">المبلغ</th></tr></thead>
+                            <tbody>
+                                <template x-for="st in reviewDetailCustody?.settlements || []" :key="st.id">
+                                    <tr class="border-t border-slate-700/50 hover:bg-slate-700/20">
+                                        <td class="p-2 text-slate-300 text-xs" x-text="st.date"></td>
+                                        <td class="p-2 text-slate-200 text-xs font-medium" x-text="st.item + (st.subItem ? ' ('+st.subItem+')' : '')"></td>
+                                        <td class="p-2 text-slate-400 text-xs" x-text="st.category"></td>
+                                        <td class="p-2 text-amber-400 text-xs" x-text="st.accountingDirection || '-'"></td>
+                                        <td class="p-2 text-xs">
+                                            <span x-show="st.isTaxable" class="text-blue-400"><i class="fas fa-check-circle"></i> <span x-text="st.taxRate + '%'"></span></span>
+                                            <span x-show="!st.isTaxable" class="text-slate-600">-</span>
+                                        </td>
+                                        <td class="p-2 text-red-400 font-bold text-xs" x-text="formatCurrency(st.amount)"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div x-show="!reviewDetailCustody?.settlements?.length" class="text-center py-6 text-slate-500 text-sm">لا توجد بنود صرف مسجلة لهذه العهدة</div>
+                </div>
+
+            </div>
+
+            <!-- ذيل النافذة (اتخاذ قرار المراجعة) -->
+            <div class="p-5 border-t border-slate-700 bg-slate-800/50 space-y-4">
+                <div class="flex flex-wrap gap-3 items-center">
+                    <label class="flex items-center gap-2 bg-slate-900 px-4 py-2 rounded-lg border cursor-pointer hover:border-emerald-500 transition" :class="reviewForm.status === 'reviewed' ? 'border-emerald-500 bg-emerald-900/20' : 'border-slate-700'">
+                        <input type="radio" x-model="reviewForm.status" value="reviewed" class="text-emerald-600"><span class="text-emerald-400 font-bold text-sm">موافقة</span>
+                    </label>
+                    <label class="flex items-center gap-2 bg-slate-900 px-4 py-2 rounded-lg border cursor-pointer hover:border-yellow-500 transition" :class="reviewForm.status === 'rejected' ? 'border-yellow-500 bg-yellow-900/20' : 'border-slate-700'">
+                        <input type="radio" x-model="reviewForm.status" value="rejected" class="text-yellow-600"><span class="text-yellow-400 font-bold text-sm">رفض</span>
+                    </label>
+                    <label class="flex items-center gap-2 bg-slate-900 px-4 py-2 rounded-lg border cursor-pointer hover:border-red-500 transition" :class="reviewForm.status === 'pending' ? 'border-red-500 bg-red-900/20' : 'border-slate-700'">
+                        <input type="radio" x-model="reviewForm.status" value="pending" class="text-red-600"><span class="text-red-400 font-bold text-sm">لم تُراجع</span>
+                    </label>
+                </div>
+                <textarea x-model="reviewForm.notes" placeholder="أدخل ملاحظات المراجعة (اختياري)..." rows="2" class="w-full p-2.5 rounded-lg input-dark text-sm resize-none"></textarea>
+                <div class="flex gap-3">
+                    <button @click="saveReviewFromDetail()" class="flex-1 primary-gradient text-white py-2.5 rounded-lg font-bold hover:shadow-lg transition"><i class="fas fa-save ml-1"></i> حفظ قرار المراجعة</button>
+                    <button @click="showReviewDetailModal = false" class="px-6 bg-slate-700 text-slate-300 py-2.5 rounded-lg hover:bg-slate-600 transition">إلغاء</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -644,6 +716,8 @@ function financialSystem() {
         showEditEnhancementModal: false,
         editEnhancementForm: { custodyId: '', index: -1, date: '', amount: '', oldAmount: 0 },
         showEditSettlementModal: false,
+        showReviewDetailModal: false,
+        reviewDetailCustody: null,
         showReviewModal: false,
         reviewForm: { custodyId: '', status: 'reviewed', notes: '' },
         reviewFilter: { status: 'all', custodyStatus: 'all', employee: '' },
@@ -722,9 +796,25 @@ function financialSystem() {
         getReviewText(c) { const st = c?.reviewStatus || 'pending'; return st === 'reviewed' ? 'تمت المراجعة' : st === 'rejected' ? 'مرفوضة' : 'لم تُراجع'; },
         getReviewRowClass(c) { const st = c?.reviewStatus || 'pending'; return st === 'reviewed' ? 'review-row-reviewed' : st === 'rejected' ? 'review-row-rejected' : 'review-row-pending'; },
         getFilteredCustodiesForReview() { let r = this.custodies; if(this.reviewFilter.status!=='all') r=r.filter(c=>(c.reviewStatus||'pending')===this.reviewFilter.status); if(this.reviewFilter.custodyStatus!=='all') r=r.filter(c=>c.status===this.reviewFilter.custodyStatus); if(this.reviewFilter.employee) r=r.filter(c=>c.employee===this.reviewFilter.employee); return r; },
-        openReviewModal(c) { this.reviewForm = { custodyId: c.id, status: c.reviewStatus || 'reviewed', notes: c.reviewNotes || '' }; this.showReviewModal = true; },
-        async saveReview() { try { await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "custodies", this.reviewForm.custodyId), { reviewStatus: this.reviewForm.status, reviewNotes: this.reviewForm.notes, reviewedBy: this.currentUser?.email, reviewedAt: new Date().toISOString() }); this.showReviewModal = false; this.showToast('تم حفظ المراجعة', 'success'); } catch(e) { this.showToast('خطأ: ' + e.message, 'error'); } },
-        applyReviewFilter() { this.showToast('تم تطبيق الفلتر', 'info'); },
+            openReviewDetail(c) { 
+            this.reviewDetailCustody = c; 
+            this.reviewForm = { custodyId: c.id, status: c.reviewStatus || 'reviewed', notes: c.reviewNotes || '' }; 
+            this.showReviewDetailModal = true; 
+        },
+        async saveReviewFromDetail() { 
+            try { 
+                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb, "custodies", this.reviewForm.custodyId), { 
+                    reviewStatus: this.reviewForm.status, 
+                    reviewNotes: this.reviewForm.notes, 
+                    reviewedBy: this.currentUser?.email, 
+                    reviewedAt: new Date().toISOString() 
+                }); 
+                this.showReviewDetailModal = false; 
+                this.showToast('تم حفظ قرار المراجعة', 'success'); 
+            } catch(e) { 
+                this.showToast('خطأ: ' + e.message, 'error'); 
+            } 
+        },
 
         // ═══ إدارة الموظفين ═══
         openEmployeeModal(emp=null){if(emp){this.employeeForm={id:emp.id,name:emp.name,position:emp.position||'',phone:emp.phone||''};}else{this.employeeForm={id:null,name:'',position:'',phone:''};}this.showEmployeeModal=true;},
