@@ -1022,7 +1022,7 @@ function financialSystem() {
 
         openCloseCustodyModal(c){this.closeCustodyData=c;this.closeAction='return';this.showCloseCustodyModal=true;},
 
-        async closeAndGenerateCustodyReport(){
+            async closeAndGenerateCustodyReport(){
             const c=this.closeCustodyData; if(!c) return;
             const sp = this.getCustodySpent(c); const rem = c.amount - sp; const td = new Date().toISOString().split('T')[0];
             const closeResult = rem <= 0 ? 'fully_settled' : (this.closeAction === 'return' ? 'returned' : 'carried_forward');
@@ -1031,8 +1031,37 @@ function financialSystem() {
                 
                 if(rem > 0){
                     if(this.closeAction === 'return'){
-                        await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{type:'inflow',date:td,item:'رد عهدة مقفلة',subItem:c.employee,category:'تشغيلية',amount:rem});
-                        this.showToast('تم تقفيل العهدة ورد المتبقي للصندوق','success');
+                        let returnAmount = rem;
+                        let linkedFlowCurrentAmount = 0;
+                        
+                        // معرفة المبلغ الفعلي الذي أتى من الصندوق لهذه العهدة
+                        if(c.linkedFlowId){
+                            const flowDoc = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb, "cashFlows", c.linkedFlowId));
+                            if(flowDoc.exists()){
+                                linkedFlowCurrentAmount = Number(flowDoc.data().amount);
+                            }
+                        }
+                        
+                        // لا يمكننا إرجاع للصندوق أكثر مما أخرجناه منه! (حل مشكلة رصيد البداية)
+                        returnAmount = Math.min(rem, linkedFlowCurrentAmount);
+                        
+                        if(returnAmount > 0){
+                            await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"),{type:'inflow',date:td,item:'رد عهدة مقفلة',subItem:c.employee,category:'تشغيلية',amount:returnAmount});
+                        }
+                        
+                        // تحديث أو حذف التدفق الخارج الأصلي (عهد موظفين/تعزيز)
+                        if(c.linkedFlowId){
+                            const newLinkedFlowAmount = linkedFlowCurrentAmount - returnAmount;
+                            if(newLinkedFlowAmount > 0){
+                                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",c.linkedFlowId),{amount:newLinkedFlowAmount});
+                            } else {
+                                await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",c.linkedFlowId));
+                            }
+                        }
+                        
+                        let keptByEmployee = rem - returnAmount;
+                        this.showToast(`تم تقفيل العهدة ورد ${this.formatCurrency(returnAmount)} للصندوق` + (keptByEmployee > 0 ? ` وبقاء ${this.formatCurrency(keptByEmployee)} كرصيد افتتاحي للموظف` : ''),'success');
+
                     } else {
                         await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"),{employee:c.employee,date:td,amount:rem,notes:'ترحيل متبقي من عهدة بتاريخ '+c.date,status:'مفتوحة',settlements:[],linkedFlowId:c.linkedFlowId||null,isOpeningBalance:false,isCarriedForward:true,enhancements:[]});
                         this.showToast('تم ترحيل المتبقي لعهدة جديدة للموظف: '+c.employee,'success');
