@@ -164,9 +164,39 @@
                         <button @click="downloadFlowTemplate()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition"><i class="fas fa-download"></i> قالب</button>
                         <label class="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition cursor-pointer"><i class="fas fa-upload"></i> استيراد<input type="file" accept=".xlsx,.xls" @change="importFlowsFromExcel($event)" class="hidden"></label>
                     </div>
+
+                    <!-- ═══ شريط فلترة التواريخ ═══ -->
+                    <div class="glass-dark p-4 rounded-xl shadow-lg border border-slate-700 mb-4">
+                        <div class="flex flex-wrap gap-4 items-end">
+                            <div class="flex gap-2 bg-slate-800 p-1 rounded-lg border border-slate-700">
+                                <button @click="cashflowFilter.mode = 'all'" :class="cashflowFilter.mode === 'all' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'" class="px-4 py-2 rounded-md text-sm font-bold transition">كل الفترات</button>
+                                <button @click="cashflowFilter.mode = 'range'" :class="cashflowFilter.mode === 'range' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'" class="px-4 py-2 rounded-md text-sm font-bold transition">فترة محددة</button>
+                                <button @click="cashflowFilter.mode = 'month'" :class="cashflowFilter.mode === 'month' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'" class="px-4 py-2 rounded-md text-sm font-bold transition">شهر معيّن</button>
+                            </div>
+                            <div x-show="cashflowFilter.mode === 'range'" class="flex gap-3 items-end flex-wrap">
+                                <div class="flex flex-col"><label class="text-xs mb-1 text-slate-400">من تاريخ</label><input type="date" x-model="cashflowFilter.from" class="p-2 rounded-lg input-dark"></div>
+                                <div class="flex flex-col"><label class="text-xs mb-1 text-slate-400">إلى تاريخ</label><input type="date" x-model="cashflowFilter.to" class="p-2 rounded-lg input-dark"></div>
+                            </div>
+                            <div x-show="cashflowFilter.mode === 'month'" class="flex flex-col">
+                                <label class="text-xs mb-1 text-slate-400">اختر الشهر</label>
+                                <input type="month" x-model="cashflowFilter.month" class="p-2 rounded-lg input-dark">
+                            </div>
+                            <button @click="setCashflowFilterToCurrentMonth()" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-lg transition" x-show="cashflowFilter.mode !== 'all'"><i class="fas fa-calendar-day ml-1"></i> الشهر الحالي</button>
+                            <button @click="cashflowFilter = { mode: 'all', from: '', to: '', month: '' }" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-lg transition" x-show="cashflowFilter.mode !== 'all'"><i class="fas fa-times ml-1"></i> مسح الفلتر</button>
+                        </div>
+                        <div class="flex flex-wrap gap-6 mt-4 pt-4 border-t border-slate-700" x-show="cashflowFilter.mode !== 'all'">
+                            <div class="text-sm"><span class="text-slate-400">عدد الحركات: </span><span class="font-bold text-slate-200" x-text="filteredCashflowRows.length"></span></div>
+                            <div class="text-sm"><span class="text-slate-400">داخلة الفترة: </span><span class="font-bold text-emerald-400" x-text="formatCurrency(filteredPeriodInflow)"></span></div>
+                            <div class="text-sm"><span class="text-slate-400">خارجة الفترة: </span><span class="font-bold text-red-400" x-text="formatCurrency(filteredPeriodOutflow)"></span></div>
+                            <div class="text-sm"><span class="text-slate-400">صافي الفترة: </span><span class="font-bold" :class="(filteredPeriodInflow - filteredPeriodOutflow) >= 0 ? 'text-emerald-400' : 'text-red-400'" x-text="formatCurrency(filteredPeriodInflow - filteredPeriodOutflow)"></span></div>
+                        </div>
+                    </div>
+
                     <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700"><div class="overflow-x-auto">
                         <table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-3 text-right text-slate-300">التاريخ</th><th class="p-3 text-right text-slate-300">النوع</th><th class="p-3 text-right text-slate-300">البند</th><th class="p-3 text-right text-slate-300">التفصيل</th><th class="p-3 text-right text-slate-300">التصنيف</th><th class="p-3 text-right text-slate-300">المبلغ</th><th class="p-3 text-right text-slate-300">إجراء</th></tr></thead>
-                        <tbody><template x-for="flow in getSortedFlows()" :key="flow.id"><tr class="table-dark-row" :class="flow.item === 'رصيد بداية المدة' ? 'bg-purple-900/10' : ''"><td class="p-3 text-slate-300 whitespace-nowrap" x-text="flow.date"></td><td class="p-3"><span :class="flow.item === 'رصيد بداية المدة' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : (flow.type === 'inflow' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400')" class="px-2 py-1 rounded text-xs font-bold" x-text="flow.item === 'رصيد بداية المدة' ? 'رصيد بداية' : (flow.type === 'inflow' ? 'داخل' : 'خارج')"></span></td><td class="p-3 font-medium text-slate-200" x-text="flow.item"></td><td class="p-3 text-slate-400 text-xs" x-text="flow.subItem || '-'"></td><td class="p-3"><span class="px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded text-xs" x-text="flow.category"></span></td><td class="p-3 font-bold" :class="flow.type === 'inflow' ? 'text-emerald-400' : 'text-red-400'" x-text="formatCurrency(flow.amount)"></td><td class="p-3 flex gap-3"><button @click="editFlow(flow)" class="text-blue-400 hover:text-blue-300"><i class="fas fa-edit"></i></button><button @click="deleteFlow(flow.id)" class="text-red-400 hover:text-red-300" x-show="flow.item !== 'رصيد بداية المدة'"><i class="fas fa-trash"></i></button></td></tr></template></tbody></table>
+                        <tbody><template x-for="flow in filteredCashflowRows" :key="flow.id"><tr class="table-dark-row" :class="flow.item === 'رصيد بداية المدة' ? 'bg-purple-900/10' : ''"><td class="p-3 text-slate-300 whitespace-nowrap" x-text="flow.date"></td><td class="p-3"><span :class="flow.item === 'رصيد بداية المدة' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : (flow.type === 'inflow' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400')" class="px-2 py-1 rounded text-xs font-bold" x-text="flow.item === 'رصيد بداية المدة' ? 'رصيد بداية' : (flow.type === 'inflow' ? 'داخل' : 'خارج')"></span></td><td class="p-3 font-medium text-slate-200" x-text="flow.item"></td><td class="p-3 text-slate-400 text-xs" x-text="flow.subItem || '-'"></td><td class="p-3"><span class="px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded text-xs" x-text="flow.category"></span></td><td class="p-3 font-bold" :class="flow.type === 'inflow' ? 'text-emerald-400' : 'text-red-400'" x-text="formatCurrency(flow.amount)"></td><td class="p-3 flex gap-3"><button @click="editFlow(flow)" class="text-blue-400 hover:text-blue-300"><i class="fas fa-edit"></i></button><button @click="deleteFlow(flow.id)" class="text-red-400 hover:text-red-300" x-show="flow.item !== 'رصيد بداية المدة'"><i class="fas fa-trash"></i></button></td></tr></template>
+                        <tr x-show="filteredCashflowRows.length === 0"><td colspan="7" class="p-10 text-center text-slate-500">لا توجد حركات في الفترة المحددة</td></tr>
+                        </tbody></table>
                     </div></div>
                 </div>
 
@@ -485,7 +515,36 @@
 
                 <!-- ═══ إدارة المستخدمين ═══ -->
                 <div x-show="activeTab === 'users'" x-cloak>
-                    <div class="flex flex-wrap justify-between items-center mb-4 gap-3"><div class="flex items-center gap-2"><div class="relative"><i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i><input type="text" x-model="userSearchQuery" placeholder="بحث..." class="pr-9 pl-4 py-2 rounded-lg input-dark text-sm w-64"></div><select x-model="userFilterRole" class="p-2 rounded-lg input-dark text-sm"><option value="all">الكل</option><option value="admin">مدير</option><option value="user">مستخدم</option></select></div><button @click="openAddUserModal()" class="primary-gradient text-white px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-lg font-bold"><i class="fas fa-user-plus"></i> إضافة مستخدم</button><div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700"><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-4 text-right text-slate-300">#</th><th class="p-4 text-right text-slate-300">المستخدم</th><th class="p-4 text-right text-slate-300">الدور</th><th class="p-4 text-right text-slate-300">الصلاحيات</th><th class="p-4 text-center text-slate-300">إجراءات</th></tr></thead><tbody><template x-for="(u, idx) in getFilteredUsers()" :key="u.id"><tr class="table-dark-row"><td class="p-4 text-slate-500" x-text="idx+1"></td><td class="p-4"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm" :class="u.role==='admin'?'role-badge-admin':'role-badge-user'" x-text="u.email?.charAt(0).toUpperCase()"></div><div><p class="font-bold text-slate-200 text-sm" x-text="u.email"></p></div></div></td><td class="p-4"><span :class="u.role==='admin'?'role-badge-admin':'role-badge-user'" class="px-3 py-1 rounded-full text-xs font-bold text-white" x-text="u.role==='admin'?'مدير':'مستخدم'"></span></td><td class="p-4"><span class="text-slate-500 text-xs" x-text="Object.values(u.permissions||{}).filter(Boolean).length+'/'+allTabs.length"></span></td><td class="p-4"><div class="flex items-center justify-center gap-2"><button @click="editPermissions(u)" class="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20" title="صلاحيات"><i class="fas fa-key text-sm"></i></button><button @click="changeUserRole(u)" class="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20" title="تغيير الدور"><i class="fas fa-user-tag text-sm"></i></button><button @click="resetUserPassword(u)" class="p-2 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20" title="إعادة كلمة المرور"><i class="fas fa-key text-sm"></i></button><button x-show="u.id!==currentUser?.id" @click="deleteUser(u)" class="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20" title="حذف"><i class="fas fa-trash-alt text-sm"></i></button></div></td></tr></template></tbody></table></div></div>
+                    <div class="flex flex-wrap justify-between items-center mb-4 gap-3"><div class="flex items-center gap-2"><div class="relative"><i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i><input type="text" x-model="userSearchQuery" placeholder="بحث..." class="pr-9 pl-4 py-2 rounded-lg input-dark text-sm w-64"></div><select x-model="userFilterRole" class="p-2 rounded-lg input-dark text-sm"><option value="all">الكل</option><option value="admin">مدير</option><option value="user">مستخدم</option></select></div><button @click="openAddUserModal()" class="primary-gradient text-white px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-lg font-bold"><i class="fas fa-user-plus"></i> إضافة مستخدم</button></div>
+                    <div class="glass-dark rounded-xl shadow-lg overflow-hidden border border-slate-700"><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="table-dark-header border-b border-slate-700"><tr><th class="p-4 text-right text-slate-300">#</th><th class="p-4 text-right text-slate-300">المستخدم</th><th class="p-4 text-right text-slate-300">الدور</th><th class="p-4 text-right text-slate-300">الصلاحيات</th><th class="p-4 text-center text-slate-300">إجراءات</th></tr></thead><tbody><template x-for="(u, idx) in getFilteredUsers()" :key="u.id"><tr class="table-dark-row"><td class="p-4 text-slate-500" x-text="idx+1"></td><td class="p-4"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm" :class="u.role==='admin'?'role-badge-admin':'role-badge-user'" x-text="u.email?.charAt(0).toUpperCase()"></div><div><p class="font-bold text-slate-200 text-sm" x-text="u.email"></p></div></div></td><td class="p-4"><span :class="u.role==='admin'?'role-badge-admin':'role-badge-user'" class="px-3 py-1 rounded-full text-xs font-bold text-white" x-text="u.role==='admin'?'مدير':'مستخدم'"></span></td><td class="p-4"><span class="text-slate-500 text-xs" x-text="Object.values(u.permissions||{}).filter(Boolean).length+'/'+allTabs.length"></span></td><td class="p-4"><div class="flex items-center justify-center gap-2"><button @click="editPermissions(u)" class="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20" title="صلاحيات"><i class="fas fa-key text-sm"></i></button><button @click="changeUserRole(u)" class="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20" title="تغيير الدور"><i class="fas fa-user-tag text-sm"></i></button><button @click="resetUserPassword(u)" class="p-2 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20" title="إعادة كلمة المرور"><i class="fas fa-key text-sm"></i></button><button x-show="u.id!==currentUser?.id" @click="deleteUser(u)" class="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20" title="حذف"><i class="fas fa-trash-alt text-sm"></i></button></div></td></tr></template></tbody></table></div></div>
+                </div>
+
+                <!-- ═══ النسخ الاحتياطي (للمدير فقط) ═══ -->
+                <div x-show="activeTab === 'backup'" x-cloak>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="glass-dark p-6 rounded-xl shadow-lg border border-emerald-700/30">
+                            <div class="flex items-center gap-3 mb-4"><div class="p-3 bg-emerald-500/10 rounded-xl text-emerald-400"><i class="fas fa-cloud-download-alt fa-xl"></i></div><h3 class="font-bold text-lg text-white">تنزيل نسخة احتياطية</h3></div>
+                            <p class="text-slate-400 text-sm mb-4">يقوم هذا الخيار بتنزيل ملف JSON يحتوي على جميع التدفقات النقدية، العهد، وبيانات الموظفين الحالية. احتفظ بهذا الملف في مكان آمن (مثل قوقل درايف) بشكل دوري.</p>
+                            <div class="bg-slate-800 rounded-lg p-4 mb-4 space-y-2 text-sm border border-slate-700">
+                                <div class="flex justify-between"><span class="text-slate-400">عدد التدفقات النقدية:</span><span class="font-bold text-blue-400" x-text="flows.length"></span></div>
+                                <div class="flex justify-between"><span class="text-slate-400">عدد العهد:</span><span class="font-bold text-blue-400" x-text="custodies.length"></span></div>
+                                <div class="flex justify-between"><span class="text-slate-400">عدد الموظفين:</span><span class="font-bold text-blue-400" x-text="employeesList.length"></span></div>
+                            </div>
+                            <button @click="exportBackup()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold shadow-lg transition flex justify-center items-center gap-2"><i class="fas fa-download"></i> تنزيل نسخة احتياطية الآن</button>
+                            <p class="text-xs text-slate-500 mt-3" x-show="lastBackupTime"><i class="fas fa-clock ml-1"></i> آخر نسخة احتياطية في هذه الجلسة: <span x-text="lastBackupTime"></span></p>
+                        </div>
+
+                        <div class="glass-dark p-6 rounded-xl shadow-lg border border-amber-700/30">
+                            <div class="flex items-center gap-3 mb-4"><div class="p-3 bg-amber-500/10 rounded-xl text-amber-400"><i class="fas fa-cloud-upload-alt fa-xl"></i></div><h3 class="font-bold text-lg text-white">استرجاع من نسخة احتياطية</h3></div>
+                            <p class="text-slate-400 text-sm mb-4">استخدم هذا الخيار فقط في حالة فقدان البيانات. سيُطلب منك تأكيد ما إذا كنت تريد <strong class="text-slate-300">الدمج</strong> مع البيانات الحالية أو <strong class="text-red-400">استبدالها بالكامل</strong>.</p>
+                            <div class="p-4 bg-red-900/10 border border-red-700/30 rounded-lg mb-4 text-sm text-red-300"><i class="fas fa-exclamation-triangle ml-1"></i> تحذير: خيار "الاستبدال الكامل" يحذف كل البيانات الحالية نهائياً قبل الاسترجاع. لا يمكن التراجع عن هذه الخطوة.</div>
+                            <label class="w-full bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl font-bold shadow-lg transition flex justify-center items-center gap-2 cursor-pointer">
+                                <i class="fas fa-upload"></i> <span>اختيار ملف النسخة الاحتياطية (JSON)</span>
+                                <input type="file" accept=".json" @change="restoreBackup($event)" class="hidden">
+                            </label>
+                            <p class="text-xs text-slate-500 mt-3" x-show="restoreInProgress"><i class="fas fa-spinner fa-spin ml-1"></i> جاري الاسترجاع، يرجى عدم إغلاق الصفحة...</p>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -723,6 +782,8 @@ function financialSystem() {
         reviewFilter: { status: 'all', custodyStatus: 'all', employee: '' },
         editSettlementForm: { custodyId: '', settlementId: '', date: '', item: '', subItem: '', category: 'تشغيلية', accountingDirection: '', isTaxable: false, amountBeforeTax: '', taxRate: 15, amount: '' },
         custodyFilter: 'all',
+        cashflowFilter: { mode: 'all', from: '', to: '', month: '' },
+        lastBackupTime: '', restoreInProgress: false,
         settlement: { selectedCustodyId:'', date:'', item:'', subItem:'', category:'تشغيلية', amount:'', accountingDirection:'', isTaxable:false, amountBeforeTax:'', taxRate:15 },
         inquiry: { employee:'', from:'', to:'' }, inquiryResult: null,
         custodyStatement: { employee:'', from:'', to:'', data: null },
@@ -741,9 +802,10 @@ function financialSystem() {
             { id: 'report', name: 'قائمة التدفقات', icon: 'fas fa-file-alt' },
             { id: 'employees', name: 'الموظفون', icon: 'fas fa-user-tie' },
             { id: 'users', name: 'إدارة المستخدمين', icon: 'fas fa-users-cog' },
-            { id: 'custodyReview', name: 'مراجعة العهد', icon: 'fas fa-clipboard-check' }
+            { id: 'custodyReview', name: 'مراجعة العهد', icon: 'fas fa-clipboard-check' },
+            { id: 'backup', name: 'النسخ الاحتياطي', icon: 'fas fa-database' }
         ],
-        tabNames: { 'dashboard':'لوحة التحكم', 'cashflow':'التدفقات النقدية', 'custody':'العهد المالية', 'settlement':'تقفيل العهد', 'inquiry':'استعلام العهد', 'custodyStatement':'كشف حساب عهدة', 'analysis':'تحليل التدفقات النقدية', 'report':'قائمة التدفقات', 'employees':'الموظفون', 'users':'إدارة المستخدمين', 'custodyReview':'مراجعة العهد' },
+        tabNames: { 'dashboard':'لوحة التحكم', 'cashflow':'التدفقات النقدية', 'custody':'العهد المالية', 'settlement':'تقفيل العهد', 'inquiry':'استعلام العهد', 'custodyStatement':'كشف حساب عهدة', 'analysis':'تحليل التدفقات النقدية', 'report':'قائمة التدفقات', 'employees':'الموظفون', 'users':'إدارة المستخدمين', 'custodyReview':'مراجعة العهد', 'backup':'النسخ الاحتياطي' },
 
         get allowedTabs() { if(!this.currentUser) return []; if(this.currentUser.role==='admin') return this.allTabs; return this.allTabs.filter(t=>this.currentUser.permissions?.[t.id]); },
         get isAdmin() { return this.currentUser?.role === 'admin'; },
@@ -751,6 +813,40 @@ function financialSystem() {
         get settlementTotalAmount() { if(!this.settlement.isTaxable) return Number(this.settlement.amount)||0; return (Number(this.settlement.amountBeforeTax)||0)+this.settlementTaxAmount; },
         get editSettlementTaxAmount() { if(!this.editSettlementForm.isTaxable) return 0; return (Number(this.editSettlementForm.amountBeforeTax)||0)*((Number(this.editSettlementForm.taxRate)||15)/100); },
         get editSettlementTotalAmount() { if(!this.editSettlementForm.isTaxable) return Number(this.editSettlementForm.amount)||0; return (Number(this.editSettlementForm.amountBeforeTax)||0)+this.editSettlementTaxAmount; },
+
+        // ═══ فلترة شاشة التدفقات النقدية بالتاريخ/الشهر ═══
+        get filteredCashflowRows() {
+            const all = this.getSortedFlows();
+            if (this.cashflowFilter.mode === 'all') return all;
+            let from = this.cashflowFilter.from, to = this.cashflowFilter.to;
+            if (this.cashflowFilter.mode === 'month') {
+                if (!this.cashflowFilter.month) return all;
+                const [y, m] = this.cashflowFilter.month.split('-');
+                from = `${y}-${m}-01`;
+                const lastDay = new Date(Number(y), Number(m), 0).getDate();
+                to = `${y}-${m}-${String(lastDay).padStart(2,'0')}`;
+            }
+            return all.filter(f => {
+                if (f.item === 'رصيد بداية المدة') return true;
+                if (from && f.date < from) return false;
+                if (to && f.date > to) return false;
+                return true;
+            });
+        },
+        get filteredPeriodInflow() { return this.filteredCashflowRows.filter(f=>f.type==='inflow' && f.item!=='رصيد بداية المدة').reduce((s,f)=>s+Number(f.amount),0); },
+        get filteredPeriodOutflow() { return this.filteredCashflowRows.filter(f=>f.type==='outflow').reduce((s,f)=>s+Number(f.amount),0); },
+        setCashflowFilterToCurrentMonth() {
+            const now = new Date();
+            const y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0');
+            if (this.cashflowFilter.mode === 'range') {
+                this.cashflowFilter.from = `${y}-${m}-01`;
+                const lastDay = new Date(y, now.getMonth()+1, 0).getDate();
+                this.cashflowFilter.to = `${y}-${m}-${String(lastDay).padStart(2,'0')}`;
+            } else {
+                this.cashflowFilter.mode = 'month';
+                this.cashflowFilter.month = `${y}-${m}`;
+            }
+        },
 
         showToast(message, type) { this.toast = { show: true, message, type }; setTimeout(() => { this.toast.show = false; }, 3000); },
 
@@ -770,15 +866,17 @@ function financialSystem() {
         },
 
         async login(){this.authLoading=true;this.authError='';try{await window.firebaseSignIn(window.firebaseAuth,this.authForm.email,this.authForm.password);}catch(e){this.authError=e.code==='auth/invalid-credential'?'بريد أو كلمة مرور غير صحيحة':'خطأ في تسجيل الدخول';}this.authLoading=false;},
-        async register(){this.authLoading=true;this.authError='';try{const uc=await window.firebaseSignUp(window.firebaseAuth,this.authForm.email,this.authForm.password);const us=await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb,"users"));const r=us.empty?'admin':'user';const p=r==='admin'?Object.fromEntries(this.allTabs.map(t=>[t.id,true])):{dashboard:true,cashflow:true,custody:true,settlement:true,inquiry:true,custodyStatement:true,analysis:true,report:true,employees:true,users:false,custodyReview:false};await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"users",uc.user.uid),{email:this.authForm.email,role:r,permissions:p,createdAt:new Date().toISOString()});}catch(e){this.authError=e.message;}this.authLoading=false;},
-        async logout(){try{await window.firebaseSignOut(window.firebaseAuth);}catch(e){}this.isLoggedIn=false;this.currentUser=null;this.flows=[];this.custodies=[];this.employeesList=[];this.users=[];this.dataLoaded=false;this.authMode='login';},
+        async register(){this.authLoading=true;this.authError='';try{const uc=await window.firebaseSignUp(window.firebaseAuth,this.authForm.email,this.authForm.password);const us=await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb,"users"));const r=us.empty?'admin':'user';const p=r==='admin'?Object.fromEntries(this.allTabs.map(t=>[t.id,true])):{dashboard:true,cashflow:true,custody:true,settlement:true,inquiry:true,custodyStatement:true,analysis:true,report:true,employees:true,users:false,custodyReview:false,backup:false};await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"users",uc.user.uid),{email:this.authForm.email,role:r,permissions:p,createdAt:new Date().toISOString()});}catch(e){this.authError=e.message;}this.authLoading=false;},
+        async logout(){try{await window.firebaseSignOut(window.firebaseAuth);}catch(e){}this.isLoggedIn=false;this.currentUser=null;this.flows=[];this.custodies=[];this.employeesList=[];this.users=[];this.dataLoaded=false;this.authMode='login';if(this.unsubscribeFns){this.unsubscribeFns.forEach(fn=>{try{fn();}catch(e){}});this.unsubscribeFns=[];}},
 
+        unsubscribeFns: [],
         initFirestoreListeners(){
             if(this.dataLoaded) return;
-            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"cashFlows"),(s)=>{this.flows=s.docs.map(d=>({id:d.id,...d.data()}));this.updateCharts();},(e)=>{});
-            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"custodies"),(s)=>{this.custodies=s.docs.map(d=>({id:d.id,...d.data()}));},(e)=>{});
-            window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"employees"),(s)=>{this.employeesList=s.docs.map(d=>({id:d.id,...d.data()}));},(e)=>{});
-            if(this.currentUser.role==='admin'){window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"users"),(s)=>{this.users=s.docs.map(d=>({id:d.id,...d.data()}));},(e)=>{});}
+            this.unsubscribeFns = this.unsubscribeFns || [];
+            this.unsubscribeFns.push(window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"cashFlows"),(s)=>{this.flows=s.docs.map(d=>({id:d.id,...d.data()}));this.updateCharts();},(e)=>{}));
+            this.unsubscribeFns.push(window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"custodies"),(s)=>{this.custodies=s.docs.map(d=>({id:d.id,...d.data()}));},(e)=>{}));
+            this.unsubscribeFns.push(window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"employees"),(s)=>{this.employeesList=s.docs.map(d=>({id:d.id,...d.data()}));},(e)=>{}));
+            if(this.currentUser.role==='admin'){this.unsubscribeFns.push(window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"users"),(s)=>{this.users=s.docs.map(d=>({id:d.id,...d.data()}));},(e)=>{}));}
             this.dataLoaded=true;
         },
 
@@ -789,6 +887,58 @@ function financialSystem() {
         get currentBalance(){return this.totalInflow-this.totalOutflow;},
         get openCustodies(){return this.custodies.filter(c=>c.status==='مفتوحة');},
         getSortedFlows(){let b=0;const o=this.flows.filter(f=>f.item==='رصيد بداية المدة');const t=this.flows.filter(f=>f.item!=='رصيد بداية المدة').sort((a,c)=>new Date(a.date||'1970-01-01')-new Date(c.date||'1970-01-01'));return[...o,...t].map(f=>{b+=f.type==='inflow'?Number(f.amount):-Number(f.amount);return{...f,runningBalance:b};});},
+
+        // ═══ نظام النسخ الاحتياطي والاسترجاع ═══
+        exportBackup(){
+            try{
+                const data = { exportedAt: new Date().toISOString(), exportedBy: this.currentUser?.email || '', cashFlows: this.flows, custodies: this.custodies, employees: this.employeesList };
+                const json = JSON.stringify(data, null, 2);
+                const blob = new Blob([json], {type:'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const stamp = new Date().toISOString().split('T')[0]+'_'+new Date().toTimeString().split(' ')[0].replace(/:/g,'-');
+                a.href = url; a.download = `Backup_${stamp}.json`; a.click();
+                URL.revokeObjectURL(url);
+                this.lastBackupTime = new Date().toLocaleString('ar-SA');
+                this.showToast('تم تنزيل النسخة الاحتياطية بنجاح','success');
+            }catch(e){ this.showToast('خطأ: '+e.message,'error'); }
+        },
+        async restoreBackup(event){
+            const file = event.target.files[0]; if(!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try{
+                    const data = JSON.parse(e.target.result);
+                    if(!Array.isArray(data.cashFlows) || !Array.isArray(data.custodies)){
+                        this.showToast('ملف النسخة الاحتياطية غير صالح','error'); event.target.value=''; return;
+                    }
+                    const empCount = Array.isArray(data.employees) ? data.employees.length : 0;
+                    const confirmMsg = `سيتم استرجاع:\n- ${data.cashFlows.length} تدفق نقدي\n- ${data.custodies.length} عهدة\n- ${empCount} موظف\n\nهل تريد استبدال جميع البيانات الحالية بالكامل؟\n\nموافق = استبدال كامل (حذف كل البيانات الحالية أولاً ثم الاسترجاع)\nإلغاء = دمج فقط (بدون حذف أي بيانات حالية)`;
+                    const fullReplace = confirm(confirmMsg);
+                    if(fullReplace){
+                        if(!confirm('تحذير أخير: سيتم حذف جميع التدفقات والعهد والموظفين الحاليين نهائياً قبل الاسترجاع. هذا الإجراء لا يمكن التراجع عنه. متأكد تماماً؟')){ event.target.value=''; return; }
+                    }
+                    this.restoreInProgress = true;
+                    this.showToast('جاري الاسترجاع... لا تغلق الصفحة', 'info');
+
+                    if(fullReplace){
+                        for(const col of ['cashFlows','custodies','employees']){
+                            const snap = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, col));
+                            for(const d of snap.docs){ await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, col, d.id)); }
+                        }
+                    }
+
+                    for(const f of data.cashFlows){ const {id, ...rest} = f; if(id) await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"cashFlows", id), rest); else await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), rest); }
+                    for(const c of data.custodies){ const {id, ...rest} = c; if(id) await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"custodies", id), rest); else await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"), rest); }
+                    if(Array.isArray(data.employees)){ for(const emp of data.employees){ const {id, ...rest} = emp; if(id) await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"employees", id), rest); else await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"employees"), rest); } }
+
+                    this.restoreInProgress = false;
+                    this.showToast('تم استرجاع البيانات بنجاح','success');
+                }catch(err){ this.restoreInProgress = false; this.showToast('خطأ في الاسترجاع: '+err.message,'error'); }
+                event.target.value='';
+            };
+            reader.readAsText(file);
+        },
 
         // ═══ نظام مراجعة العهد ═══
         getReviewBadgeClass(c) { const st = c?.reviewStatus || 'pending'; return st === 'reviewed' ? 'review-badge-reviewed' : st === 'rejected' ? 'review-badge-rejected' : 'review-badge-pending'; },
@@ -824,11 +974,11 @@ function financialSystem() {
 
         // ═══ إدارة المستخدمين ═══
         getFilteredUsers(){let r=this.users;if(this.userSearchQuery){const q=this.userSearchQuery.toLowerCase();r=r.filter(u=>u.email?.toLowerCase().includes(q));}if(this.userFilterRole!=='all'){r=r.filter(u=>u.role===this.userFilterRole);}return r;},
-        openAddUserModal(){this.addUserStep=1;this.addUserError='';this.addUserLoading=false;this.addUserForm={email:'',password:'',confirmPassword:'',role:'user',permissions:Object.fromEntries(this.allTabs.map(t=>[t.id,t.id!=='users']))};this.showAddUserModal=true;},
+        openAddUserModal(){this.addUserStep=1;this.addUserError='';this.addUserLoading=false;this.addUserForm={email:'',password:'',confirmPassword:'',role:'user',permissions:Object.fromEntries(this.allTabs.map(t=>[t.id,!['users','custodyReview','backup'].includes(t.id)]))};this.showAddUserModal=true;},
         validateAddUserStep1(){this.addUserError='';if(!this.addUserForm.email||!this.addUserForm.email.includes('@')){this.addUserError='بريد غير صالح';return;}if(this.users.some(u=>u.email===this.addUserForm.email)){this.addUserError='البريد مسجل';return;}if(!this.addUserForm.password||this.addUserForm.password.length<6){this.addUserError='كلمة المرور قصيرة';return;}if(this.addUserForm.password!==this.addUserForm.confirmPassword){this.addUserError='كلمتا المرور غير متطابقتين';return;}this.addUserStep=2;},
         applyAdminPermissions(){this.addUserForm.permissions=Object.fromEntries(this.allTabs.map(t=>[t.id,true]));},
         async addNewUser(){this.addUserLoading=true;this.addUserError='';try{const uc=await window.firebaseCreateUserSecondary(this.addUserForm.email,this.addUserForm.password);await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"users",uc.user.uid),{email:this.addUserForm.email,role:this.addUserForm.role,permissions:this.addUserForm.permissions,createdAt:new Date().toISOString()});await window.firebaseSignOutSecondary();this.showAddUserModal=false;this.showToast('تم إنشاء المستخدم','success');}catch(e){let m='خطأ';if(e.code==='auth/email-already-in-use')m='البريد مسجل';this.addUserError=m;}this.addUserLoading=false;},
-        async changeUserRole(u){if(u.id===this.currentUser?.id){this.showToast('لا يمكنك تغيير دورك','error');return;}const nr=u.role==='admin'?'user':'admin';if(!confirm('تغيير الدور؟'))return;try{const np=nr==='admin'?Object.fromEntries(this.allTabs.map(t=>[t.id,true])):Object.fromEntries(this.allTabs.map(t=>[t.id,t.id!=='users']));await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"users",u.id),{role:nr,permissions:np});this.showToast('تم التغيير','success');}catch(e){this.showToast('خطأ','error');}},
+        async changeUserRole(u){if(u.id===this.currentUser?.id){this.showToast('لا يمكنك تغيير دورك','error');return;}const nr=u.role==='admin'?'user':'admin';if(!confirm('تغيير الدور؟'))return;try{const np=nr==='admin'?Object.fromEntries(this.allTabs.map(t=>[t.id,true])):Object.fromEntries(this.allTabs.map(t=>[t.id,!['users','custodyReview','backup'].includes(t.id)]));await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"users",u.id),{role:nr,permissions:np});this.showToast('تم التغيير','success');}catch(e){this.showToast('خطأ','error');}},
         async resetUserPassword(u){if(!confirm('إرسال رابط إعادة تعيين؟'))return;try{await window.firebaseSendPasswordReset(u.email);this.showToast('تم الإرسال','info');}catch(e){this.showToast('خطأ','error');}},
         async deleteUser(u){if(u.id===this.currentUser?.id){this.showToast('لا يمكنك حذف حسابك','error');return;}if(this.users.filter(usr=>usr.role==='admin').length<=1&&u.role==='admin'){this.showToast('لا يمكن حذف آخر مدير','error');return;}if(!confirm('حذف المستخدم؟'))return;try{await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"users",u.id));this.showToast('تم الحذف','success');}catch(e){this.showToast('خطأ','error');}},
         editPermissions(u){this.userForm={id:u.id,email:u.email,permissions:{...u.permissions}||{}};this.showUserModal=true;},
