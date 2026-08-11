@@ -214,10 +214,12 @@
 
                     <!-- بحث في العهد -->
                     <div class="flex flex-wrap gap-3 mb-6">
-                        <div class="relative flex-1 min-w-[200px] max-w-xs">
-                            <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
-                            <input type="text" x-model="custodySearchQuery" placeholder="بحث باسم الموظف..." class="w-full pr-9 pl-4 py-2 rounded-lg input-dark text-sm">
-                        </div>
+                        <select x-model="custodySearchQuery" class="flex-1 min-w-[200px] max-w-xs p-2 rounded-lg input-dark text-sm">
+                            <option value="">كل الموظفين</option>
+                            <template x-for="emp in employeesList" :key="emp.id">
+                                <option :value="emp.name" x-text="emp.name + (emp.position ? ' ('+emp.position+')' : '')"></option>
+                            </template>
+                        </select>
                         <input type="date" x-model="custodySearchDate" class="p-2 rounded-lg input-dark text-sm">
                         <button x-show="custodySearchQuery || custodySearchDate" @click="custodySearchQuery=''; custodySearchDate=''" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-lg transition"><i class="fas fa-times ml-1"></i> مسح البحث</button>
                     </div>
@@ -831,7 +833,7 @@ function financialSystem() {
         // ═══ فلترة شاشة التدفقات النقدية بالتاريخ/الشهر ═══
         get filteredCustodies() {
             let r = this.custodies.filter(c => this.custodyFilter === 'all' || c.status === this.custodyFilter);
-            if (this.custodySearchQuery) { const q = this.custodySearchQuery.toLowerCase(); r = r.filter(c => (c.employee || '').toLowerCase().includes(q)); }
+            if (this.custodySearchQuery) { r = r.filter(c => c.employee === this.custodySearchQuery); }
             if (this.custodySearchDate) { r = r.filter(c => c.date === this.custodySearchDate); }
             return r;
         },
