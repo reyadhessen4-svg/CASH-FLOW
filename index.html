@@ -835,7 +835,7 @@ function financialSystem() {
             let r = this.custodies.filter(c => this.custodyFilter === 'all' || c.status === this.custodyFilter);
             if (this.custodySearchQuery) { r = r.filter(c => c.employee === this.custodySearchQuery); }
             if (this.custodySearchDate) { r = r.filter(c => c.date === this.custodySearchDate); }
-            return r;
+            return r.slice().sort((a, b) => new Date(b.date || '1970-01-01') - new Date(a.date || '1970-01-01'));
         },
         get filteredCashflowRows() {
             const all = this.getSortedFlows();
