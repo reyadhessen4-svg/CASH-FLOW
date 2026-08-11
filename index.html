@@ -203,7 +203,7 @@
                 <!-- ═══ العهد المالية ═══ -->
                 <div x-show="activeTab === 'custody'" x-cloak>
                     <!-- شريط الأدوات العلوي -->
-                    <div class="flex flex-wrap justify-between items-center mb-6 gap-3">
+                    <div class="flex flex-wrap justify-between items-center mb-4 gap-3">
                         <div class="flex gap-2 bg-slate-800 p-1 rounded-lg border border-slate-700">
                             <button @click="custodyFilter = 'all'" :class="custodyFilter === 'all' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'" class="px-4 py-2 rounded-md text-sm font-bold transition">الكل</button>
                             <button @click="custodyFilter = 'مفتوحة'" :class="custodyFilter === 'مفتوحة' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'" class="px-4 py-2 rounded-md text-sm font-bold transition">مفتوحة</button>
@@ -212,9 +212,19 @@
                         <button @click="openCustodyModal()" class="primary-gradient text-white px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-lg font-bold"><i class="fas fa-plus"></i> إنشاء عهدة</button>
                     </div>
 
+                    <!-- بحث في العهد -->
+                    <div class="flex flex-wrap gap-3 mb-6">
+                        <div class="relative flex-1 min-w-[200px] max-w-xs">
+                            <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                            <input type="text" x-model="custodySearchQuery" placeholder="بحث باسم الموظف..." class="w-full pr-9 pl-4 py-2 rounded-lg input-dark text-sm">
+                        </div>
+                        <input type="date" x-model="custodySearchDate" class="p-2 rounded-lg input-dark text-sm">
+                        <button x-show="custodySearchQuery || custodySearchDate" @click="custodySearchQuery=''; custodySearchDate=''" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-lg transition"><i class="fas fa-times ml-1"></i> مسح البحث</button>
+                    </div>
+
                     <!-- شبكة البطاقات -->
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        <template x-for="c in custodies.filter(c => custodyFilter === 'all' || c.status === custodyFilter)" :key="c.id">
+                        <template x-for="c in filteredCustodies" :key="c.id">
                             <div class="glass-dark rounded-xl border transition-all duration-200" :class="c.status === 'مفتوحة' ? 'border-emerald-500/30 hover:border-emerald-500/60' : 'border-slate-700 hover:border-slate-600'">
                                 
                                 <!-- رأس البطاقة -->
@@ -257,6 +267,7 @@
                                     <button x-show="c.status === 'مفتوحة'" @click="enhanceCustody(c)" class="text-xs bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 px-3 py-1.5 rounded-lg transition flex items-center gap-1"><i class="fas fa-plus-circle"></i> تعزيز</button>
                                     <button x-show="c.status === 'مفتوحة'" @click="openCloseCustodyModal(c)" class="text-xs bg-amber-600/10 hover:bg-amber-600/20 text-amber-400 px-3 py-1.5 rounded-lg transition flex items-center gap-1"><i class="fas fa-file-invoice"></i> تقفيل</button>
                                     <button x-show="c.status === 'مقفلة'" @click="rePrintCustodyReport(c)" class="text-xs bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 px-3 py-1.5 rounded-lg transition flex items-center gap-1"><i class="fas fa-print"></i> تقرير</button>
+                                    <button x-show="c.status === 'مقفلة'" @click="saveCustodyReportFiles(c)" class="text-xs bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 px-3 py-1.5 rounded-lg transition flex items-center gap-1"><i class="fas fa-download"></i> حفظ</button>
                                     
                                     <!-- قائمة منسدلة للإجراءات الثانوية -->
                                     <div class="relative" x-data="{ open: false }" @click.away="open = false">
@@ -271,7 +282,7 @@
                         </template>
                         
                         <!-- رسالة إذا كانت البطاقات فارغة -->
-                        <div x-show="custodies.filter(c => custodyFilter === 'all' || c.status === custodyFilter).length === 0" class="col-span-full text-center py-16 text-slate-500 glass-dark rounded-xl border border-slate-700">
+                        <div x-show="filteredCustodies.length === 0" class="col-span-full text-center py-16 text-slate-500 glass-dark rounded-xl border border-slate-700">
                             <i class="fas fa-wallet text-5xl mb-4 block text-slate-600"></i>
                             <p class="text-lg font-bold">لا توجد عهد مطابقة للفلتر الحالي</p>
                         </div>
@@ -524,20 +535,23 @@
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div class="glass-dark p-6 rounded-xl shadow-lg border border-emerald-700/30">
                             <div class="flex items-center gap-3 mb-4"><div class="p-3 bg-emerald-500/10 rounded-xl text-emerald-400"><i class="fas fa-cloud-download-alt fa-xl"></i></div><h3 class="font-bold text-lg text-white">تنزيل نسخة احتياطية</h3></div>
-                            <p class="text-slate-400 text-sm mb-4">يقوم هذا الخيار بتنزيل ملف JSON يحتوي على جميع التدفقات النقدية، العهد، وبيانات الموظفين الحالية. احتفظ بهذا الملف في مكان آمن (مثل قوقل درايف) بشكل دوري.</p>
+                            <p class="text-slate-400 text-sm mb-4">يقوم هذا الخيار بتنزيل ملف JSON يحتوي على جميع التدفقات النقدية، العهد، بيانات الموظفين، وحسابات المستخدمين (الإيميل والدور والصلاحيات). احتفظ بهذا الملف في مكان آمن (مثل قوقل درايف) بشكل دوري.</p>
                             <div class="bg-slate-800 rounded-lg p-4 mb-4 space-y-2 text-sm border border-slate-700">
                                 <div class="flex justify-between"><span class="text-slate-400">عدد التدفقات النقدية:</span><span class="font-bold text-blue-400" x-text="flows.length"></span></div>
                                 <div class="flex justify-between"><span class="text-slate-400">عدد العهد:</span><span class="font-bold text-blue-400" x-text="custodies.length"></span></div>
                                 <div class="flex justify-between"><span class="text-slate-400">عدد الموظفين:</span><span class="font-bold text-blue-400" x-text="employeesList.length"></span></div>
+                                <div class="flex justify-between"><span class="text-slate-400">عدد المستخدمين:</span><span class="font-bold text-blue-400" x-text="users.length"></span></div>
                             </div>
                             <button @click="exportBackup()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold shadow-lg transition flex justify-center items-center gap-2"><i class="fas fa-download"></i> تنزيل نسخة احتياطية الآن</button>
-                            <p class="text-xs text-slate-500 mt-3" x-show="lastBackupTime"><i class="fas fa-clock ml-1"></i> آخر نسخة احتياطية في هذه الجلسة: <span x-text="lastBackupTime"></span></p>
+                            <p class="text-xs text-slate-500 mt-3" x-show="lastBackupPersistent"><i class="fas fa-clock ml-1"></i> آخر نسخة احتياطية مسجّلة: <span x-text="new Date(lastBackupPersistent).toLocaleString('ar-SA')"></span></p>
+                            <p class="text-xs text-amber-400 mt-1" x-show="!lastBackupPersistent"><i class="fas fa-exclamation-triangle ml-1"></i> لا توجد نسخة احتياطية مسجّلة بعد</p>
                         </div>
 
                         <div class="glass-dark p-6 rounded-xl shadow-lg border border-amber-700/30">
                             <div class="flex items-center gap-3 mb-4"><div class="p-3 bg-amber-500/10 rounded-xl text-amber-400"><i class="fas fa-cloud-upload-alt fa-xl"></i></div><h3 class="font-bold text-lg text-white">استرجاع من نسخة احتياطية</h3></div>
-                            <p class="text-slate-400 text-sm mb-4">استخدم هذا الخيار فقط في حالة فقدان البيانات. سيُطلب منك تأكيد ما إذا كنت تريد <strong class="text-slate-300">الدمج</strong> مع البيانات الحالية أو <strong class="text-red-400">استبدالها بالكامل</strong>.</p>
+                            <p class="text-slate-400 text-sm mb-4">استخدم هذا الخيار فقط في حالة فقدان البيانات. سيُطلب منك تأكيد ما إذا كنت تريد <strong class="text-slate-300">الدمج</strong> مع البيانات الحالية أو <strong class="text-red-400">استبدالها بالكامل</strong>. يشمل الاسترجاع أيضاً حسابات المستخدمين (الإيميل، الدور، الصلاحيات).</p>
                             <div class="p-4 bg-red-900/10 border border-red-700/30 rounded-lg mb-4 text-sm text-red-300"><i class="fas fa-exclamation-triangle ml-1"></i> تحذير: خيار "الاستبدال الكامل" يحذف كل البيانات الحالية نهائياً قبل الاسترجاع. لا يمكن التراجع عن هذه الخطوة.</div>
+                            <div class="p-4 bg-amber-900/10 border border-amber-700/30 rounded-lg mb-4 text-sm text-amber-300"><i class="fas fa-info-circle ml-1"></i> ملاحظة: كلمة المرور لا يمكن استرجاعها لأسباب أمنية في Firebase. المستخدم الذي فُقد حسابه سيحتاج لتسجيل الدخول بنفس الإيميل عبر "نسيت كلمة المرور" أو إنشاء حساب جديد.</div>
                             <label class="w-full bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl font-bold shadow-lg transition flex justify-center items-center gap-2 cursor-pointer">
                                 <i class="fas fa-upload"></i> <span>اختيار ملف النسخة الاحتياطية (JSON)</span>
                                 <input type="file" accept=".json" @change="restoreBackup($event)" class="hidden">
@@ -781,9 +795,9 @@ function financialSystem() {
         reviewForm: { custodyId: '', status: 'reviewed', notes: '' },
         reviewFilter: { status: 'all', custodyStatus: 'all', employee: '' },
         editSettlementForm: { custodyId: '', settlementId: '', date: '', item: '', subItem: '', category: 'تشغيلية', accountingDirection: '', isTaxable: false, amountBeforeTax: '', taxRate: 15, amount: '' },
-        custodyFilter: 'all',
+        custodyFilter: 'all', custodySearchQuery: '', custodySearchDate: '',
         cashflowFilter: { mode: 'all', from: '', to: '', month: '' },
-        lastBackupTime: '', restoreInProgress: false,
+        lastBackupTime: '', lastBackupPersistent: '', restoreInProgress: false,
         settlement: { selectedCustodyId:'', date:'', item:'', subItem:'', category:'تشغيلية', amount:'', accountingDirection:'', isTaxable:false, amountBeforeTax:'', taxRate:15 },
         inquiry: { employee:'', from:'', to:'' }, inquiryResult: null,
         custodyStatement: { employee:'', from:'', to:'', data: null },
@@ -815,6 +829,12 @@ function financialSystem() {
         get editSettlementTotalAmount() { if(!this.editSettlementForm.isTaxable) return Number(this.editSettlementForm.amount)||0; return (Number(this.editSettlementForm.amountBeforeTax)||0)+this.editSettlementTaxAmount; },
 
         // ═══ فلترة شاشة التدفقات النقدية بالتاريخ/الشهر ═══
+        get filteredCustodies() {
+            let r = this.custodies.filter(c => this.custodyFilter === 'all' || c.status === this.custodyFilter);
+            if (this.custodySearchQuery) { const q = this.custodySearchQuery.toLowerCase(); r = r.filter(c => (c.employee || '').toLowerCase().includes(q)); }
+            if (this.custodySearchDate) { r = r.filter(c => c.date === this.custodySearchDate); }
+            return r;
+        },
         get filteredCashflowRows() {
             const all = this.getSortedFlows();
             if (this.cashflowFilter.mode === 'all') return all;
@@ -878,6 +898,7 @@ function financialSystem() {
             this.unsubscribeFns.push(window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"employees"),(s)=>{this.employeesList=s.docs.map(d=>({id:d.id,...d.data()}));},(e)=>{}));
             if(this.currentUser.role==='admin'){this.unsubscribeFns.push(window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"users"),(s)=>{this.users=s.docs.map(d=>({id:d.id,...d.data()}));},(e)=>{}));}
             this.dataLoaded=true;
+            if(this.currentUser.role==='admin'){ this.checkBackupReminder(); }
         },
 
         formatCurrency(a){return new Intl.NumberFormat('en-US',{style:'currency',currency:'SAR'}).format(a||0);},
@@ -889,9 +910,23 @@ function financialSystem() {
         getSortedFlows(){let b=0;const o=this.flows.filter(f=>f.item==='رصيد بداية المدة');const t=this.flows.filter(f=>f.item!=='رصيد بداية المدة').sort((a,c)=>new Date(a.date||'1970-01-01')-new Date(c.date||'1970-01-01'));return[...o,...t].map(f=>{b+=f.type==='inflow'?Number(f.amount):-Number(f.amount);return{...f,runningBalance:b};});},
 
         // ═══ نظام النسخ الاحتياطي والاسترجاع ═══
+        async checkBackupReminder(){
+            try{
+                const d = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb,"meta","backupInfo"));
+                if(d.exists() && d.data().lastBackupAt){
+                    this.lastBackupPersistent = d.data().lastBackupAt;
+                    const days = (Date.now() - new Date(d.data().lastBackupAt).getTime()) / (1000*60*60*24);
+                    if(days >= 7){ this.showToast('مرّ أكثر من أسبوع منذ آخر نسخة احتياطية، يُفضّل عمل نسخة جديدة الآن','info'); }
+                } else {
+                    this.lastBackupPersistent = '';
+                    this.showToast('لا توجد نسخة احتياطية مسجلة بعد، يُفضّل عمل نسخة الآن','info');
+                }
+            }catch(e){}
+        },
         exportBackup(){
             try{
-                const data = { exportedAt: new Date().toISOString(), exportedBy: this.currentUser?.email || '', cashFlows: this.flows, custodies: this.custodies, employees: this.employeesList };
+                const usersData = (this.users||[]).map(u=>({id:u.id, email:u.email, role:u.role, permissions:u.permissions||{}, createdAt:u.createdAt||''}));
+                const data = { exportedAt: new Date().toISOString(), exportedBy: this.currentUser?.email || '', cashFlows: this.flows, custodies: this.custodies, employees: this.employeesList, users: usersData };
                 const json = JSON.stringify(data, null, 2);
                 const blob = new Blob([json], {type:'application/json'});
                 const url = URL.createObjectURL(blob);
@@ -899,8 +934,11 @@ function financialSystem() {
                 const stamp = new Date().toISOString().split('T')[0]+'_'+new Date().toTimeString().split(' ')[0].replace(/:/g,'-');
                 a.href = url; a.download = `Backup_${stamp}.json`; a.click();
                 URL.revokeObjectURL(url);
+                const nowIso = new Date().toISOString();
                 this.lastBackupTime = new Date().toLocaleString('ar-SA');
-                this.showToast('تم تنزيل النسخة الاحتياطية بنجاح','success');
+                this.lastBackupPersistent = nowIso;
+                window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"meta","backupInfo"), { lastBackupAt: nowIso, lastBackupBy: this.currentUser?.email || '' }).catch(()=>{});
+                this.showToast('تم تنزيل النسخة الاحتياطية بنجاح (تدفقات، عهد، موظفين، مستخدمين)','success');
             }catch(e){ this.showToast('خطأ: '+e.message,'error'); }
         },
         async restoreBackup(event){
@@ -913,10 +951,11 @@ function financialSystem() {
                         this.showToast('ملف النسخة الاحتياطية غير صالح','error'); event.target.value=''; return;
                     }
                     const empCount = Array.isArray(data.employees) ? data.employees.length : 0;
-                    const confirmMsg = `سيتم استرجاع:\n- ${data.cashFlows.length} تدفق نقدي\n- ${data.custodies.length} عهدة\n- ${empCount} موظف\n\nهل تريد استبدال جميع البيانات الحالية بالكامل؟\n\nموافق = استبدال كامل (حذف كل البيانات الحالية أولاً ثم الاسترجاع)\nإلغاء = دمج فقط (بدون حذف أي بيانات حالية)`;
+                    const usersArr = Array.isArray(data.users) ? data.users : [];
+                    const confirmMsg = `سيتم استرجاع:\n- ${data.cashFlows.length} تدفق نقدي\n- ${data.custodies.length} عهدة\n- ${empCount} موظف\n- ${usersArr.length} مستخدم (بيانات الحساب والصلاحيات فقط، بدون كلمة المرور)\n\nهل تريد استبدال جميع البيانات الحالية بالكامل؟\n\nموافق = استبدال كامل (حذف كل البيانات الحالية أولاً ثم الاسترجاع)\nإلغاء = دمج فقط (بدون حذف أي بيانات حالية)`;
                     const fullReplace = confirm(confirmMsg);
                     if(fullReplace){
-                        if(!confirm('تحذير أخير: سيتم حذف جميع التدفقات والعهد والموظفين الحاليين نهائياً قبل الاسترجاع. هذا الإجراء لا يمكن التراجع عنه. متأكد تماماً؟')){ event.target.value=''; return; }
+                        if(!confirm('تحذير أخير: سيتم حذف جميع التدفقات والعهد والموظفين والمستخدمين الحاليين نهائياً قبل الاسترجاع. هذا الإجراء لا يمكن التراجع عنه. متأكد تماماً؟')){ event.target.value=''; return; }
                     }
                     this.restoreInProgress = true;
                     this.showToast('جاري الاسترجاع... لا تغلق الصفحة', 'info');
@@ -926,14 +965,17 @@ function financialSystem() {
                             const snap = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseDb, col));
                             for(const d of snap.docs){ await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb, col, d.id)); }
                         }
+                        // ملاحظة: لا يتم حذف حسابات المستخدمين في Firebase Authentication نفسها (فقط بيانات صلاحياتهم في قاعدة البيانات)
                     }
 
                     for(const f of data.cashFlows){ const {id, ...rest} = f; if(id) await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"cashFlows", id), rest); else await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"cashFlows"), rest); }
                     for(const c of data.custodies){ const {id, ...rest} = c; if(id) await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"custodies", id), rest); else await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"custodies"), rest); }
                     if(Array.isArray(data.employees)){ for(const emp of data.employees){ const {id, ...rest} = emp; if(id) await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"employees", id), rest); else await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDb,"employees"), rest); } }
+                    // استرجاع بيانات المستخدمين (الإيميل، الدور، الصلاحيات) - لا يشمل كلمة المرور لأن Firebase Auth لا يسمح باسترجاعها
+                    if(usersArr.length){ for(const u of usersArr){ const {id, ...rest} = u; if(id) await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"users", id), rest, {merge:true}); } }
 
                     this.restoreInProgress = false;
-                    this.showToast('تم استرجاع البيانات بنجاح','success');
+                    this.showToast(usersArr.length ? 'تم استرجاع البيانات بنجاح (ملاحظة: حسابات المستخدمين الجدد التي لم تكن موجودة تحتاج تسجيل عبر "نسيت كلمة المرور" أو إنشاء حساب بنفس الإيميل)' : 'تم استرجاع البيانات بنجاح','success');
                 }catch(err){ this.restoreInProgress = false; this.showToast('خطأ في الاسترجاع: '+err.message,'error'); }
                 event.target.value='';
             };
@@ -1314,11 +1356,22 @@ function financialSystem() {
         },
         
         rePrintCustodyReport(c){const sp=this.getCustodySpent(c);const rem=c.amount-sp;this.generateCustodyReportHTML(c,sp,rem,c.closedAt||new Date().toISOString().split('T')[0]);},
-        generateCustodyReportHTML(c,spent,remaining,closeDate){
+        buildCustodyReportHTML(c,spent,remaining,closeDate){
             const act=c.closeResult==='returned'?'تم رد المبلغ للصندوق':(c.closeResult==='carried_forward'?'تم ترحيل المتبقي لعهدة جديدة':'مقفلة بالكامل');
             let rows='';(c.settlements||[]).forEach((s,i)=>{rows+=`<tr><td style="text-align:center">${i+1}</td><td>${s.date||''}</td><td>${s.item||''}<br><small style="color:#64748b">${s.subItem||''}</small></td><td>${s.category||''}</td><td>${s.accountingDirection||'-'}</td><td style="text-align:left">${Number(s.amount).toLocaleString('en-US')}</td></tr>`;});
             this.custodyReportHTML=`<div style="text-align:center;margin-bottom:30px"><h2 style="margin:0;font-size:24px">تقرير تقفيل عهدة</h2><p style="color:#64748b;margin:5px 0 0 0">تاريخ التقفيل: ${closeDate}</p></div><div class="summary-box"><div class="summary-row"><span style="font-weight:bold">الموظف:</span><span>${c.employee}</span></div><div class="summary-row"><span style="font-weight:bold">تاريخ العهدة:</span><span>${c.date}</span></div></div><table><thead><tr><th style="text-align:center">#</th><th>التاريخ</th><th>البند</th><th>التصنيف</th><th>التوجيه</th><th style="text-align:left">الإجمالي</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="total-row"><td colspan="5" style="text-align:left;font-weight:bold">إجمالي المصروفات</td><td style="text-align:left;font-weight:bold">${spent.toLocaleString('en-US')}</td></tr></tfoot></table><div class="summary-box" style="margin-top:20px;border-color:#16a34a"><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">رصيد بداية العهدة:</span><span>${Number(c.amount).toLocaleString('en-US')} ر.س</span></div><div class="summary-row" style="font-size:16px"><span style="font-weight:bold">(-) المصروفات:</span><span style="color:#dc2626">${spent.toLocaleString('en-US')} ر.س</span></div><div class="summary-row" style="font-size:18px;border-bottom:none"><span style="font-weight:bold">رصيد نهاية التقفيل:</span><span style="color:#16a34a">${remaining.toLocaleString('en-US')} ر.س</span></div><div style="text-align:center;margin-top:15px;padding:10px;background:#f0fdf4;border-radius:6px;color:#166534;font-weight:bold">الإجراء: ${act}</div></div><div style="margin-top:60px;display:flex;justify-content:space-between"><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع الموظف</p><br><br><p style="border-top:1px solid #94a3b8">.............................</p></div><div style="text-align:center;width:45%"><p style="font-weight:bold">توقيع المدير المالي</p><br><br><p style="border-top:1px solid #94a3b8">.............................</p></div></div>`;
-            setTimeout(()=>{const ch=confirm("موافق = طباعة / حفظ PDF\nإلغاء = تصدير Excel");if(ch)this.printCustodyReport();else this.exportCustodyReportExcel(c,spent,remaining,act,closeDate);},300);
+            return act;
+        },
+        generateCustodyReportHTML(c,spent,remaining,closeDate){
+            const act = this.buildCustodyReportHTML(c,spent,remaining,closeDate);
+            setTimeout(()=>{const ch=confirm("هل تريد طباعة/حفظ تقرير العهدة الآن؟\nموافق = نعم، اطبع الآن\nإلغاء = لا، ليس الآن");if(ch)this.printCustodyReport();},300);
+        },
+        saveCustodyReportFiles(c){
+            const sp=this.getCustodySpent(c); const rem=c.amount-sp; const cd=c.closedAt||new Date().toISOString().split('T')[0];
+            const act = this.buildCustodyReportHTML(c,sp,rem,cd);
+            this.exportCustodyReportExcel(c,sp,rem,act,cd);
+            setTimeout(()=>{ this.exportPDF('custody-report-print', 'Report_'+c.employee+'_'+cd+'.pdf'); }, 200);
+            this.showToast('جاري تنزيل ملفي Excel وPDF...','success');
         },
         printCustodyReport() {
             if(!this.custodyReportHTML) return;
@@ -1394,7 +1447,7 @@ function financialSystem() {
         generateReport(){if(!this.report.from||!this.report.to)return alert("حدد الفترة");const from=this.report.from,to=this.report.to;const oF=this.flows.find(f=>f.item==='رصيد بداية المدة');const oA=oF?Number(oF.amount):0;const bN=this.flows.filter(f=>f.date<from&&f.item!=='رصيد بداية المدة').reduce((a,c)=>a+(c.type==='inflow'?Number(c.amount):-Number(c.amount)),0);const oB=oA+bN;const pf=this.flows.filter(f=>f.date>=from&&f.date<=to&&f.item!=='رصيد بداية المدة');const calc=(t,cat)=>pf.filter(f=>f.type===t&&f.category===cat).reduce((s,f)=>s+Number(f.amount),0);const oI=calc('inflow','تشغيلية'),oO=calc('outflow','تشغيلية'),iI=calc('inflow','استثمارية'),iO=calc('outflow','استثمارية'),fI=calc('inflow','تمويلية'),fO=calc('outflow','تمويلية');const nO=oI-oO,nI=iI-iO,nF=fI-fO,nCF=nO+nI+nF;this.report.data={openingBalance:oB,operatingIn:oI,operatingOut:oO,netOperating:nO,investingIn:iI,investingOut:iO,netInvesting:nI,financingIn:fI,financingOut:fO,netFinancing:nF,netCashFlow:nCF,closingBalance:oB+nCF};},
         exportReportExcel(){if(!this.report.data)return;const ws=XLSX.utils.json_to_sheet([this.report.data]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"تقرير");XLSX.writeFile(wb,"Cash_Flow_Statement.xlsx");},
         
-        exportPDF(divId){
+        exportPDF(divId, filename){
             const input = document.getElementById(divId); if(!input) return alert("عنصر غير موجود");
             const orig = { position:input.style.position, left:input.style.left, top:input.style.top, zIndex:input.style.zIndex, opacity:input.style.opacity, height:input.style.height, overflow:input.style.overflow };
             input.style.position='absolute'; input.style.left='0'; input.style.top='0'; input.style.zIndex='-1'; input.style.opacity='1'; input.style.height='auto'; input.style.overflow='visible';
@@ -1403,7 +1456,7 @@ function financialSystem() {
                     const { jsPDF } = window.jspdf; const pdf = new jsPDF('p','mm','a4'); const pageWidth=pdf.internal.pageSize.getWidth(); const pageHeight=pdf.internal.pageSize.getHeight(); const imgWidth=pageWidth; const imgHeight=(canvas.height*imgWidth)/canvas.width; let heightLeft=imgHeight; let position=0;
                     pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,position,imgWidth,imgHeight); heightLeft-=pageHeight;
                     while(heightLeft>0){ position=heightLeft-imgHeight; pdf.addPage(); pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,position,imgWidth,imgHeight); heightLeft-=pageHeight; }
-                    pdf.save("Report.pdf"); Object.assign(input.style,orig);
+                    pdf.save(filename||"Report.pdf"); Object.assign(input.style,orig);
                 }).catch(err => { alert("خطأ في إنشاء PDF: "+err.message); Object.assign(input.style,orig); });
             }, 500);
         },
