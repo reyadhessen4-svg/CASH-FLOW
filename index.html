@@ -274,7 +274,8 @@
                                     <!-- قائمة منسدلة للإجراءات الثانوية -->
                                     <div class="relative" x-data="{ open: false }" @click.away="open = false">
                                         <button @click="open = !open" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-400 px-2 py-1.5 rounded-lg transition"><i class="fas fa-ellipsis-v"></i></button>
-                                        <div x-show="open" x-transition class="absolute left-0 bottom-full mb-1 w-32 bg-slate-800 border border-slate-600 rounded-lg shadow-xl z-10 overflow-hidden">
+                                        <div x-show="open" x-transition class="absolute left-0 bottom-full mb-1 w-36 bg-slate-800 border border-slate-600 rounded-lg shadow-xl z-10 overflow-hidden">
+                                            <button x-show="c.status === 'مقفلة'" @click="reopenCustody(c); open = false" class="w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-amber-600/20 hover:text-amber-400 transition"><i class="fas fa-undo ml-1"></i> إعادة فتح</button>
                                             <button @click="editCustody(c); open = false" class="w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-blue-600/20 hover:text-blue-400 transition"><i class="fas fa-edit ml-1"></i> تعديل</button>
                                             <button @click="deleteCustody(c); open = false" class="w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-red-600/20 hover:text-red-400 transition"><i class="fas fa-trash ml-1"></i> حذف</button>
                                         </div>
@@ -1040,6 +1041,38 @@ function financialSystem() {
         // ═══ العهد المالية ═══
         openCustodyModal(){this.custodyForm={id:null,employee:'',date:new Date().toISOString().split('T')[0],amount:'',notes:'',additionalAmount:'',isEnhance:false,isOpeningBalance:false,linkedFlowId:null,enhanceDate:new Date().toISOString().split('T')[0]};this.showCustodyModal=true;},
         editCustody(c){this.custodyForm={...c,isEnhance:false,additionalAmount:'',isOpeningBalance:false,enhanceDate:new Date().toISOString().split('T')[0]};this.showCustodyModal=true;},
+        async reopenCustody(c){
+            if(!c||c.status!=='مقفلة')return;
+            if(!confirm('سيتم إعادة فتح هذه العهدة إلى "مفتوحة" والتراجع تلقائيًا عن أي رد للخزينة أو ترحيل تم عند التقفيل، عشان تقدر تقفلها من جديد بالإجراء الصحيح. متابعة؟'))return;
+            try{
+                const sp = this.getCustodySpent(c); const rem = Number(c.amount) - sp;
+                if(c.closeResult === 'returned' && rem > 0){
+                    const returnFlow = this.flows.find(f => f.item==='رد عهدة مقفلة' && f.subItem===c.employee && f.date===c.closedAt);
+                    let returnAmount = 0;
+                    if(returnFlow){
+                        returnAmount = Number(returnFlow.amount);
+                        await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",returnFlow.id));
+                    }
+                    if(c.linkedFlowId && returnAmount > 0){
+                        const flowDoc = await window.firebaseGetDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",c.linkedFlowId));
+                        if(flowDoc.exists()){
+                            await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",c.linkedFlowId),{amount: Number(flowDoc.data().amount) + returnAmount});
+                        } else {
+                            await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"cashFlows",c.linkedFlowId),{type:'outflow',date:c.date,item:'عهد موظفين',subItem:c.employee,category:'تشغيلية',amount:returnAmount});
+                            this.showToast('تنبيه: تم إعادة إنشاء حركة الصرف الأصلية بشكل تقديري، تأكد من مراجعتها في شاشة التدفقات النقدية','info');
+                        }
+                    }
+                } else if(c.closeResult === 'carried_forward'){
+                    const cf = this.custodies.find(x => x.isCarriedForward && x.employee===c.employee && x.notes && x.notes.includes('ترحيل متبقي من عهدة بتاريخ '+c.date));
+                    if(cf){
+                        if((cf.settlements||[]).length){ this.showToast('تنبيه: العهدة المرحّلة عليها بنود تسوية مسجلة بالفعل، لم يتم حذفها تلقائيًا لتفادي فقد بيانات. راجعها يدويًا.','info'); }
+                        else { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"custodies",cf.id)); }
+                    }
+                }
+                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id),{status:'مفتوحة', closeResult:null, closedAt:null});
+                this.showToast('تم إعادة فتح العهدة بنجاح، يمكنك تقفيلها من جديد باختيار "ترحيل"','success');
+            }catch(e){ this.showToast('خطأ: '+e.message,'error'); }
+        },
         enhanceCustody(c){this.custodyForm={...c,isEnhance:true,additionalAmount:'',isOpeningBalance:false,enhanceDate:new Date().toISOString().split('T')[0]};this.showCustodyModal=true;},
         manageCustodySettlements(c) { this.settlement.selectedCustodyId = c.id; this.activeTab = 'settlement'; this.sidebarOpen = false; },
 
