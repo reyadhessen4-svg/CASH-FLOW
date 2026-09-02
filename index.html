@@ -323,7 +323,7 @@
                                     <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" x-model="settlement.isTaxable" class="w-5 h-5 text-blue-600 rounded bg-slate-900 border-slate-600"><span class="text-blue-400 font-bold text-sm"><i class="fas fa-percent ml-1"></i> بند ضريبي</span></label>
                                     <div x-show="settlement.isTaxable" x-transition class="space-y-3 pt-2">
                                         <div><label class="block text-xs text-slate-400 mb-1">المبلغ قبل الضريبة</label><input type="number" x-model="settlement.amountBeforeTax" placeholder="المبلغ قبل الضريبة" class="w-full p-2 rounded-lg input-dark border-blue-500/30"></div>
-                                        <div><label class="block text-xs text-slate-400 mb-1">نسبة ضريبة القيمة المضافة (%)</label><input type="number" x-model="settlement.taxRate" class="w-full p-2 rounded-lg input-dark border-blue-500/30"></div>
+                                        <div><label class="block text-xs text-slate-400 mb-1">نسبة ضريبة القيمة المضافة</label><div class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 flex items-center justify-between"><span x-text="systemSettings.vatRate + '%'" class="font-bold"></span><span class="text-xs text-slate-500"><i class="fas fa-lock ml-1"></i>ثابتة</span></div></div>
                                         <div class="bg-blue-900/20 border border-blue-800/30 rounded-lg p-3 space-y-1">
                                             <div class="flex justify-between text-sm"><span class="text-slate-400">المبلغ قبل الضريبة:</span><span class="text-white font-bold" x-text="formatCurrency(settlement.amountBeforeTax || 0)"></span></div>
                                             <div class="flex justify-between text-sm"><span class="text-slate-400">قيمة الضريبة:</span><span class="text-amber-400 font-bold" x-text="formatCurrency(settlementTaxAmount)"></span></div>
@@ -564,6 +564,22 @@
                     </div>
                 </div>
 
+                <div x-show="activeTab === 'settings'" x-cloak>
+                    <div class="max-w-lg">
+                        <div class="glass-dark p-6 rounded-xl shadow-lg border border-blue-700/30">
+                            <div class="flex items-center gap-3 mb-4"><div class="p-3 bg-blue-500/10 rounded-xl text-blue-400"><i class="fas fa-percent fa-xl"></i></div><h3 class="font-bold text-lg text-white">نسبة ضريبة القيمة المضافة</h3></div>
+                            <p class="text-slate-400 text-sm mb-4">هذه النسبة تُستخدم تلقائيًا وبشكل ثابت في كل بنود التسوية الضريبية أثناء إدخال أو تعديل مصروفات العهد، لمنع أي تعديل عرضي عليها. غيّرها من هنا فقط عند تغيّر النظام الضريبي رسميًا.</p>
+                            <div class="flex items-center gap-3 mb-4">
+                                <input type="number" x-model="vatRateInput" min="0" max="100" step="0.5" class="w-32 p-2.5 rounded-lg input-dark text-center font-bold text-lg">
+                                <span class="text-slate-400 font-bold">%</span>
+                            </div>
+                            <button @click="saveVatRate()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold shadow-lg transition flex justify-center items-center gap-2"><i class="fas fa-save"></i> حفظ النسبة</button>
+                            <p class="text-xs text-slate-500 mt-3"><i class="fas fa-info-circle ml-1"></i> النسبة الحالية المستخدمة في النظام: <span class="font-bold text-blue-400" x-text="systemSettings.vatRate + '%'"></span></p>
+                            <p class="text-xs text-slate-500 mt-1"><i class="fas fa-history ml-1"></i> تغيير النسبة لا يؤثر على البنود المسجلة سابقًا، بل يُطبَّق فقط على البنود الجديدة من تاريخ الحفظ.</p>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -739,7 +755,7 @@
                 <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" x-model="editSettlementForm.isTaxable" class="w-5 h-5 text-blue-600 rounded bg-slate-900 border-slate-600"><span class="text-blue-400 font-bold text-sm"><i class="fas fa-percent ml-1"></i> بند ضريبي</span></label>
                 <div x-show="editSettlementForm.isTaxable" x-transition class="space-y-3 pt-2">
                     <div><label class="block text-xs text-slate-400 mb-1">المبلغ قبل الضريبة</label><input type="number" x-model="editSettlementForm.amountBeforeTax" placeholder="المبلغ قبل الضريبة" class="w-full p-2.5 rounded-lg input-dark border-blue-500/30"></div>
-                    <div><label class="block text-xs text-slate-400 mb-1">نسبة ضريبة القيمة المضافة (%)</label><input type="number" x-model="editSettlementForm.taxRate" class="w-full p-2.5 rounded-lg input-dark border-blue-500/30"></div>
+                    <div><label class="block text-xs text-slate-400 mb-1">نسبة ضريبة القيمة المضافة</label><div class="w-full p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 flex items-center justify-between"><span x-text="systemSettings.vatRate + '%'" class="font-bold"></span><span class="text-xs text-slate-500"><i class="fas fa-lock ml-1"></i>ثابتة</span></div></div>
                     <div class="bg-blue-900/20 border border-blue-800/30 rounded-lg p-3 space-y-1">
                         <div class="flex justify-between text-sm"><span class="text-slate-400">المبلغ قبل الضريبة:</span><span class="text-white font-bold" x-text="formatCurrency(editSettlementForm.amountBeforeTax || 0)"></span></div>
                         <div class="flex justify-between text-sm"><span class="text-slate-400">قيمة الضريبة:</span><span class="text-amber-400 font-bold" x-text="formatCurrency(editSettlementTaxAmount)"></span></div>
@@ -797,6 +813,7 @@ function financialSystem() {
         showReviewModal: false,
         reviewForm: { custodyId: '', status: 'reviewed', notes: '' },
         reviewFilter: { status: 'all', custodyStatus: 'all', employee: '' },
+        systemSettings: { vatRate: 15 }, vatRateInput: 15,
         editSettlementForm: { custodyId: '', settlementId: '', date: '', item: '', subItem: '', category: 'تشغيلية', accountingDirection: '', isTaxable: false, amountBeforeTax: '', taxRate: 15, amount: '' },
         custodyFilter: 'all', custodySearchQuery: '', custodySearchDate: '',
         cashflowFilter: { mode: 'all', from: '', to: '', month: '' },
@@ -820,15 +837,16 @@ function financialSystem() {
             { id: 'employees', name: 'الموظفون', icon: 'fas fa-user-tie' },
             { id: 'users', name: 'إدارة المستخدمين', icon: 'fas fa-users-cog' },
             { id: 'custodyReview', name: 'مراجعة العهد', icon: 'fas fa-clipboard-check' },
-            { id: 'backup', name: 'النسخ الاحتياطي', icon: 'fas fa-database' }
+            { id: 'backup', name: 'النسخ الاحتياطي', icon: 'fas fa-database' },
+            { id: 'settings', name: 'إعدادات النظام', icon: 'fas fa-cog' }
         ],
-        tabNames: { 'dashboard':'لوحة التحكم', 'cashflow':'التدفقات النقدية', 'custody':'العهد المالية', 'settlement':'تقفيل العهد', 'inquiry':'استعلام العهد', 'custodyStatement':'كشف حساب عهدة', 'analysis':'تحليل التدفقات النقدية', 'report':'قائمة التدفقات', 'employees':'الموظفون', 'users':'إدارة المستخدمين', 'custodyReview':'مراجعة العهد', 'backup':'النسخ الاحتياطي' },
+        tabNames: { 'dashboard':'لوحة التحكم', 'cashflow':'التدفقات النقدية', 'custody':'العهد المالية', 'settlement':'تقفيل العهد', 'inquiry':'استعلام العهد', 'custodyStatement':'كشف حساب عهدة', 'analysis':'تحليل التدفقات النقدية', 'report':'قائمة التدفقات', 'employees':'الموظفون', 'users':'إدارة المستخدمين', 'custodyReview':'مراجعة العهد', 'backup':'النسخ الاحتياطي', 'settings':'إعدادات النظام' },
 
         get allowedTabs() { if(!this.currentUser) return []; if(this.currentUser.role==='admin') return this.allTabs; return this.allTabs.filter(t=>this.currentUser.permissions?.[t.id]); },
         get isAdmin() { return this.currentUser?.role === 'admin'; },
-        get settlementTaxAmount() { if(!this.settlement.isTaxable) return 0; return (Number(this.settlement.amountBeforeTax)||0)*((Number(this.settlement.taxRate)||15)/100); },
+        get settlementTaxAmount() { if(!this.settlement.isTaxable) return 0; return (Number(this.settlement.amountBeforeTax)||0)*((Number(this.systemSettings.vatRate)||15)/100); },
         get settlementTotalAmount() { if(!this.settlement.isTaxable) return Number(this.settlement.amount)||0; return (Number(this.settlement.amountBeforeTax)||0)+this.settlementTaxAmount; },
-        get editSettlementTaxAmount() { if(!this.editSettlementForm.isTaxable) return 0; return (Number(this.editSettlementForm.amountBeforeTax)||0)*((Number(this.editSettlementForm.taxRate)||15)/100); },
+        get editSettlementTaxAmount() { if(!this.editSettlementForm.isTaxable) return 0; return (Number(this.editSettlementForm.amountBeforeTax)||0)*((Number(this.systemSettings.vatRate)||15)/100); },
         get editSettlementTotalAmount() { if(!this.editSettlementForm.isTaxable) return Number(this.editSettlementForm.amount)||0; return (Number(this.editSettlementForm.amountBeforeTax)||0)+this.editSettlementTaxAmount; },
 
         // ═══ فلترة شاشة التدفقات النقدية بالتاريخ/الشهر ═══
@@ -898,6 +916,7 @@ function financialSystem() {
             this.unsubscribeFns = this.unsubscribeFns || [];
             this.unsubscribeFns.push(window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"cashFlows"),(s)=>{this.flows=s.docs.map(d=>({id:d.id,...d.data()}));this.updateCharts();},(e)=>{}));
             this.unsubscribeFns.push(window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"custodies"),(s)=>{this.custodies=s.docs.map(d=>({id:d.id,...d.data()}));},(e)=>{}));
+            this.unsubscribeFns.push(window.firebaseOnSnapshot(window.firebaseDoc(window.firebaseDb,"settings","general"),(d)=>{if(d.exists()){this.systemSettings.vatRate=Number(d.data().vatRate)||15;this.vatRateInput=this.systemSettings.vatRate;}},(e)=>{}));
             this.unsubscribeFns.push(window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"employees"),(s)=>{this.employeesList=s.docs.map(d=>({id:d.id,...d.data()}));},(e)=>{}));
             if(this.currentUser.role==='admin'){this.unsubscribeFns.push(window.firebaseOnSnapshot(window.firebaseCollection(window.firebaseDb,"users"),(s)=>{this.users=s.docs.map(d=>({id:d.id,...d.data()}));},(e)=>{}));}
             this.dataLoaded=true;
@@ -912,6 +931,16 @@ function financialSystem() {
         get openCustodies(){return this.custodies.filter(c=>c.status==='مفتوحة');},
         getSortedFlows(){let b=0;const o=this.flows.filter(f=>f.item==='رصيد بداية المدة');const t=this.flows.filter(f=>f.item!=='رصيد بداية المدة').sort((a,c)=>new Date(a.date||'1970-01-01')-new Date(c.date||'1970-01-01'));return[...o,...t].map(f=>{b+=f.type==='inflow'?Number(f.amount):-Number(f.amount);return{...f,runningBalance:b};});},
 
+        // ═══ إعدادات النظام ═══
+        async saveVatRate(){
+            const r = Number(this.vatRateInput);
+            if(isNaN(r) || r < 0 || r > 100){ this.showToast('نسبة غير صالحة','error'); return; }
+            if(!confirm(`سيتم تحديث نسبة ضريبة القيمة المضافة إلى ${r}% وستُستخدم في كل عمليات التسوية الجديدة من الآن. متابعة؟`)) return;
+            try{
+                await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb,"settings","general"), { vatRate: r, updatedAt: new Date().toISOString(), updatedBy: this.currentUser?.email || '' }, {merge:true});
+                this.showToast('تم حفظ نسبة الضريبة بنجاح','success');
+            }catch(e){ this.showToast('خطأ: '+e.message,'error'); }
+        },
         // ═══ نظام النسخ الاحتياطي والاسترجاع ═══
         async checkBackupReminder(){
             try{
@@ -1152,7 +1181,7 @@ function financialSystem() {
                 if(!custody) return;
                 
                 let sd={id:Date.now().toString(),date:this.settlement.date,item:this.settlement.item,subItem:this.settlement.subItem||'',category:this.settlement.category,accountingDirection:this.settlement.accountingDirection||'',isTaxable:this.settlement.isTaxable||false,amountBeforeTax:0,taxRate:0,taxAmount:0,amount:0,linkedFlowId:null};
-                if(this.settlement.isTaxable){const abt=Number(this.settlement.amountBeforeTax)||0;const r=Number(this.settlement.taxRate)||15;const ta=abt*(r/100);sd.amountBeforeTax=abt;sd.taxRate=r;sd.taxAmount=ta;sd.amount=abt+ta;}else{if(!this.settlement.amount)return alert("أدخل المبلغ");sd.amount=Number(this.settlement.amount);}
+                if(this.settlement.isTaxable){const abt=Number(this.settlement.amountBeforeTax)||0;const r=Number(this.systemSettings.vatRate)||15;const ta=abt*(r/100);sd.amountBeforeTax=abt;sd.taxRate=r;sd.taxAmount=ta;sd.amount=abt+ta;}else{if(!this.settlement.amount)return alert("أدخل المبلغ");sd.amount=Number(this.settlement.amount);}
                 
                 // الميزة الجديدة: إنشاء تدفق خارج للبند مع ربط متبادل
                 if(custody.linkedFlowId){
@@ -1288,7 +1317,7 @@ function financialSystem() {
                 };
 
                 if (this.editSettlementForm.isTaxable) {
-                    const abt = Number(this.editSettlementForm.amountBeforeTax) || 0; const r = Number(this.editSettlementForm.taxRate) || 15; const ta = abt * (r / 100);
+                    const abt = Number(this.editSettlementForm.amountBeforeTax) || 0; const r = Number(this.systemSettings.vatRate) || 15; const ta = abt * (r / 100);
                     updatedSettlement.amountBeforeTax = abt; updatedSettlement.taxRate = r; updatedSettlement.taxAmount = ta; updatedSettlement.amount = abt + ta;
                 } else {
                     if (!this.editSettlementForm.amount) return this.showToast("أدخل المبلغ", "error");
