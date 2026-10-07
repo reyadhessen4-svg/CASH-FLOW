@@ -1023,7 +1023,7 @@ function financialSystem() {
         getReviewIcon(c) { const st = c?.reviewStatus || 'pending'; return st === 'reviewed' ? 'fas fa-check-circle' : st === 'rejected' ? 'fas fa-times-circle' : 'fas fa-hourglass-half'; },
         getReviewText(c) { const st = c?.reviewStatus || 'pending'; return st === 'reviewed' ? 'تمت المراجعة' : st === 'rejected' ? 'مرفوضة' : 'لم تُراجع'; },
         getReviewRowClass(c) { const st = c?.reviewStatus || 'pending'; return st === 'reviewed' ? 'review-row-reviewed' : st === 'rejected' ? 'review-row-rejected' : 'review-row-pending'; },
-        getFilteredCustodiesForReview() { let r = this.custodies; if(this.reviewFilter.status!=='all') r=r.filter(c=>(c.reviewStatus||'pending')===this.reviewFilter.status); if(this.reviewFilter.custodyStatus!=='all') r=r.filter(c=>c.status===this.reviewFilter.custodyStatus); if(this.reviewFilter.employee) r=r.filter(c=>c.employee===this.reviewFilter.employee); return r; },
+        getFilteredCustodiesForReview() { let r = this.custodies; if(this.reviewFilter.status!=='all') r=r.filter(c=>(c.reviewStatus||'pending')===this.reviewFilter.status); if(this.reviewFilter.custodyStatus!=='all') r=r.filter(c=>c.status===this.reviewFilter.custodyStatus); if(this.reviewFilter.employee) r=r.filter(c=>c.employee===this.reviewFilter.employee); return r.slice().sort((a,b)=>new Date(b.date||'1970-01-01')-new Date(a.date||'1970-01-01')); },
             openReviewDetail(c) { 
             this.reviewDetailCustody = c; 
             this.reviewForm = { custodyId: c.id, status: c.reviewStatus || 'reviewed', notes: c.reviewNotes || '' }; 
