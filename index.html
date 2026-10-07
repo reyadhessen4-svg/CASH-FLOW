@@ -261,6 +261,8 @@
                                 <div class="px-4 pb-2 flex gap-2">
                                     <span x-show="c.isCarriedForward" class="text-amber-400 text-xs bg-amber-900/20 px-2 py-0.5 rounded"><i class="fas fa-exchange-alt ml-1"></i>مرحّل</span>
                                     <span x-show="c.isOpeningBalance && !c.isCarriedForward" class="text-purple-400 text-xs bg-purple-900/20 px-2 py-0.5 rounded"><i class="fas fa-flag ml-1"></i>رصيد بداية</span>
+                                    <span x-show="c.status==='مقفلة' && c.reopenRequest && c.reopenRequest.status==='pending'" class="text-amber-300 text-xs bg-amber-900/30 px-2 py-0.5 rounded" :title="c.reopenRequest?.reason"><i class="fas fa-hourglass-half ml-1"></i>طلب إعادة فتح بانتظار المدير</span>
+                                    <span x-show="c.status==='مقفلة' && c.reopenRequest && c.reopenRequest.status==='rejected'" class="text-red-300 text-xs bg-red-900/20 px-2 py-0.5 rounded"><i class="fas fa-ban ml-1"></i>رُفض طلب إعادة الفتح</span>
                                 </div>
 
                                 <!-- ذيل البطاقة (الإجراءات) -->
@@ -275,9 +277,11 @@
                                     <div class="relative" x-data="{ open: false }" @click.away="open = false">
                                         <button @click="open = !open" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-400 px-2 py-1.5 rounded-lg transition"><i class="fas fa-ellipsis-v"></i></button>
                                         <div x-show="open" x-transition class="absolute left-0 bottom-full mb-1 w-36 bg-slate-800 border border-slate-600 rounded-lg shadow-xl z-10 overflow-hidden">
-                                            <button x-show="c.status === 'مقفلة'" @click="reopenCustody(c); open = false" class="w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-amber-600/20 hover:text-amber-400 transition"><i class="fas fa-undo ml-1"></i> إعادة فتح</button>
-                                            <button @click="editCustody(c); open = false" class="w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-blue-600/20 hover:text-blue-400 transition"><i class="fas fa-edit ml-1"></i> تعديل</button>
-                                            <button @click="deleteCustody(c); open = false" class="w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-red-600/20 hover:text-red-400 transition"><i class="fas fa-trash ml-1"></i> حذف</button>
+                                            <button x-show="c.status === 'مقفلة' && isAdmin" @click="reopenCustody(c); open = false" class="w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-amber-600/20 hover:text-amber-400 transition"><i class="fas fa-undo ml-1"></i> <span x-text="(c.reopenRequest && c.reopenRequest.status==='pending') ? 'موافقة وإعادة فتح' : 'إعادة فتح'"></span></button>
+                                            <button x-show="c.status === 'مقفلة' && isAdmin && c.reopenRequest && c.reopenRequest.status==='pending'" @click="rejectReopenRequest(c); open = false" class="w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-red-600/20 hover:text-red-400 transition"><i class="fas fa-times ml-1"></i> رفض الطلب</button>
+                                            <button x-show="c.status === 'مقفلة' && !isAdmin" @click="requestReopenCustody(c); open = false" class="w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-amber-600/20 hover:text-amber-400 transition"><i class="fas fa-paper-plane ml-1"></i> طلب إعادة فتح</button>
+                                            <button x-show="c.status !== 'مقفلة' || isAdmin" @click="editCustody(c); open = false" class="w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-blue-600/20 hover:text-blue-400 transition"><i class="fas fa-edit ml-1"></i> تعديل</button>
+                                            <button x-show="c.status !== 'مقفلة' || isAdmin" @click="deleteCustody(c); open = false" class="w-full text-right px-3 py-2 text-xs text-slate-300 hover:bg-red-600/20 hover:text-red-400 transition"><i class="fas fa-trash ml-1"></i> حذف</button>
                                         </div>
                                     </div>
                                 </div>
@@ -1069,9 +1073,29 @@ function financialSystem() {
 
         // ═══ العهد المالية ═══
         openCustodyModal(){this.custodyForm={id:null,employee:'',date:new Date().toISOString().split('T')[0],amount:'',notes:'',additionalAmount:'',isEnhance:false,isOpeningBalance:false,linkedFlowId:null,enhanceDate:new Date().toISOString().split('T')[0]};this.showCustodyModal=true;},
-        editCustody(c){this.custodyForm={...c,isEnhance:false,additionalAmount:'',isOpeningBalance:false,enhanceDate:new Date().toISOString().split('T')[0]};this.showCustodyModal=true;},
+        editCustody(c){if(c.status==='مقفلة'&&!this.isAdmin){this.showToast('العهدة المقفلة لا تُعدَّل إلا بموافقة المدير','error');return;}this.custodyForm={...c,isEnhance:false,additionalAmount:'',isOpeningBalance:false,enhanceDate:new Date().toISOString().split('T')[0]};this.showCustodyModal=true;},
+        async requestReopenCustody(c){
+            if(!c||c.status!=='مقفلة')return;
+            if(c.reopenRequest&&c.reopenRequest.status==='pending'){this.showToast('يوجد طلب إعادة فتح معلّق بالفعل بانتظار موافقة المدير','info');return;}
+            const reason=prompt('اكتب سبب طلب إعادة فتح العهدة (سيصل للمدير للموافقة):');
+            if(reason===null)return;
+            if(!reason.trim()){this.showToast('السبب مطلوب','error');return;}
+            try{
+                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id),{reopenRequest:{status:'pending',reason:reason.trim(),requestedBy:this.currentUser?.email||'',requestedAt:new Date().toISOString()}});
+                this.showToast('تم إرسال طلب إعادة الفتح للمدير','success');
+            }catch(e){this.showToast('خطأ: '+e.message,'error');}
+        },
+        async rejectReopenRequest(c){
+            if(!this.isAdmin)return;
+            if(!confirm('رفض طلب إعادة فتح هذه العهدة؟'))return;
+            try{
+                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id),{reopenRequest:{...(c.reopenRequest||{}),status:'rejected',decidedBy:this.currentUser?.email||'',decidedAt:new Date().toISOString()}});
+                this.showToast('تم رفض الطلب','success');
+            }catch(e){this.showToast('خطأ: '+e.message,'error');}
+        },
         async reopenCustody(c){
             if(!c||c.status!=='مقفلة')return;
+            if(!this.isAdmin){this.showToast('إعادة فتح العهدة المقفلة تتم بموافقة المدير فقط','error');return;}
             if(!confirm('سيتم إعادة فتح هذه العهدة إلى "مفتوحة" والتراجع تلقائيًا عن أي رد للخزينة أو ترحيل تم عند التقفيل، عشان تقدر تقفلها من جديد بالإجراء الصحيح. متابعة؟'))return;
             try{
                 const sp = this.getCustodySpent(c); const rem = Number(c.amount) - sp;
@@ -1098,7 +1122,7 @@ function financialSystem() {
                         else { await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseDb,"custodies",cf.id)); }
                     }
                 }
-                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id),{status:'مفتوحة', closeResult:null, closedAt:null});
+                await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id),{status:'مفتوحة', closeResult:null, closedAt:null, reopenRequest:null, lastReopenedBy:this.currentUser?.email||'', lastReopenedAt:new Date().toISOString()});
                 this.showToast('تم إعادة فتح العهدة بنجاح، يمكنك تقفيلها من جديد باختيار "ترحيل"','success');
             }catch(e){ this.showToast('خطأ: '+e.message,'error'); }
         },
@@ -1107,6 +1131,7 @@ function financialSystem() {
 
         async deleteCustody(cu){
             if(!cu||!cu.id)return;
+            if(cu.status==='مقفلة'&&!this.isAdmin){this.showToast('العهدة المقفلة لا تُحذف إلا بموافقة المدير','error');return;}
             if(!confirm("حذف العهدة سيحذف بنودها وتدفقاتها المرتبطة. متأكد؟"))return;
             try{
                 // حذف التدفقات المرتبطة ببنود التسوية
@@ -1207,6 +1232,7 @@ function financialSystem() {
         },
         
             async deleteSettlementItem(sid){
+            {const cc=this.getSelectedCustody();if(cc&&cc.status==='مقفلة'&&!this.isAdmin){this.showToast('العهدة مقفلة، لا يمكن تعديل بنودها إلا بموافقة المدير','error');return;}}
             if(!confirm("حذف البند سيؤدي لحذف التدفق النقدي المرتبط به وزيادة تدفق العهدة الأصلية. متأكد؟"))return;
             const c=this.getSelectedCustody();
             if(!c)return;
@@ -1304,6 +1330,7 @@ function financialSystem() {
             }
         },
             async saveEditedSettlement() {
+            {const cc=this.custodies.find(x=>x.id===this.editSettlementForm.custodyId);if(cc&&cc.status==='مقفلة'&&!this.isAdmin){this.showToast('العهدة مقفلة، لا يمكن تعديل بنودها إلا بموافقة المدير','error');return;}}
             if (!this.editSettlementForm.item) return this.showToast("أدخل البند", "error");
             try {
                 const c = this.custodies.find(c => c.id === this.editSettlementForm.custodyId);
