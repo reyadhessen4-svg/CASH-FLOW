@@ -261,6 +261,7 @@
                                 <div class="px-4 pb-2 flex gap-2">
                                     <span x-show="c.isCarriedForward" class="text-amber-400 text-xs bg-amber-900/20 px-2 py-0.5 rounded"><i class="fas fa-exchange-alt ml-1"></i>مرحّل</span>
                                     <span x-show="c.isOpeningBalance && !c.isCarriedForward" class="text-purple-400 text-xs bg-purple-900/20 px-2 py-0.5 rounded"><i class="fas fa-flag ml-1"></i>رصيد بداية</span>
+                                    <span x-show="c.status==='مفتوحة' && (Number(c.amount) - getCustodySpent(c)) <= 0 && (c.settlements||[]).length > 0" class="text-emerald-300 text-xs bg-emerald-900/30 border border-emerald-700/30 px-2 py-0.5 rounded"><i class="fas fa-check-double ml-1"></i>متبقيها صفر، جاهزة للتقفيل</span>
                                     <span x-show="c.status==='مقفلة' && c.reopenRequest && c.reopenRequest.status==='pending'" class="text-amber-300 text-xs bg-amber-900/30 px-2 py-0.5 rounded" :title="c.reopenRequest?.reason"><i class="fas fa-hourglass-half ml-1"></i>طلب إعادة فتح بانتظار المدير</span>
                                     <span x-show="c.status==='مقفلة' && c.reopenRequest && c.reopenRequest.status==='rejected'" class="text-red-300 text-xs bg-red-900/20 px-2 py-0.5 rounded"><i class="fas fa-ban ml-1"></i>رُفض طلب إعادة الفتح</span>
                                 </div>
@@ -449,27 +450,39 @@
                                     <div class="text-center"><p class="text-sm text-slate-400">إجمالي المصروف</p><p class="font-bold text-red-400 text-lg" x-text="formatCurrency(closedReportResult.totalSpent)"></p></div>
                                     <div class="text-center"><p class="text-sm text-slate-400">إجمالي المتبقي</p><p class="font-bold text-emerald-400 text-lg" x-text="formatCurrency(closedReportResult.totalRemaining)"></p></div>
                                 </div>
-                                <div class="overflow-x-auto"><table class="w-full text-sm">
-                                    <thead class="table-dark-header border-b border-slate-700"><tr><th class="p-3 text-right text-slate-300">#</th><th class="p-3 text-right text-slate-300">تاريخ التقفيل</th><th class="p-3 text-right text-slate-300">تاريخ العهدة</th><th class="p-3 text-right text-slate-300">الإجمالي</th><th class="p-3 text-right text-slate-300">المصروف</th><th class="p-3 text-right text-slate-300">المتبقي</th><th class="p-3 text-right text-slate-300">الإجراء</th><th class="p-3 text-center text-slate-300">البنود</th></tr></thead>
-                                    <tbody>
-                                        <template x-for="(r, i) in closedReportResult.rows" :key="r.id">
-                                            <tr class="table-dark-row">
-                                                <td class="p-3 text-slate-500" x-text="i+1"></td>
-                                                <td class="p-3 font-bold text-slate-200 whitespace-nowrap" x-text="r.closedAt || 'غير مسجل'"></td>
-                                                <td class="p-3 text-slate-400 whitespace-nowrap"><span x-text="r.date"></span><span x-show="r.isCarriedForward" class="text-amber-400 text-xs bg-amber-900/30 px-2 py-0.5 rounded mr-1">مرحّل</span></td>
-                                                <td class="p-3 text-blue-400 font-bold" x-text="formatCurrency(r.amount)"></td>
-                                                <td class="p-3 text-red-400 font-bold" x-text="formatCurrency(r.spent)"></td>
-                                                <td class="p-3 text-emerald-400 font-bold" x-text="formatCurrency(r.remaining)"></td>
-                                                <td class="p-3 text-slate-400 text-xs" x-text="r.actionText"></td>
-                                                <td class="p-3 text-center"><button @click="r.open = !r.open" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded-lg"><span x-text="r.settlements.length"></span> <i class="fas" :class="r.open ? 'fa-chevron-up' : 'fa-chevron-down'"></i></button></td>
-                                            </tr>
-                                            <tr x-show="r.open"><td colspan="8" class="p-3 bg-slate-900/40">
-                                                <table class="w-full text-xs"><thead><tr class="bg-slate-700/50"><th class="p-2 text-right text-slate-400">التاريخ</th><th class="p-2 text-right text-slate-400">البند</th><th class="p-2 text-right text-slate-400">التصنيف</th><th class="p-2 text-right text-slate-400">التوجيه</th><th class="p-2 text-right text-slate-400">الإجمالي</th></tr></thead>
-                                                <tbody><template x-for="st in r.settlements" :key="st.id"><tr class="border-t border-slate-700/50"><td class="p-2 text-slate-300" x-text="st.date"></td><td class="p-2 text-slate-300" x-text="st.item + (st.subItem ? ' ('+st.subItem+')' : '')"></td><td class="p-2 text-slate-400" x-text="st.category"></td><td class="p-2 text-amber-400" x-text="st.accountingDirection || '-'"></td><td class="p-2 text-red-400 font-bold" x-text="formatCurrency(st.amount)"></td></tr></template></tbody></table>
-                                            </td></tr>
-                                        </template>
-                                    </tbody>
-                                </table></div>
+                                <div class="space-y-5">
+                                    <template x-for="(r, i) in closedReportResult.rows" :key="r.id">
+                                        <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                                            <div class="p-4 flex flex-wrap justify-between items-center gap-3 border-b border-slate-700 bg-slate-800/80">
+                                                <div class="flex items-center gap-3">
+                                                    <span class="w-7 h-7 rounded-full bg-slate-700 text-slate-300 text-xs flex items-center justify-center" x-text="i+1"></span>
+                                                    <div>
+                                                        <p class="font-bold text-white">تاريخ التقفيل: <span x-text="r.closedAt || 'غير مسجل'"></span></p>
+                                                        <p class="text-xs text-slate-400">تاريخ العهدة: <span x-text="r.date"></span><span x-show="r.isCarriedForward" class="text-amber-400 bg-amber-900/30 px-2 py-0.5 rounded mr-2">مرحّل</span></p>
+                                                    </div>
+                                                </div>
+                                                <span class="text-xs text-emerald-300 bg-emerald-900/20 border border-emerald-700/30 px-3 py-1 rounded-full" x-text="'الإجراء: ' + r.actionText"></span>
+                                            </div>
+                                            <div class="p-4">
+                                                <table class="w-full text-sm">
+                                                    <thead><tr class="bg-slate-700/50"><th class="p-2 text-center text-slate-400 text-xs">#</th><th class="p-2 text-right text-slate-400 text-xs">التاريخ</th><th class="p-2 text-right text-slate-400 text-xs">البند</th><th class="p-2 text-right text-slate-400 text-xs">التصنيف</th><th class="p-2 text-right text-slate-400 text-xs">التوجيه</th><th class="p-2 text-right text-slate-400 text-xs">الإجمالي</th></tr></thead>
+                                                    <tbody>
+                                                        <template x-for="(st, j) in r.settlements" :key="st.id">
+                                                            <tr class="border-t border-slate-700/50"><td class="p-2 text-center text-slate-500 text-xs" x-text="j+1"></td><td class="p-2 text-slate-300 whitespace-nowrap" x-text="st.date"></td><td class="p-2 text-slate-300" x-text="st.item + (st.subItem ? ' ('+st.subItem+')' : '')"></td><td class="p-2 text-slate-400 text-xs" x-text="st.category"></td><td class="p-2 text-amber-400 text-xs" x-text="st.accountingDirection || '-'"></td><td class="p-2 text-red-400 font-bold" x-text="formatCurrency(st.amount)"></td></tr>
+                                                        </template>
+                                                        <tr x-show="r.settlements.length === 0"><td colspan="6" class="p-3 text-center text-slate-500 text-xs">لا توجد بنود صرف</td></tr>
+                                                    </tbody>
+                                                    <tfoot><tr class="border-t-2 border-slate-600"><td colspan="5" class="p-2 text-left font-bold text-slate-300">إجمالي المصروفات</td><td class="p-2 font-bold text-red-400" x-text="formatCurrency(r.spent)"></td></tr></tfoot>
+                                                </table>
+                                                <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+                                                    <div class="bg-slate-900/50 rounded-lg p-3 border border-slate-700"><p class="text-xs text-slate-400 mb-1">رصيد بداية العهدة</p><p class="font-bold text-blue-400" x-text="formatCurrency(r.amount)"></p></div>
+                                                    <div class="bg-slate-900/50 rounded-lg p-3 border border-slate-700"><p class="text-xs text-slate-400 mb-1">(-) المصروفات</p><p class="font-bold text-red-400" x-text="formatCurrency(r.spent)"></p></div>
+                                                    <div class="bg-slate-900/50 rounded-lg p-3 border border-emerald-700/40"><p class="text-xs text-slate-400 mb-1">رصيد نهاية التقفيل</p><p class="font-bold text-emerald-400 text-lg" x-text="formatCurrency(r.remaining)"></p></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
                                 <div x-show="closedReportResult.rows.length === 0" class="text-center py-10 text-slate-500">لا توجد عهد مقفلة لهذا الموظف في الفترة المحددة</div>
                             </div></template>
                             <div x-show="!closedReportResult" class="text-center py-10 text-slate-500">اختر الموظف ثم اضغط "عرض التقرير"</div>
@@ -1536,7 +1549,7 @@ function financialSystem() {
             if(this.closedReport.from)f=f.filter(c=>(c.closedAt||'')>=this.closedReport.from);
             if(this.closedReport.to)f=f.filter(c=>c.closedAt && c.closedAt<=this.closedReport.to);
             f=f.slice().sort((a,b)=>new Date(b.closedAt||'1970-01-01')-new Date(a.closedAt||'1970-01-01'));
-            const rows=f.map(c=>{const sp=this.getCustodySpent(c);const amt=Number(c.amount);return{id:c.id,closedAt:c.closedAt||'',date:c.date,isCarriedForward:!!c.isCarriedForward,amount:amt,spent:sp,remaining:amt-sp,actionText:c.closeResult==='returned'?'تم رد المبلغ للصندوق':(c.closeResult==='carried_forward'?'تم ترحيل المتبقي':'مقفلة بالكامل'),settlements:c.settlements||[],open:false};});
+            const rows=f.map(c=>{const sp=this.getCustodySpent(c);const amt=Number(c.amount);return{id:c.id,closedAt:c.closedAt||'',date:c.date,isCarriedForward:!!c.isCarriedForward,amount:amt,spent:sp,remaining:amt-sp,actionText:(amt-sp)<=0?'مقفلة بالكامل':(c.closeResult==='returned'?'تم رد المبلغ للصندوق':(c.closeResult==='carried_forward'?'تم ترحيل المتبقي لعهدة جديدة':'مقفلة')),settlements:c.settlements||[],open:false};});
             this.closedReportResult={employee:emp,rows,totalAmount:rows.reduce((a,r)=>a+r.amount,0),totalSpent:rows.reduce((a,r)=>a+r.spent,0),totalRemaining:rows.reduce((a,r)=>a+r.remaining,0)};
         },
         exportClosedReportExcel(){
