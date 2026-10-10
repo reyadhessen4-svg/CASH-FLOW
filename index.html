@@ -423,6 +423,60 @@
                     </div>
                 </div>
 
+                <!-- ═══ تقرير العهد المقفلة (بتاريخ التقفيل) ═══ -->
+                <div x-show="activeTab === 'closedReport'" x-cloak>
+                    <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 mb-6"><div class="flex flex-wrap gap-4 items-end">
+                        <div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">الموظف <span class="text-red-400">*</span></label><select x-model="closedReport.employee" class="p-2 rounded-lg input-dark min-w-[220px]"><option value="">اختر الموظف</option><template x-for="emp in employeesList" :key="emp.id"><option :value="emp.name" x-text="emp.name + (emp.position ? ' ('+emp.position+')' : '')"></option></template></select></div>
+                        <div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">من تاريخ التقفيل</label><input type="date" x-model="closedReport.from" class="p-2 rounded-lg input-dark"></div>
+                        <div class="flex flex-col"><label class="text-sm mb-1 text-slate-400">إلى تاريخ التقفيل</label><input type="date" x-model="closedReport.to" class="p-2 rounded-lg input-dark"></div>
+                        <button @click="applyClosedReport()" class="primary-gradient text-white px-4 py-2 rounded-lg shadow-md">عرض التقرير</button>
+                        <button @click="exportClosedReportExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-md" title="Excel"><i class="fas fa-file-excel"></i></button>
+                        <button @click="exportPDF('closed-report-print')" class="bg-red-600 text-white px-4 py-2 rounded-lg shadow-md" title="PDF"><i class="fas fa-file-pdf"></i></button>
+                    </div></div>
+
+                    <div id="closed-report-print" class="glass-dark rounded-xl shadow-lg border border-slate-700 overflow-hidden">
+                        <div class="p-4 border-b border-slate-700 bg-slate-800/50">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-bold text-white"><i class="fas fa-calendar-check ml-2 text-blue-400"></i> العهد المقفلة بتاريخ التقفيل</h3>
+                                <span x-show="closedReportResult" class="text-xs text-slate-500" x-text="closedReportResult?.rows?.length + ' عهدة'"></span>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <template x-if="closedReportResult"><div>
+                                <h3 class="text-xl font-bold mb-4 text-center text-white">الموظف: <span x-text="closedReportResult.employee"></span></h3>
+                                <div class="grid grid-cols-3 gap-4 mb-6 bg-slate-800 p-4 rounded-lg border border-slate-700">
+                                    <div class="text-center"><p class="text-sm text-slate-400">إجمالي العهد</p><p class="font-bold text-blue-400 text-lg" x-text="formatCurrency(closedReportResult.totalAmount)"></p></div>
+                                    <div class="text-center"><p class="text-sm text-slate-400">إجمالي المصروف</p><p class="font-bold text-red-400 text-lg" x-text="formatCurrency(closedReportResult.totalSpent)"></p></div>
+                                    <div class="text-center"><p class="text-sm text-slate-400">إجمالي المتبقي</p><p class="font-bold text-emerald-400 text-lg" x-text="formatCurrency(closedReportResult.totalRemaining)"></p></div>
+                                </div>
+                                <div class="overflow-x-auto"><table class="w-full text-sm">
+                                    <thead class="table-dark-header border-b border-slate-700"><tr><th class="p-3 text-right text-slate-300">#</th><th class="p-3 text-right text-slate-300">تاريخ التقفيل</th><th class="p-3 text-right text-slate-300">تاريخ العهدة</th><th class="p-3 text-right text-slate-300">الإجمالي</th><th class="p-3 text-right text-slate-300">المصروف</th><th class="p-3 text-right text-slate-300">المتبقي</th><th class="p-3 text-right text-slate-300">الإجراء</th><th class="p-3 text-center text-slate-300">البنود</th></tr></thead>
+                                    <tbody>
+                                        <template x-for="(r, i) in closedReportResult.rows" :key="r.id">
+                                            <tr class="table-dark-row">
+                                                <td class="p-3 text-slate-500" x-text="i+1"></td>
+                                                <td class="p-3 font-bold text-slate-200 whitespace-nowrap" x-text="r.closedAt || 'غير مسجل'"></td>
+                                                <td class="p-3 text-slate-400 whitespace-nowrap"><span x-text="r.date"></span><span x-show="r.isCarriedForward" class="text-amber-400 text-xs bg-amber-900/30 px-2 py-0.5 rounded mr-1">مرحّل</span></td>
+                                                <td class="p-3 text-blue-400 font-bold" x-text="formatCurrency(r.amount)"></td>
+                                                <td class="p-3 text-red-400 font-bold" x-text="formatCurrency(r.spent)"></td>
+                                                <td class="p-3 text-emerald-400 font-bold" x-text="formatCurrency(r.remaining)"></td>
+                                                <td class="p-3 text-slate-400 text-xs" x-text="r.actionText"></td>
+                                                <td class="p-3 text-center"><button @click="r.open = !r.open" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded-lg"><span x-text="r.settlements.length"></span> <i class="fas" :class="r.open ? 'fa-chevron-up' : 'fa-chevron-down'"></i></button></td>
+                                            </tr>
+                                            <tr x-show="r.open"><td colspan="8" class="p-3 bg-slate-900/40">
+                                                <table class="w-full text-xs"><thead><tr class="bg-slate-700/50"><th class="p-2 text-right text-slate-400">التاريخ</th><th class="p-2 text-right text-slate-400">البند</th><th class="p-2 text-right text-slate-400">التصنيف</th><th class="p-2 text-right text-slate-400">التوجيه</th><th class="p-2 text-right text-slate-400">الإجمالي</th></tr></thead>
+                                                <tbody><template x-for="st in r.settlements" :key="st.id"><tr class="border-t border-slate-700/50"><td class="p-2 text-slate-300" x-text="st.date"></td><td class="p-2 text-slate-300" x-text="st.item + (st.subItem ? ' ('+st.subItem+')' : '')"></td><td class="p-2 text-slate-400" x-text="st.category"></td><td class="p-2 text-amber-400" x-text="st.accountingDirection || '-'"></td><td class="p-2 text-red-400 font-bold" x-text="formatCurrency(st.amount)"></td></tr></template></tbody></table>
+                                            </td></tr>
+                                        </template>
+                                    </tbody>
+                                </table></div>
+                                <div x-show="closedReportResult.rows.length === 0" class="text-center py-10 text-slate-500">لا توجد عهد مقفلة لهذا الموظف في الفترة المحددة</div>
+                            </div></template>
+                            <div x-show="!closedReportResult" class="text-center py-10 text-slate-500">اختر الموظف ثم اضغط "عرض التقرير"</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- ═══ كشف حساب عهدة ═══ -->
                 <div x-show="activeTab === 'custodyStatement'" x-cloak>
                     <div class="glass-dark p-6 rounded-xl shadow-lg border border-slate-700 mb-6">
@@ -824,6 +878,7 @@ function financialSystem() {
         lastBackupTime: '', lastBackupPersistent: '', restoreInProgress: false,
         settlement: { selectedCustodyId:'', date:'', item:'', subItem:'', category:'تشغيلية', amount:'', accountingDirection:'', isTaxable:false, amountBeforeTax:'', taxRate:15 },
         inquiry: { employee:'', from:'', to:'' }, inquiryResult: null,
+        closedReport: { employee:'', from:'', to:'' }, closedReportResult: null,
         custodyStatement: { employee:'', from:'', to:'', data: null },
         analysis: { from:'', to:'', type:'all', category:'all', data:null },
         report: { from:'', to:'', data:null }, flowChartInstance: null, balanceChartInstance: null,
@@ -835,6 +890,7 @@ function financialSystem() {
             { id: 'custody', name: 'العهد المالية', icon: 'fas fa-wallet' },
             { id: 'settlement', name: 'تقفيل العهد', icon: 'fas fa-file-invoice-dollar' },
             { id: 'inquiry', name: 'استعلام العهد', icon: 'fas fa-search-dollar' },
+            { id: 'closedReport', name: 'تقرير العهد المقفلة', icon: 'fas fa-calendar-check' },
             { id: 'custodyStatement', name: 'كشف حساب عهدة', icon: 'fas fa-file-invoice' },
             { id: 'analysis', name: 'تحليل التدفقات', icon: 'fas fa-chart-bar' },
             { id: 'report', name: 'قائمة التدفقات', icon: 'fas fa-file-alt' },
@@ -844,7 +900,7 @@ function financialSystem() {
             { id: 'backup', name: 'النسخ الاحتياطي', icon: 'fas fa-database' },
             { id: 'settings', name: 'إعدادات النظام', icon: 'fas fa-cog' }
         ],
-        tabNames: { 'dashboard':'لوحة التحكم', 'cashflow':'التدفقات النقدية', 'custody':'العهد المالية', 'settlement':'تقفيل العهد', 'inquiry':'استعلام العهد', 'custodyStatement':'كشف حساب عهدة', 'analysis':'تحليل التدفقات النقدية', 'report':'قائمة التدفقات', 'employees':'الموظفون', 'users':'إدارة المستخدمين', 'custodyReview':'مراجعة العهد', 'backup':'النسخ الاحتياطي', 'settings':'إعدادات النظام' },
+        tabNames: { 'dashboard':'لوحة التحكم', 'cashflow':'التدفقات النقدية', 'custody':'العهد المالية', 'settlement':'تقفيل العهد', 'inquiry':'استعلام العهد', 'closedReport':'تقرير العهد المقفلة', 'custodyStatement':'كشف حساب عهدة', 'analysis':'تحليل التدفقات النقدية', 'report':'قائمة التدفقات', 'employees':'الموظفون', 'users':'إدارة المستخدمين', 'custodyReview':'مراجعة العهد', 'backup':'النسخ الاحتياطي', 'settings':'إعدادات النظام' },
 
         get allowedTabs() { if(!this.currentUser) return []; if(this.currentUser.role==='admin') return this.allTabs; return this.allTabs.filter(t=>this.currentUser.permissions?.[t.id]); },
         get isAdmin() { return this.currentUser?.role === 'admin'; },
@@ -1473,6 +1529,27 @@ function financialSystem() {
         exportCustodyReportExcel(c,sp,rem,act,cd){const rows=(c.settlements||[]).map(s=>[s.date,s.item,s.subItem||'',s.category,s.accountingDirection||'',s.isTaxable?'نعم':'لا',s.isTaxable?Number(s.amountBeforeTax):'-',s.isTaxable?Number(s.taxAmount):'-',Number(s.amount)]);rows.push(["","","","","","","","إجمالي المصروفات",sp]);rows.push(["","","","","","","","المتبقي",rem]);const ws=XLSX.utils.aoa_to_sheet([['تقرير تقفيل عهدة: '+c.employee],[],["التاريخ","البند","التفصيل","التصنيف","التوجيه","ضريبي","قبل الضريبة","الضريبة","الإجمالي"],...rows]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"تقفيل");XLSX.writeFile(wb,'Report_'+c.employee+'_'+cd+'.xlsx');},
 
         // ═══ استعلام العهد ═══
+        applyClosedReport(){
+            const emp=this.closedReport.employee;
+            if(!emp){this.showToast('اختر الموظف أولاً','error');return;}
+            let f=this.custodies.filter(c=>c.employee===emp && c.status==='مقفلة');
+            if(this.closedReport.from)f=f.filter(c=>(c.closedAt||'')>=this.closedReport.from);
+            if(this.closedReport.to)f=f.filter(c=>c.closedAt && c.closedAt<=this.closedReport.to);
+            f=f.slice().sort((a,b)=>new Date(b.closedAt||'1970-01-01')-new Date(a.closedAt||'1970-01-01'));
+            const rows=f.map(c=>{const sp=this.getCustodySpent(c);const amt=Number(c.amount);return{id:c.id,closedAt:c.closedAt||'',date:c.date,isCarriedForward:!!c.isCarriedForward,amount:amt,spent:sp,remaining:amt-sp,actionText:c.closeResult==='returned'?'تم رد المبلغ للصندوق':(c.closeResult==='carried_forward'?'تم ترحيل المتبقي':'مقفلة بالكامل'),settlements:c.settlements||[],open:false};});
+            this.closedReportResult={employee:emp,rows,totalAmount:rows.reduce((a,r)=>a+r.amount,0),totalSpent:rows.reduce((a,r)=>a+r.spent,0),totalRemaining:rows.reduce((a,r)=>a+r.remaining,0)};
+        },
+        exportClosedReportExcel(){
+            const r=this.closedReportResult;if(!r){this.showToast('اعرض التقرير أولاً','error');return;}
+            const head=['#','تاريخ التقفيل','تاريخ العهدة','الإجمالي','المصروف','المتبقي','الإجراء'];
+            const data=r.rows.map((x,i)=>[i+1,x.closedAt||'غير مسجل',x.date,x.amount,x.spent,x.remaining,x.actionText]);
+            data.push(['','','إجمالي',r.totalAmount,r.totalSpent,r.totalRemaining,'']);
+            const ws=XLSX.utils.aoa_to_sheet([['تقرير العهد المقفلة بتاريخ التقفيل - '+r.employee],[],head,...data]);
+            const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'العهد المقفلة');
+            const ws2=XLSX.utils.aoa_to_sheet([['تاريخ التقفيل','تاريخ العهدة','تاريخ البند','البند','التفصيل','التصنيف','التوجيه','الإجمالي'],...r.rows.flatMap(x=>x.settlements.map(st=>[x.closedAt,x.date,st.date,st.item,st.subItem||'',st.category||'',st.accountingDirection||'',Number(st.amount)]))]);
+            XLSX.utils.book_append_sheet(wb,ws2,'البنود');
+            XLSX.writeFile(wb,'ClosedCustodies_'+r.employee+'.xlsx');
+        },
         applyInquiry(){
             const emp=this.inquiry.employee;if(!emp)return alert("اختر الموظف");
             let f=this.custodies.filter(c=>c.employee===emp);
