@@ -870,7 +870,7 @@ function financialSystem() {
         activeTab: 'dashboard', sidebarOpen: false, flows: [], custodies: [], users: [], employeesList: [],
         showFlowModal: false, flowForm: { id:null, type:'inflow', date:'', item:'', subItem:'', category:'تشغيلية', amount:'', notes:'' },
         showCustodyModal: false, custodyForm: { id:null, employee:'', date:'', amount:'', notes:'', additionalAmount:'', isEnhance:false, isOpeningBalance:false, linkedFlowId:null, enhanceDate:'' },
-        showCloseCustodyModal: false, closeCustodyData: null, closeAction: 'return', custodyReportHTML: '',
+        showCloseCustodyModal: false, closeCustodyData: null, closeAction: 'keep', custodyReportHTML: '',
         showUserModal: false, userForm: { id:'', email:'', permissions:{} },
         showEmployeeModal: false, employeeForm: { id:null, name:'', position:'', phone:'' },
         showAddUserModal: false, addUserStep: 1, showAddPassword: false, addUserLoading: false, addUserError: '',
@@ -1462,12 +1462,15 @@ function financialSystem() {
             }
         },
 
-        openCloseCustodyModal(c){this.closeCustodyData=c;this.closeAction='return';this.showCloseCustodyModal=true;},
+        openCloseCustodyModal(c){this.closeCustodyData=c;this.closeAction='keep';this.showCloseCustodyModal=true;},
 
             async closeAndGenerateCustodyReport(){
             const c=this.closeCustodyData; if(!c) return;
             const sp = this.getCustodySpent(c); const rem = c.amount - sp; const td = new Date().toISOString().split('T')[0];
             const closeResult = rem <= 0 ? 'fully_settled' : (this.closeAction === 'return' ? 'returned' : 'carried_forward');
+            if(rem > 0 && this.closeAction === 'return'){
+                if(!confirm('⚠️ تنبيه: أنت اخترت "رد للصندوق".\n\nسيتم رد المتبقي ('+this.formatCurrency(rem)+') إلى الصندوق وتقفيل العهدة، ولن يُرحَّل كعهدة جديدة للموظف.\n\nموافق = نعم، رد المتبقي للصندوق\nإلغاء = لا، ارجع واختر "ترحيل" إن أردت')) return;
+            }
             try {
                 await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseDb,"custodies",c.id),{status:'مقفلة',closedAt:td,closeResult:closeResult});
                 
